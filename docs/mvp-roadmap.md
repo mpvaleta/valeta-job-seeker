@@ -1,6 +1,6 @@
 # MVP roadmap
 
-## Shipped in MVP 0.2
+## Shipped through MVP 0.3
 
 - Local-first career profile and verified fact bank
 - Job-description keyword and requirement extraction
@@ -15,16 +15,31 @@
 - Selectable OpenAI, Anthropic Claude, and Google Gemini review adapters with a
   deterministic local fallback
 - Browser-local diagnostics and a privacy-safe downloadable error report
+- Private per-user radar goals, monitored companies, weekly/manual cadence, and
+  a review-only discovery inbox
+- Deterministic role-to-goal alignment with user-defined exclusions and minimum
+  score
+- Public Greenhouse, Lever, Ashby, structured JobPosting, and public-careers-
+  page discovery adapters
+- Role intake from a copied public job URL
+- Public article and YouTube-caption ingestion into the scoped knowledge
+  library
+- LinkedIn API feasibility screen, official-export workflow, and explicit
+  no-scraping boundary
+- V's Job Seeker branding and a Mac-native visual refresh
 
 ## Next build priorities
 
-1. AI résumé/cover-letter generation with playbook-rule citations and
+1. Activate and verify a closed-app weekly scheduler trigger for the prepared
+   Worker radar hook
+2. AI résumé/cover-letter generation with playbook-rule citations and
    claim-level approval
-2. Durable encrypted per-user source storage and restore
-3. DOCX/PDF resume templates
-4. Greenhouse and Lever application-specific field adapters
-5. Company and agency monitoring with scheduled public-careers-page checks
+3. Durable encrypted per-user source storage and restore
+4. DOCX/PDF resume templates
+5. Greenhouse, Lever, Workday, Ashby, and SmartRecruiters form adapters
 6. Multi-user profiles for family and friends
+7. Optional LinkedIn OpenID identity connection after developer-app approval;
+   do not claim it unlocks job or member recommendations
 
 ## MVP 1 — Command center
 
@@ -99,7 +114,7 @@ Includes:
 - Companies, agencies, marketing agencies, advertising agencies, and sports
   organizations.
 - Applied date, status, next step, source URL, generated materials, and notes.
-- Daily monitors for selected companies and public ATS sources.
+- Weekly or manual monitors for selected companies and public ATS sources.
 - Source registry with last-checked timestamp and change summaries.
 
 ## MVP 7 — Application assistant

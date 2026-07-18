@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Valeta Application Autofill",
+  "name": "V's Application Autofill",
   "version": "0.2.0",
   "description": "Preview and fill approved job-application fields. Never submits forms.",
   "permissions": ["activeTab", "storage", "scripting"],
-  "action": { "default_popup": "popup.html", "default_title": "Valeta Autofill" },
+  "action": { "default_popup": "popup.html", "default_title": "V's Autofill" },
   "content_scripts": [{ "matches": ["https://*/*"], "js": ["content.js"], "run_at": "document_idle" }]
 }

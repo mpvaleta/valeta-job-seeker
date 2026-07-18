@@ -13,15 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Valeta's Job Seeker",
+  title: "V's Job Seeker",
   description:
     "A personalized command center for role matching, resume tailoring, cover letters, applications, and monitored companies.",
-  applicationName: "Valeta's Job Seeker",
+  applicationName: "V's Job Seeker",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Valeta Job Seeker",
+    title: "V's Job Seeker",
   },
   other: {
     "codex-preview": "development",

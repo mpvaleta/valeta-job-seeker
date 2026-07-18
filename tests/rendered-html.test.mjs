@@ -33,5 +33,8 @@ test("renders development preview metadata", async () => {
   assert.match(html, developmentPreviewMeta);
   assert.match(html, /AI &amp; reliability|AI & reliability/);
   assert.match(html, /Knowledge sources/);
+  assert.match(html, /Job radar/);
+  assert.match(html, /Connections/);
+  assert.match(html, /V(?:&#x27;|&apos;|')s/);
   assert.match(html, /VERIFIED LOCAL RECOMMENDATION/);
 });

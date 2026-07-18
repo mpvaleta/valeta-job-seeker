@@ -44,7 +44,7 @@ document.querySelector("#save").addEventListener("click", async () => {
     await chrome.storage.local.set({ valetaPackage: value });
     status.textContent = "Profile saved only in this browser.";
   } catch {
-    status.textContent = "The package is not valid. Download a fresh JSON package from Valeta Job Seeker.";
+    status.textContent = "The package is not valid. Download a fresh JSON package from V's Job Seeker.";
   }
 });
 

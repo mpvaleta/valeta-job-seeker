@@ -41,21 +41,21 @@ export default function AppError({ error, reset }: FatalErrorProps) {
       const stored = JSON.parse(localStorage.getItem("valeta-error-log-v1") || "[]");
       if (Array.isArray(stored)) errors = stored;
     } catch {}
-    return JSON.stringify({ product: "Valeta's Job Seeker", build: "2026.07-ai-r1", generatedAt: new Date().toISOString(), privacy: "No résumé text, approved facts, raw documents, profile fields, credentials, or API keys are included.", errors }, null, 2);
+    return JSON.stringify({ product: "V's Job Seeker", build: "2026.07-radar-r1", generatedAt: new Date().toISOString(), privacy: "No résumé text, approved facts, raw documents, profile fields, credentials, or API keys are included.", errors }, null, 2);
   }
 
   function downloadReport() {
     const url = URL.createObjectURL(new Blob([createReport()], { type: "application/json" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `valeta-error-report-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.download = `v-jobs-error-report-${new Date().toISOString().slice(0, 10)}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
 
   return <main className="fatal-error">
     <section>
-      <span>VALETA DIAGNOSTICS</span>
+      <span>V’S JOB SEEKER DIAGNOSTICS</span>
       <h1>Something interrupted the app.</h1>
       <p>Your local career data has not been deleted. Try the page again, or download the privacy-safe error report and send that JSON file for support.</p>
       <code>{entry.code}{error.digest ? ` · ${error.digest}` : ""}</code>

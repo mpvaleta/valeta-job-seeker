@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { analyzeRole } from "@/lib/recommendation-engine.mjs";
 import { mergeWritingSample, removeWritingSample, scopeForCategory, sourceScope, sourceScopeDescription, sourceScopeLabel, SOURCE_CATEGORIES } from "@/lib/knowledge-sources.mjs";
 import { CURATED_RESUME_PLAYBOOK } from "@/lib/resume-playbook.mjs";
+import { RadarWorkspace } from "./radar-workspace";
+import type { RadarOpportunity } from "./radar-workspace";
 import type { ApplicationRecommendation } from "@/lib/recommendation-engine.mjs";
 import type { SourceCategory, SourceScope } from "@/lib/knowledge-sources.mjs";
 
-type View = "workspace" | "profile" | "documents" | "voice" | "companies" | "applications" | "autofill" | "ai";
+type View = "workspace" | "radar" | "profile" | "documents" | "voice" | "connections" | "companies" | "applications" | "autofill" | "ai";
 type Output = "analysis" | "resume" | "cover" | "answers";
-type Application = { id: string; company: string; role: string; status: string; date: string };
+type Application = { id: string; company: string; role: string; status: string; date: string; url?: string };
 type SourceDocument = { id: string; title: string; type: string; category?: SourceCategory; scope?: SourceScope; sourceUrl?: string; importedAt: string; text: string; candidates: string[]; approved: string[]; status: "reading" | "ready" | "needs-text"; truncated?: boolean };
 type CompanyTarget = { id: string; name: string; website: string; careers: string; kind: "Brand" | "Agency" | "Sports" | "Tech"; focus: string; market: string; status: "Researching" | "Monitoring" | "Applied" | "Paused"; lastChecked: string; notes: string };
 type WritingStyle = { tone: string; prefer: string; avoid: string; samples: string };
@@ -23,7 +25,9 @@ type AiConnection = { state: "checking" | "loaded" | "error"; authenticated: boo
 type AiStatusPayload = { authenticated?: boolean; authorized?: boolean; providers?: AiProviderStatus[]; privacy?: string };
 type CloudRecommendation = { decision: "prioritize_and_apply" | "apply_after_edits" | "hold_and_investigate"; confidence: "high" | "medium" | "low"; summary: string; actions: string[]; priorityFacts: string[]; evidenceGaps: string[]; cautions: string[] };
 type CloudReview = { key: string; provider: AiProviderId; providerName: string; model: string; modelLabel: string; recommendation: CloudRecommendation };
-type ErrorLogEntry = { id: string; timestamp: string; area: "app" | "ai" | "connection" | "documents"; code: string; message: string; context?: Record<string, string | number | boolean> };
+type ErrorLogEntry = { id: string; timestamp: string; area: "app" | "ai" | "connection" | "documents" | "links" | "radar"; code: string; message: string; context?: Record<string, string | number | boolean> };
+type ReadableLinkSource = { requestedUrl: string; finalUrl: string; sourceType: string; title: string; description: string; text: string; jobs: Array<{ title: string; company: string; location: string; description: string; sourceUrl: string }> };
+type LinkReadPayload = { ok?: boolean; code?: string; message?: string; source?: ReadableLinkSource };
 
 type Profile = {
   name: string;
@@ -54,7 +58,7 @@ const initialWritingStyle: WritingStyle = {
   samples: "",
 };
 
-const APP_BUILD = "2026.07-ai-r2";
+const APP_BUILD = "2026.07-radar-r1";
 const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_SOURCE_TEXT = 300_000;
 
@@ -120,6 +124,12 @@ function dateToday() {
   return new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" }).format(new Date());
 }
 
+function createId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
+  const random = Math.random().toString(36).slice(2);
+  return `${Date.now().toString(36)}-${random}`;
+}
+
 function useSavedState<T>(key: string, fallback: T) {
   const [value, setValue] = useState<T>(fallback);
   const [ready, setReady] = useState(false);
@@ -154,11 +164,14 @@ export function JobSeekerApp() {
   const [jobText, setJobText] = useSavedState("valeta-job-v2", "");
   const [company, setCompany] = useSavedState("valeta-company-v2", "");
   const [role, setRole] = useSavedState("valeta-role-v2", "");
+  const [roleUrl, setRoleUrl] = useSavedState("valeta-role-url-v1", "");
   const [notice, setNotice] = useState("");
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentText, setDocumentText] = useState("");
   const [sourceCategory, setSourceCategory] = useState<SourceCategory>("Résumé");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [sourceReading, setSourceReading] = useState(false);
+  const [roleReading, setRoleReading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [companyName, setCompanyName] = useState("");
   const [companyKind, setCompanyKind] = useState<CompanyTarget["kind"]>("Brand");
@@ -171,7 +184,7 @@ export function JobSeekerApp() {
   const [errorLog, setErrorLog] = useSavedState<ErrorLogEntry[]>("valeta-error-log-v1", []);
 
   const logError = useCallback((area: ErrorLogEntry["area"], code: string, message: unknown, context?: ErrorLogEntry["context"]) => {
-    setErrorLog((current) => [{ id: crypto.randomUUID(), timestamp: new Date().toISOString(), area, code, message: safeErrorMessage(message), context }, ...current].slice(0, 50));
+    setErrorLog((current) => [{ id: createId(), timestamp: new Date().toISOString(), area, code, message: safeErrorMessage(message), context }, ...current].slice(0, 50));
   }, [setErrorLog]);
 
   const facts = useMemo(() => profile.facts.split("\n").map((x) => x.trim()).filter(Boolean), [profile.facts]);
@@ -275,7 +288,7 @@ export function JobSeekerApp() {
 
   function saveApplication() {
     if (!company.trim() && !role.trim()) { setNotice("Add a company or role first"); return; }
-    setApplications([{ id: crypto.randomUUID(), company: company || "Unknown company", role: role || "Untitled role", status: "Preparing", date: dateToday() }, ...applications]);
+    setApplications([{ id: createId(), company: company || "Unknown company", role: role || "Untitled role", status: "Preparing", date: dateToday(), url: roleUrl.trim() || undefined }, ...applications]);
     setNotice("Application added to tracker");
   }
 
@@ -296,16 +309,88 @@ export function JobSeekerApp() {
     printWindow.document.close();
   }
 
+  async function pasteFromClipboard(setValue: (value: string) => void, label: string) {
+    try {
+      const value = await navigator.clipboard.readText();
+      if (!value.trim()) { setNotice(`Your clipboard does not contain a ${label}`); return; }
+      setValue(value.trim());
+      setNotice(`${label[0].toUpperCase()}${label.slice(1)} pasted from the clipboard`);
+    } catch (cause) {
+      logError("links", "clipboard_read_failed", cause, { field: label });
+      setNotice(`Clipboard access was not available. Click the field and press Command–V.`);
+    }
+  }
+
+  async function readLink(url: string, purpose: "knowledge" | "role") {
+    const response = await fetch("/api/link/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, purpose }) });
+    const data = await response.json() as LinkReadPayload;
+    if (!response.ok || !data.ok || !data.source) throw new Error(data.message || "The public link could not be read.");
+    return data.source;
+  }
+
+  function storeImportedSource(titleValue: string, type: string, rawText: string, originalUrl?: string) {
+    const title = titleValue.trim() || `Imported source — ${dateToday()}`;
+    const scope = scopeForCategory(sourceCategory);
+    const trimmedText = rawText.trim();
+    const text = trimmedText.slice(0, MAX_SOURCE_TEXT);
+    const truncated = trimmedText.length > MAX_SOURCE_TEXT;
+    const document: SourceDocument = { id: createId(), title, type, category: sourceCategory, scope, sourceUrl: originalUrl || undefined, importedAt: dateToday(), text, candidates: scope === "evidence" || scope === "guidance" ? factCandidates(text) : [], approved: [], status: "ready", truncated };
+    setDocuments((current) => [document, ...current]);
+    if (scope === "voice") setWritingStyle((current) => ({ ...current, samples: mergeWritingSample(current.samples, title, text) }));
+    return scope;
+  }
+
+  async function readRoleFromLink(urlValue = roleUrl) {
+    if (!urlValue.trim()) { setNotice("Paste a public job link first"); return; }
+    setRoleReading(true);
+    try {
+      const source = await readLink(urlValue.trim(), "role");
+      const structuredJob = source.jobs[0];
+      const extractedText = structuredJob?.description?.trim() || source.text.trim();
+      setRoleUrl(structuredJob?.sourceUrl || source.finalUrl);
+      if (structuredJob?.company) setCompany(structuredJob.company);
+      if (structuredJob?.title) setRole(structuredJob.title);
+      else if (!role.trim() && source.title) setRole(source.title.replace(/\s*[|–—-].*$/, "").trim());
+      setJobText(extractedText);
+      setOutput("analysis");
+      setNotice(`Role imported from ${new URL(source.finalUrl).hostname}. Review the extracted text before using it.`);
+    } catch (cause) {
+      logError("links", "role_link_read_failed", cause);
+      setNotice(cause instanceof Error ? cause.message : "The role link could not be read. Paste the job description instead.");
+    } finally {
+      setRoleReading(false);
+    }
+  }
+
+  async function readKnowledgeFromLink() {
+    if (!sourceUrl.trim()) { setNotice("Paste a public article or YouTube link first"); return; }
+    setSourceReading(true);
+    try {
+      const source = await readLink(sourceUrl.trim(), "knowledge");
+      const scope = storeImportedSource(source.title, source.sourceType === "youtube-transcript" ? "YouTube transcript" : "Public article", source.text, source.finalUrl);
+      setSourceUrl("");
+      setNotice(scope === "guidance" ? "Public source imported into the résumé playbook. Review and activate the rules you trust." : scope === "voice" ? "Public text added to Writing voice only." : scope === "evidence" ? "Public source imported as candidate evidence. Approve each fact before use." : "Public research source saved separately from your career facts.");
+    } catch (cause) {
+      logError("links", "knowledge_link_read_failed", cause, { category: sourceCategory });
+      setNotice(cause instanceof Error ? cause.message : "The public source could not be read. Paste its text instead.");
+    } finally {
+      setSourceReading(false);
+    }
+  }
+
+  async function prepareRadarOpportunity(opportunity: RadarOpportunity) {
+    setCompany(opportunity.company);
+    setRole(opportunity.title);
+    setRoleUrl(opportunity.sourceUrl);
+    setView("workspace");
+    await readRoleFromLink(opportunity.sourceUrl);
+  }
+
   function importDocument() {
     if (!documentText.trim()) { setNotice("Paste document text before importing"); return; }
     if (sourceUrl.trim() && !/^https?:\/\//i.test(sourceUrl.trim())) { setNotice("Source URL must start with http:// or https://"); return; }
     const title = documentTitle.trim() || `Imported document — ${dateToday()}`;
-    const scope = scopeForCategory(sourceCategory);
-    const trimmedText = documentText.trim();
-    const text = trimmedText.slice(0, MAX_SOURCE_TEXT);
-    const truncated = trimmedText.length > MAX_SOURCE_TEXT;
-    setDocuments([{ id: crypto.randomUUID(), title, type: "Pasted text", category: sourceCategory, scope, sourceUrl: sourceUrl.trim() || undefined, importedAt: dateToday(), text, candidates: scope === "evidence" || scope === "guidance" ? factCandidates(text) : [], approved: [], status: "ready", truncated }, ...documents]);
-    if (scope === "voice") setWritingStyle((current) => ({ ...current, samples: mergeWritingSample(current.samples, title, text) }));
+    const scope = storeImportedSource(title, "Pasted text", documentText, sourceUrl.trim() || undefined);
     setDocumentTitle(""); setDocumentText(""); setSourceUrl("");
     setNotice(scope === "evidence" ? "Career source imported. Review each candidate fact before it becomes evidence." : scope === "voice" ? "Writing sample added to your voice bank. It cannot create career facts." : scope === "guidance" ? "Résumé playbook imported. Review the detected tips and activate the rules you trust." : "Research source saved as context. It cannot create career facts.");
   }
@@ -317,7 +402,7 @@ export function JobSeekerApp() {
     const importedUrl = sourceUrl.trim() || undefined;
     const queued = files.map((file) => ({
       file,
-      document: { id: crypto.randomUUID(), title: file.name, type: file.type || "Document", category: sourceCategory, scope, sourceUrl: importedUrl, importedAt: dateToday(), text: "", candidates: [], approved: [], status: "reading" as const },
+      document: { id: createId(), title: file.name, type: file.type || "Document", category: sourceCategory, scope, sourceUrl: importedUrl, importedAt: dateToday(), text: "", candidates: [], approved: [], status: "reading" as const },
     }));
     setSourceUrl("");
     setDocuments((current) => [...queued.map((item) => item.document), ...current]);
@@ -374,7 +459,7 @@ export function JobSeekerApp() {
 
   function addCompany() {
     if (!companyName.trim()) { setNotice("Add a company or agency name first"); return; }
-    setCompanies([{ id: crypto.randomUUID(), name: companyName.trim(), website: companyWebsite.trim(), careers: companyCareers.trim(), kind: companyKind, focus: companyFocus.trim(), market: "Bay Area / U.S.", status: "Researching", lastChecked: "Not checked", notes: "" }, ...companies]);
+    setCompanies([{ id: createId(), name: companyName.trim(), website: companyWebsite.trim(), careers: companyCareers.trim(), kind: companyKind, focus: companyFocus.trim(), market: "Bay Area / U.S.", status: "Researching", lastChecked: "Not checked", notes: "" }, ...companies]);
     setCompanyName(""); setCompanyWebsite(""); setCompanyCareers(""); setNotice("Target added to your directory");
   }
 
@@ -383,12 +468,12 @@ export function JobSeekerApp() {
   }
 
   function exportWorkspace() {
-    download("valeta-private-workspace.json", JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), profile, writingStyle, documents, companies, applications, aiPreference, playbookSettings }, null, 2), "application/json");
+    download("v-jobs-private-workspace.json", JSON.stringify({ version: 3, product: "V's Job Seeker", exportedAt: new Date().toISOString(), profile, writingStyle, documents, companies, applications, aiPreference, playbookSettings }, null, 2), "application/json");
   }
 
   function createErrorReport() {
     return JSON.stringify({
-      product: "Valeta's Job Seeker",
+      product: "V's Job Seeker",
       build: APP_BUILD,
       generatedAt: new Date().toISOString(),
       aiConnection: { state: aiConnection.state, authenticated: aiConnection.authenticated, authorized: aiConnection.authorized, selectedProvider: selectedProvider?.id || aiPreference.provider, configured: Boolean(selectedProvider?.configured), ready: aiReady, model: aiModel },
@@ -400,26 +485,27 @@ export function JobSeekerApp() {
   return (
     <main className="app-shell">
       <aside className="nav-panel">
-        <button className="wordmark" onClick={() => setView("workspace")}><span>VALETA</span><small>JOB SEEKER</small></button>
+        <button className="wordmark" onClick={() => setView("workspace")}><span>V&apos;S</span><small>JOB SEEKER</small></button>
         <nav>
-          {([['workspace','Role workspace'],['profile','Career profile'],['documents','Knowledge sources'],['voice','Writing voice'],['companies','Companies & agencies'],['applications','Applications'],['autofill','Autofill assistant'],['ai','AI & reliability']] as [View,string][]).map(([id,label]) =>
+          {([['workspace','Role workspace'],['radar','Job radar'],['profile','Career profile'],['documents','Knowledge sources'],['voice','Writing voice'],['connections','Connections'],['applications','Applications'],['autofill','Autofill assistant'],['ai','AI & reliability']] as [View,string][]).map(([id,label]) =>
             <button key={id} className={view === id ? "nav-item active" : "nav-item"} onClick={() => setView(id)}>{label}</button>
           )}
         </nav>
-        <div className="nav-note"><strong>Private workspace</strong><span>Data saves in this browser on your Mac.</span></div>
+        <div className="nav-note"><strong>Private workspace</strong><span>Career sources stay on this Mac. Radar targets use your signed-in private account.</span></div>
       </aside>
 
       <section className="main-stage">
-        <header className="topbar"><div><span className="kicker">PRIVATE CAREER COMMAND CENTER</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : "Choose and understand your AI."}</h1></div><div className="status-pill"><i /> Local autosave on</div></header>
+        <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your weekly radar." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : "Choose and understand your AI."}</h1></div><div className="status-pill"><i /> Private autosave on</div></header>
         {notice && <button className="notice" onClick={() => setNotice("")}>{notice} ×</button>}
 
         {view === "workspace" && <div className="workspace-grid">
           <section className="input-card">
             <div className="step"><b>01</b><span>ROLE INTAKE</span></div>
+            <div className="link-intake"><label>Job link<input type="url" value={roleUrl} onChange={(event) => setRoleUrl(event.target.value)} placeholder="Copy a public job link, then press Command–V" /></label><div><button onClick={() => pasteFromClipboard(setRoleUrl, "job link")}>Paste link</button><button className="primary" onClick={() => readRoleFromLink()} disabled={roleReading}>{roleReading ? "Reading…" : "Read public job page"}</button></div><small>Works with public company and ATS pages. LinkedIn or login-only pages require you to paste the job text.</small></div>
             <div className="field-row"><label>Company<input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="e.g. Apple" /></label><label>Role title<input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Brand Project Manager" /></label></div>
-            <label>Job description<textarea value={jobText} onChange={(e) => setJobText(e.target.value)} placeholder="Paste the complete job description here. Job-board URLs alone cannot be reliably read, so paste the text for the best result." /></label>
+            <label>Job description<textarea value={jobText} onChange={(e) => setJobText(e.target.value)} placeholder="Paste the complete job description here, or import it from the public job link above." /></label>
             {(!evidenceSources.length || facts.length < 3) && <button className="knowledge-cta" onClick={() => setView("documents")}><span>YOUR SOURCE OF TRUTH</span><strong>Upload knowledge sources</strong><small>Add your résumé, Custom GPT content, résumé rules, and writing samples. Personal claims require your approval.</small></button>}
-            <div className="input-actions"><button className="primary" onClick={() => setOutput("analysis")}>Analyze locally</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Running secure review…" : aiReady ? `Review with ${aiProviderName}` : "Cloud AI setup"}</button><button onClick={saveApplication}>Save to applications</button><button onClick={() => { setJobText(""); setCompany(""); setRole(""); }}>Clear</button></div>
+            <div className="input-actions"><button className="primary" onClick={() => setOutput("analysis")}>Analyze locally</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Running secure review…" : aiReady ? `Review with ${aiProviderName}` : "Cloud AI setup"}</button><button onClick={saveApplication}>Save to applications</button><button onClick={() => { setJobText(""); setCompany(""); setRole(""); setRoleUrl(""); }}>Clear</button></div>
           </section>
 
           <section className="output-card">
@@ -451,6 +537,8 @@ export function JobSeekerApp() {
           </section>
         </div>}
 
+        {view === "radar" && <RadarWorkspace onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
+
         {view === "ai" && <section className="ai-reliability">
           <div className="ai-status-card">
             <div className="step"><b>AI</b><span>CONNECTION & RELIABILITY</span></div>
@@ -461,9 +549,9 @@ export function JobSeekerApp() {
             {selectedProvider && <div className="model-picker"><span>2 · Choose a model</span><div>{selectedProvider.models.map((model) => <button key={model.key} className={selectedModel?.key === model.key ? "selected" : ""} aria-pressed={selectedModel?.key === model.key} onClick={() => setAiPreference({ provider: selectedProvider.id, modelKey: model.key })}><span>{model.tier}</span><strong>{model.label}</strong><small>{model.description}</small><code>{model.id}</code></button>)}</div></div>}
 
             <div className="engine-status"><div><span>Local evidence engine</span><strong>Always active</strong><small>Instant, deterministic, private to this browser</small></div><div><span>Selected cloud review</span><strong>{aiReady ? "Ready" : selectedProvider?.configured ? !aiConnection.authenticated ? "Sign-in required" : "Access restricted" : "Setup required"}</strong><small>{aiProviderName} · {selectedModel?.label || aiModel} · only after your click</small></div></div>
-            {selectedProvider && !selectedProvider.configured && <div className="setup-note"><strong>Connect {selectedProvider.name}</strong><p>Open ChatGPT Sites, find <em>Valeta&apos;s Job Seeker</em>, choose <b>More actions → Settings</b>, and add <code>{selectedProvider.keyName}</code> as a secret. Then redeploy the saved version. Create the key in that provider&apos;s developer console; API access and billing are separate from consumer chat subscriptions. Never paste a key into chat or this app, commit it to GitHub, or store it in browser data.</p><a href="https://chatgpt.com/sites" target="_blank" rel="noreferrer">Open ChatGPT Sites ↗</a></div>}
-            {selectedProvider?.configured && !aiReady && <div className="setup-note"><strong>Access protection is working</strong><p>{aiConnection.authenticated ? "Add this account to the optional AI_ALLOWED_EMAILS deployment allowlist, or remove the allowlist restriction." : "Open Valeta through your signed-in ChatGPT account. Protected provider keys are never exposed to anonymous visitors."}</p></div>}
-            {aiReady && <div className="ready-note"><strong>{selectedModel?.label} is ready</strong><span>Valeta sends one protected request only when you click a cloud-review button. Switching the selector changes the next review, not the local engine.</span></div>}
+            {selectedProvider && !selectedProvider.configured && <div className="setup-note"><strong>Connect {selectedProvider.name}</strong><p>Open ChatGPT Sites, find <em>V&apos;s Job Seeker</em>, choose <b>More actions → Settings</b>, and add <code>{selectedProvider.keyName}</code> as a secret. Then redeploy the saved version. Create the key in that provider&apos;s developer console; API access and billing are separate from consumer chat subscriptions. Never paste a key into chat or this app, commit it to GitHub, or store it in browser data.</p><a href="https://chatgpt.com/sites" target="_blank" rel="noreferrer">Open ChatGPT Sites ↗</a></div>}
+            {selectedProvider?.configured && !aiReady && <div className="setup-note"><strong>Access protection is working</strong><p>{aiConnection.authenticated ? "Add this account to the optional AI_ALLOWED_EMAILS deployment allowlist, or remove the allowlist restriction." : "Open V’s through your signed-in ChatGPT account. Protected provider keys are never exposed to anonymous visitors."}</p></div>}
+            {aiReady && <div className="ready-note"><strong>{selectedModel?.label} is ready</strong><span>V’s sends one protected request only when you click a cloud-review button. Switching the selector changes the next review, not the local engine.</span></div>}
           </div>
 
           <div className="ai-explainer">
@@ -473,7 +561,7 @@ export function JobSeekerApp() {
               <li><b>2</b><div><strong>Local analysis runs first</strong><span>The built-in engine maps requirements to approved facts and always remains available.</span></div></li>
               <li><b>3</b><div><strong>You choose “Run cloud AI review”</strong><span>Nothing is sent simply because you pasted, uploaded, or opened a role.</span></div></li>
               <li><b>4</b><div><strong>The protected backend calls your selected provider</strong><span>OpenAI, Anthropic Claude, and Google Gemini use separate server-only keys and allowlisted models. A structured response format limits the result to expected fields.</span></div></li>
-              <li><b>5</b><div><strong>Valeta validates the answer</strong><span>Priority evidence can point only to facts you approved. On timeout or error, the local recommendation stays visible.</span></div></li>
+              <li><b>5</b><div><strong>V’s validates the answer</strong><span>Priority evidence can point only to facts you approved. On timeout or error, the local recommendation stays visible.</span></div></li>
             </ol>
           </div>
 
@@ -485,14 +573,35 @@ export function JobSeekerApp() {
           </div>
 
           <div className="diagnostic-card">
-            <div className="diagnostic-head"><div><span>PRIVATE DIAGNOSTICS</span><h2>Error report</h2><p>Valeta keeps the latest 50 technical errors in this browser so you can send a useful report when something fails. Personal profile content and document text are excluded.</p></div><strong>{errorLog.length} {errorLog.length === 1 ? "error" : "errors"} recorded</strong></div>
+            <div className="diagnostic-head"><div><span>PRIVATE DIAGNOSTICS</span><h2>Error report</h2><p>V’s keeps the latest 50 technical errors in this browser so you can send a useful report when something fails. Personal profile content and document text are excluded.</p></div><strong>{errorLog.length} {errorLog.length === 1 ? "error" : "errors"} recorded</strong></div>
             {errorLog.length ? <div className="error-list">{errorLog.slice(0, 8).map((entry) => <article key={entry.id}><div><strong>{entry.code.replaceAll("_", " ")}</strong><span>{entry.area} · {new Date(entry.timestamp).toLocaleString()}</span></div><p>{entry.message}</p></article>)}</div> : <div className="diagnostic-empty"><strong>No errors recorded.</strong><span>If a connection, AI review, document import, or unexpected browser action fails, it will appear here.</span></div>}
-            <div className="diagnostic-actions"><button className="primary" onClick={() => copyText(createErrorReport(), setNotice)}>Copy report</button><button onClick={() => download(`valeta-error-report-${new Date().toISOString().slice(0, 10)}.json`, createErrorReport(), "application/json")}>Download JSON</button><button onClick={() => { setErrorLog([]); setNotice("Local error log cleared"); }} disabled={!errorLog.length}>Clear log</button></div>
+            <div className="diagnostic-actions"><button className="primary" onClick={() => copyText(createErrorReport(), setNotice)}>Copy report</button><button onClick={() => download(`v-jobs-error-report-${new Date().toISOString().slice(0, 10)}.json`, createErrorReport(), "application/json")}>Download JSON</button><button onClick={() => { setErrorLog([]); setNotice("Local error log cleared"); }} disabled={!errorLog.length}>Clear log</button></div>
             <small>Before sending, you can open the JSON and review it. The report contains the app build, connection state, model name, timestamps, safe error messages, and non-sensitive status details.</small>
           </div>
         </section>}
 
-        {view === "profile" && <section className="profile-workspace"><div className="section-head"><div className="step"><b>PROFILE</b><span>VERIFIED SOURCE OF TRUTH</span></div><p>Edit this once. Every résumé, letter, answer, and autofill package uses these fields.</p></div><div className="profile-form"><label>Full name<input value={profile.name} onChange={(e) => setProfile({...profile,name:e.target.value})} /></label><label>Professional headline<input value={profile.headline} onChange={(e) => setProfile({...profile,headline:e.target.value})} /></label><label>Email<input value={profile.email} onChange={(e) => setProfile({...profile,email:e.target.value})} /></label><label>Phone<input value={profile.phone} onChange={(e) => setProfile({...profile,phone:e.target.value})} /></label><label>Location<input value={profile.location} onChange={(e) => setProfile({...profile,location:e.target.value})} /></label><label>LinkedIn<input value={profile.linkedin} onChange={(e) => setProfile({...profile,linkedin:e.target.value})} /></label><label className="wide">Base summary<textarea value={profile.summary} onChange={(e) => setProfile({...profile,summary:e.target.value})} /></label><label className="wide">Verified career facts — one per line<textarea className="facts-area" value={profile.facts} onChange={(e) => setProfile({...profile,facts:e.target.value})} /></label></div><div className="profile-footer"><span>{facts.length} approved facts available</span><div><button onClick={() => download("valeta-career-profile.json", JSON.stringify(profile,null,2), "application/json")}>Export profile</button><button className="primary" onClick={exportWorkspace}>Back up private workspace</button></div></div></section>}
+        {view === "connections" && <section className="connections-workspace">
+          <div className="connections-hero"><div><span>CONNECTED SOURCES</span><h2>LinkedIn, without scraping or handing over your password.</h2><p>V’s uses the strongest access LinkedIn officially permits. Your profile URL and official export can enrich your evidence; private recommendations and job recommendations are not exposed through a general member API.</p></div><div className="connection-verdict"><strong>Safe import available now</strong><span>Official API connection requires a LinkedIn developer app and approval.</span></div></div>
+          <div className="connections-grid">
+            <article className="linkedin-card">
+              <div className="integration-title"><div className="linkedin-mark">in</div><div><span>LINKEDIN</span><h3>Your professional source</h3></div></div>
+              <label>LinkedIn profile URL<input type="url" value={profile.linkedin} onChange={(event) => setProfile({ ...profile, linkedin: event.target.value })} placeholder="https://www.linkedin.com/in/…" /></label>
+              <div className="integration-actions"><a className="primary-link" href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank" rel="noreferrer">Request official data export ↗</a><button onClick={() => { setSourceCategory("LinkedIn export"); setView("documents"); setNotice("Upload the LinkedIn export here. Every possible career fact still requires your approval."); }}>Import LinkedIn export</button><a href="https://www.linkedin.com/my-items/saved-jobs/" target="_blank" rel="noreferrer">Open saved jobs ↗</a></div>
+              <div className="integration-safety"><strong>Never requested</strong><span>Your LinkedIn password, browser cookies, private messages, or session.</span></div>
+            </article>
+
+            <article className="api-reality-card">
+              <span>OFFICIAL API REALITY</span><h3>What a LinkedIn connection can—and cannot—do</h3>
+              <div className="api-capability yes"><b>Available with approval</b><p>LinkedIn OpenID Connect can authenticate you and provide limited identity fields such as name, picture, and email.</p></div>
+              <div className="api-capability no"><b>Not generally available</b><p>There is no open member API for your full real-time profile, received recommendations, LinkedIn job recommendations, saved jobs, or arbitrary job search.</p></div>
+              <div className="api-capability limited"><b>Restricted partner products</b><p>Talent Solutions APIs focus on approved recruiting partners, ATS integrations, and job posting—not a personal job-recommendation feed.</p></div>
+              <div className="integration-actions"><a href="https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2" target="_blank" rel="noreferrer">Review official sign-in API ↗</a><a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noreferrer">LinkedIn developer apps ↗</a></div>
+            </article>
+          </div>
+          <div className="linkedin-next-step"><div><span>IMPLEMENTATION STATUS</span><strong>API-ready boundary, no fake connection</strong></div><p>V’s now has a compliant source path: save your public profile URL, import LinkedIn’s official export, and bring saved job links into Role intake. OAuth can be added after a LinkedIn developer app is approved, but it will not unlock recommendations or job feeds LinkedIn does not expose.</p><a href="https://www.linkedin.com/help/linkedin/answer/a1341387" target="_blank" rel="noreferrer">Why V’s does not scrape or automate LinkedIn ↗</a></div>
+        </section>}
+
+        {view === "profile" && <section className="profile-workspace"><div className="section-head"><div className="step"><b>PROFILE</b><span>VERIFIED SOURCE OF TRUTH</span></div><p>Edit this once. Every résumé, letter, answer, and autofill package uses these fields.</p></div><div className="profile-form"><label>Full name<input value={profile.name} onChange={(e) => setProfile({...profile,name:e.target.value})} /></label><label>Professional headline<input value={profile.headline} onChange={(e) => setProfile({...profile,headline:e.target.value})} /></label><label>Email<input value={profile.email} onChange={(e) => setProfile({...profile,email:e.target.value})} /></label><label>Phone<input value={profile.phone} onChange={(e) => setProfile({...profile,phone:e.target.value})} /></label><label>Location<input value={profile.location} onChange={(e) => setProfile({...profile,location:e.target.value})} /></label><label>LinkedIn<input value={profile.linkedin} onChange={(e) => setProfile({...profile,linkedin:e.target.value})} /></label><label className="wide">Base summary<textarea value={profile.summary} onChange={(e) => setProfile({...profile,summary:e.target.value})} /></label><label className="wide">Verified career facts — one per line<textarea className="facts-area" value={profile.facts} onChange={(e) => setProfile({...profile,facts:e.target.value})} /></label></div><div className="profile-footer"><span>{facts.length} approved facts available</span><div><button onClick={() => download("v-jobs-career-profile.json", JSON.stringify(profile,null,2), "application/json")}>Export profile</button><button className="primary" onClick={exportWorkspace}>Back up private workspace</button></div></div></section>}
 
         {view === "voice" && <section className="profile-workspace voice-workspace"><div className="section-head"><div className="step"><b>VOICE</b><span>COVER LETTER STYLE BANK</span></div><p>Paste writing that sounds like you. These notes guide letters and application answers without changing verified facts.</p></div><div className="profile-form"><label className="wide">Tone<textarea value={writingStyle.tone} onChange={(event) => setWritingStyle({...writingStyle,tone:event.target.value})} /></label><label>Prefer<textarea value={writingStyle.prefer} onChange={(event) => setWritingStyle({...writingStyle,prefer:event.target.value})} /></label><label>Avoid<textarea value={writingStyle.avoid} onChange={(event) => setWritingStyle({...writingStyle,avoid:event.target.value})} /></label><label className="wide">Approved writing samples<textarea className="voice-samples" value={writingStyle.samples} onChange={(event) => setWritingStyle({...writingStyle,samples:event.target.value})} placeholder="Paste emails, introductions, cover letters, or messages that genuinely sound like you." /></label></div><div className="profile-footer"><span>Voice changes style only—never career facts.</span><button onClick={() => { setView("workspace"); setOutput("cover"); }}>Preview cover-letter voice</button></div></section>}
 
@@ -500,23 +609,23 @@ export function JobSeekerApp() {
           <div className="document-import">
             <div className="step"><b>02</b><span>KNOWLEDGE SOURCES</span></div>
             <h2>Upload evidence, voice, and the rules for a great résumé.</h2>
-            <p>Valeta keeps four kinds of knowledge separate so a tip or writing sample can never become a claim about your experience.</p>
+            <p>V’s keeps four kinds of knowledge separate so a tip, article, or writing sample can never become a claim about your experience.</p>
             <label className="source-type">What kind of knowledge is this?<select value={sourceCategory} onChange={(event) => setSourceCategory(event.target.value as SourceCategory)}>{SOURCE_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label>
             <div className={`scope-preview ${scopeForCategory(sourceCategory)}`}><strong>{sourceScopeLabel(scopeForCategory(sourceCategory))}</strong><span>{sourceScopeDescription(scopeForCategory(sourceCategory))}</span></div>
-            <label className="source-url">Source URL <small>Optional—for provenance only. Valeta will not log in or scrape it.</small><input type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://" /></label>
+            <div className="link-source-import"><label className="source-url">Public article or YouTube URL <small>V’s can read a public article or public captions. It never logs in, sends cookies, or reads private pages.</small><input type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://article… or https://youtu.be/…" /></label><div><button onClick={() => pasteFromClipboard(setSourceUrl, "source link")}>Paste link</button><button className="primary" onClick={readKnowledgeFromLink} disabled={sourceReading}>{sourceReading ? "Reading public source…" : "Read and import link"}</button></div></div>
             <label className={isDragging ? "upload-zone dragging" : "upload-zone"} onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setIsDragging(false); }} onDrop={(event) => { event.preventDefault(); setIsDragging(false); uploadDocuments(Array.from(event.dataTransfer.files)); }}>
               <input type="file" multiple accept=".pdf,.docx,.txt,.md,.csv,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv,application/json" onChange={(event) => { uploadDocuments(Array.from(event.target.files || [])); event.currentTarget.value = ""; }} />
               <span className="upload-icon">↑</span><strong>Drop files here</strong><span>or click to browse your Mac</span><small>PDF · Word .docx · TXT · Markdown · CSV · JSON / GPT export · 10 MB each</small>
             </label>
             <div className="privacy-strip"><strong>Private by default</strong><span>Files are processed and saved in this browser. They are not uploaded to GitHub or sent to an AI provider.</span></div>
             <details className="paste-fallback"><summary>Paste text instead</summary><div><label>Source name<input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="e.g. Résumé do’s and don’ts — 2026" /></label><label>Source text<textarea value={documentText} onChange={(event) => setDocumentText(event.target.value)} placeholder="Paste career evidence, Custom GPT content, résumé tips and rules, writing samples, or company research." /></label><button className="primary" onClick={importDocument}>Import pasted text</button></div></details>
-            <p className="gpt-note"><strong>Custom GPT or webpage:</strong> export/copy the content and upload or paste it here. A URL is saved only as provenance; this browser-only library cannot read hidden GPT knowledge, private LinkedIn pages, or authenticated sites by itself.</p>
+            <p className="gpt-note"><strong>Links and private sources:</strong> public articles and YouTube videos with exposed captions can be imported directly. For Custom GPT knowledge, private LinkedIn pages, login-only sites, or videos without captions, export or copy the content and upload/paste it here.</p>
           </div>
 
           <div className="fact-review">
             <div className="review-heading"><div><span>SOURCE LIBRARY</span><h2>{documents.length} imported sources</h2></div><strong>{facts.length} approved facts</strong></div>
             <div className="knowledge-summary"><div><strong>{knowledgeStats.evidence}</strong><span>Career evidence</span></div><div><strong>{knowledgeStats.guidance + 1}</strong><span>Playbook sources</span></div><div><strong>{knowledgeStats.voice}</strong><span>Voice sources</span></div><div><strong>{knowledgeStats.research}</strong><span>Research sources</span></div><div><strong>{approvedPlaybookRules.length}</strong><span>Active résumé rules</span></div></div>
-            <article className={`curated-playbook-card ${playbookSettings.curatedEnabled ? "enabled" : "disabled"}`}><div className="curated-title"><div><span>BUILT-IN · CURATED GUIDANCE</span><strong>{CURATED_RESUME_PLAYBOOK.name}</strong><small>Version {CURATED_RESUME_PLAYBOOK.version} · reviewed {CURATED_RESUME_PLAYBOOK.lastReviewed}</small></div><button onClick={() => setPlaybookSettings({ curatedEnabled: !playbookSettings.curatedEnabled })}>{playbookSettings.curatedEnabled ? "Disable" : "Enable"}</button></div><p>{CURATED_RESUME_PLAYBOOK.summary}</p><div className="curated-meta"><span>{CURATED_RESUME_PLAYBOOK.rules.length} paraphrased do/don’t rules</span><span>{CURATED_RESUME_PLAYBOOK.sources.length} authoritative sources</span><span>Updates with Valeta releases</span></div><details><summary>Review sources</summary><div>{CURATED_RESUME_PLAYBOOK.sources.map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><strong>{source.title}</strong><small>{source.authority} ↗</small></a>)}</div></details></article>
+            <article className={`curated-playbook-card ${playbookSettings.curatedEnabled ? "enabled" : "disabled"}`}><div className="curated-title"><div><span>BUILT-IN · CURATED GUIDANCE</span><strong>{CURATED_RESUME_PLAYBOOK.name}</strong><small>Version {CURATED_RESUME_PLAYBOOK.version} · reviewed {CURATED_RESUME_PLAYBOOK.lastReviewed}</small></div><button onClick={() => setPlaybookSettings({ curatedEnabled: !playbookSettings.curatedEnabled })}>{playbookSettings.curatedEnabled ? "Disable" : "Enable"}</button></div><p>{CURATED_RESUME_PLAYBOOK.summary}</p><div className="curated-meta"><span>{CURATED_RESUME_PLAYBOOK.rules.length} paraphrased do/don’t rules</span><span>{CURATED_RESUME_PLAYBOOK.sources.length} authoritative sources</span><span>Updates with V’s releases</span></div><details><summary>Review sources</summary><div>{CURATED_RESUME_PLAYBOOK.sources.map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><strong>{source.title}</strong><small>{source.authority} ↗</small></a>)}</div></details></article>
             {documents.length === 0 ? <div className="empty-state compact"><strong>Your knowledge library is empty.</strong><span>Start with your current résumé for evidence. Then add “Résumé playbook” sources containing tips, do’s, don’ts, templates, or best practices.</span></div> : <div className="source-list">{documents.map((doc) => {
               const scope = sourceScope(doc);
               return <article key={doc.id} className={`source-card ${doc.status} ${scope}`}>
@@ -529,9 +638,9 @@ export function JobSeekerApp() {
 
         {view === "companies" && <section className="companies-workspace"><div className="target-form"><div className="step"><b>03</b><span>ADD A TARGET</span></div><h2>Companies, brands, and agencies — in one list.</h2><p>Keep only targets you want to follow. Career links and notes are optional, so this works even before you have every detail.</p><label>Company or agency name<input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Agency, brand, or sports organization" /></label><div className="field-row"><label>Type<select value={companyKind} onChange={(event) => setCompanyKind(event.target.value as CompanyTarget["kind"])}><option>Brand</option><option>Agency</option><option>Sports</option><option>Tech</option></select></label><label>Focus<input value={companyFocus} onChange={(event) => setCompanyFocus(event.target.value)} /></label></div><label>Website<input value={companyWebsite} onChange={(event) => setCompanyWebsite(event.target.value)} placeholder="https://" /></label><label>Careers page<input value={companyCareers} onChange={(event) => setCompanyCareers(event.target.value)} placeholder="https://" /></label><button className="primary" onClick={addCompany}>Add to directory</button></div><div className="target-directory"><div className="review-heading"><div><span>TARGET DIRECTORY</span><h2>{companies.length} saved targets</h2></div><strong>Bay Area first</strong></div>{companies.length === 0 ? <div className="empty-state compact"><strong>Your target list starts here.</strong><span>Add brands, agencies, sports organizations, or tech teams. Nothing is marked as an open role until you verify it.</span></div> : <div className="company-list">{companies.map((target) => <article key={target.id}><div className="company-title"><span>{target.kind}</span><strong>{target.name}</strong><small>{target.market} · {target.focus || "No focus set"}</small></div><div className="company-links">{target.website && <a href={target.website} target="_blank" rel="noreferrer">Website</a>}{target.careers && <a href={target.careers} target="_blank" rel="noreferrer">Careers</a>}<button onClick={() => loadCompanyForRole(target)}>Use for role</button></div><div className="company-actions"><label>Status<select value={target.status} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: event.target.value as CompanyTarget["status"] } : item))}><option>Researching</option><option>Monitoring</option><option>Applied</option><option>Paused</option></select></label><label>Notes<input value={target.notes} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, notes: event.target.value } : item))} placeholder="Contact, role, or next step" /></label><button onClick={() => setCompanies(companies.filter((item) => item.id !== target.id))}>Remove</button></div></article>)}</div>}</div></section>}
 
-        {view === "applications" && <section className="table-card"><div className="table-head"><div><span>PIPELINE</span><h2>{applications.length} saved applications</h2></div><button onClick={() => download("valeta-applications.json", JSON.stringify(applications,null,2), "application/json")}>Export</button></div>{applications.length === 0 ? <div className="empty-state"><strong>No applications saved yet.</strong><span>Prepare a role in the workspace, then choose “Save to applications.”</span><button className="primary" onClick={() => setView("workspace")}>Prepare first role</button></div> : <div className="application-list">{applications.map((app) => <article key={app.id}><div><strong>{app.role}</strong><span>{app.company} · {app.date}</span></div><select value={app.status} onChange={(e) => setApplications(applications.map((item) => item.id === app.id ? {...item,status:e.target.value}:item))}><option>Preparing</option><option>Applied</option><option>Interview</option><option>Closed</option></select><button onClick={() => setApplications(applications.filter((item) => item.id !== app.id))}>Remove</button></article>)}</div>}</section>}
+        {view === "applications" && <section className="table-card"><div className="table-head"><div><span>PIPELINE</span><h2>{applications.length} saved applications</h2></div><button onClick={() => download("v-jobs-applications.json", JSON.stringify(applications,null,2), "application/json")}>Export</button></div>{applications.length === 0 ? <div className="empty-state"><strong>No applications saved yet.</strong><span>Prepare a role in the workspace, then choose “Save to applications.”</span><button className="primary" onClick={() => setView("workspace")}>Prepare first role</button></div> : <div className="application-list">{applications.map((app) => <article key={app.id}><div><strong>{app.role}</strong><span>{app.company} · {app.date}</span>{app.url && <a href={app.url} target="_blank" rel="noreferrer">Original role ↗</a>}</div><select value={app.status} onChange={(e) => setApplications(applications.map((item) => item.id === app.id ? {...item,status:e.target.value}:item))}><option>Preparing</option><option>Applied</option><option>Interview</option><option>Closed</option></select><button onClick={() => setApplications(applications.filter((item) => item.id !== app.id))}>Remove</button></article>)}</div>}</section>}
 
-        {view === "autofill" && <section className="autofill-grid"><div className="autofill-intro"><div className="step"><b>04</b><span>ASSISTED AUTOFILL</span></div><h2>Your data, ready for application forms.</h2><p>The browser companion scans visible fields, previews what it can map, and fills only approved profile answers after your click. Sensitive questions, dropdowns, uploads, and unknown fields remain for your review.</p><div className="safety-list"><span>✓ Preview mapped fields before filling</span><span>✓ Never presses Submit</span><span>✓ Never guesses legal or demographic answers</span><span>✓ Works from your approved profile</span></div></div><div className="autofill-package"><span>AUTOFILL PACKAGE</span><pre>{autofillData}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("valeta-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load this package into the Chrome companion in the GitHub project. On an application page, choose Scan page, review the field map, then choose Fill ready fields.</small></div></section>}
+        {view === "autofill" && <section className="autofill-grid"><div className="autofill-intro"><div className="step"><b>04</b><span>ASSISTED AUTOFILL</span></div><h2>Your data, ready for application forms.</h2><p>The browser companion scans visible fields, previews what it can map, and fills only approved profile answers after your click. Sensitive questions, dropdowns, uploads, and unknown fields remain for your review.</p><div className="safety-list"><span>✓ Preview mapped fields before filling</span><span>✓ Never presses Submit</span><span>✓ Never guesses legal or demographic answers</span><span>✓ Works from your approved profile</span></div></div><div className="autofill-package"><span>AUTOFILL PACKAGE</span><pre>{autofillData}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load this package into the Chrome companion in the GitHub project. On an application page, choose Scan page, review the field map, then choose Fill ready fields.</small></div></section>}
       </section>
     </main>
   );

@@ -36,9 +36,10 @@ Each content source should store:
 - last checked timestamp;
 - notes about limitations.
 
-Uploaded files are processed locally in the current MVP. URLs are provenance
-records only unless a later, explicitly authorized public-source monitor fetches
-them.
+Uploaded files are processed locally in the current MVP. A user-directed public
+URL may be fetched for role intake, knowledge import, or a saved radar target.
+The reader blocks private-network hosts and embedded credentials, sends no
+cookies, limits redirects and size, and never attempts to bypass a login.
 
 ## LinkedIn handling
 
@@ -49,6 +50,11 @@ LinkedIn should be treated as a user-directed source:
 - The app should draft tailored materials from user-provided content.
 - The app should not scrape LinkedIn pages or run background automation against
   LinkedIn.
+- OpenID Connect may provide limited identity fields after a LinkedIn developer
+  app is approved; it must not be represented as a full-profile, received-
+  recommendation, saved-job, or job-recommendation API.
+- Restricted Talent Solutions partner APIs must not be treated as a personal
+  job-search feed.
 
 ## Application assistant handling
 
@@ -66,7 +72,8 @@ The assistant should be review-first:
 Company monitors and source updates should run on a defined cadence:
 
 - hourly only for fast-moving sources where useful;
-- daily for target-company job monitors;
+- weekly by default for target-company job monitors, with manual immediate
+  checks available;
 - weekly or monthly for resume/cover-letter guidance and slower reference
   content;
 - immediate refresh when the user adds a new role or company.

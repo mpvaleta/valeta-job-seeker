@@ -1,6 +1,8 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { scanAllDueRadars } from "../lib/radar-store";
+import { setRuntimeDatabase } from "../lib/runtime-bindings";
 
 interface Env {
   ASSETS: Fetcher;
@@ -27,6 +29,7 @@ interface ExecutionContext {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    setRuntimeDatabase(env.DB);
     const url = new URL(request.url);
 
     if (url.pathname === "/_vinext/image") {
@@ -41,6 +44,11 @@ const worker = {
     }
 
     return handler.fetch(request, env, ctx);
+  },
+
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    setRuntimeDatabase(env.DB);
+    ctx.waitUntil(scanAllDueRadars(env.DB).then(() => undefined));
   },
 };
 

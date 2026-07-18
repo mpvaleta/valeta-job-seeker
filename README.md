@@ -1,4 +1,4 @@
-# Valeta's Job Seeker
+# V's Job Seeker
 
 A private-first, personalized job-search command center designed to become
 reusable for family and friends through separate user profiles.
@@ -49,7 +49,7 @@ The product helps with:
 
 ## AI recommendation architecture
 
-Valeta uses two recommendation layers so the core workflow does not disappear
+V's uses two recommendation layers so the core workflow does not disappear
 when a model, key, rate limit, or network connection has a problem.
 
 1. The local evidence engine runs automatically in the browser. It extracts
@@ -79,7 +79,7 @@ The default registry was reviewed on July 18, 2026 against the official
 [OpenAI model catalog](https://developers.openai.com/api/docs/models),
 [Anthropic model overview](https://platform.claude.com/docs/en/about-claude/models/overview),
 and [Gemini 3.5 guide](https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.5).
-Each adapter requests structured JSON and the Valeta backend validates the
+Each adapter requests structured JSON and the V's backend validates the
 result again before displaying it.
 
 ## Knowledge source boundaries
@@ -99,17 +99,55 @@ The **Knowledge sources** screen deliberately separates four scopes:
 PDF, DOCX, TXT, Markdown, CSV, and JSON/GPT exports are read on the user's Mac.
 Each file is limited to 10 MB and each extracted source to 300,000 characters
 to keep browser storage and document processing predictable. An optional source
-URL records provenance only; the app does not scrape it or log in to it.
+URL can be used to read a public article, public job page, or exposed YouTube
+captions. Link reading never logs in, sends cookies, or accesses private pages;
+unsupported sources fall back to user-pasted text.
 
 The app also ships a dated, source-linked curated playbook. The July 18, 2026
 edition paraphrases guidance from Harvard's Mignone Center, Yale's Office of
 Career Strategy, CareerOneStop, and UC Berkeley Career Engagement. It updates
-with Valeta releases, can be disabled in the Knowledge sources screen, and is
+with V's releases, can be disabled in the Knowledge sources screen, and is
 kept separate from user-provided evidence.
+
+## Job radar
+
+The **Job radar** is a private, review-first company monitor:
+
+- users save target positions, skills, markets, work modes, goals, exclusions,
+  and a minimum alignment threshold;
+- each target has a public careers URL and a weekly or manual cadence;
+- Greenhouse, Lever, and Ashby use their public job-board endpoints, while
+  other public careers pages use structured `JobPosting` data and job links;
+- matching roles enter a discovery inbox with deterministic goal-alignment
+  reasons and `new`, `reviewing`, `shortlisted`, `dismissed`, or `applied`
+  states;
+- **Prepare application** loads the original role into Role intake; it never
+  submits or applies automatically;
+- due weekly targets catch up when the private app is opened. The Worker also
+  contains a scheduled-event hook, but a true closed-app background cadence
+  requires a verified hosting scheduler trigger.
+
+Radar targets, goals, and discoveries use per-user D1 records keyed by the
+hosting platform's authenticated identity. Career documents and raw résumé
+evidence remain browser-local in this release.
+
+## Public-link ingestion
+
+Role intake can paste a URL directly or use the clipboard button. A protected
+backend reader accepts only standard public web URLs, blocks private-network
+hosts and embedded credentials, limits redirects and response size, and never
+sends browser cookies. The same reader imports public résumé articles and
+YouTube transcripts when the video exposes captions.
+
+LinkedIn is intentionally excluded from automated reading. Official LinkedIn
+OpenID access is limited to identity fields, while Talent Solutions APIs are
+restricted partner products and do not provide a general personal job-
+recommendations or received-recommendations feed. V's supports profile URLs,
+official LinkedIn data exports, and user-pasted saved-job links instead.
 
 ### Cloud setup
 
-For production, open [ChatGPT Sites](https://chatgpt.com/sites), find **Valeta's
+For production, open [ChatGPT Sites](https://chatgpt.com/sites), find **V's
 Job Seeker**, choose **More actions → Settings**, and add one or more provider
 keys as secrets. Add optional model overrides in the same screen, then redeploy
 the approved saved version so the new environment revision becomes active:
@@ -158,9 +196,14 @@ documents, profile fields, credentials, and API keys.
   three provider adapters;
 - source-scope separation for career evidence, résumé guidance, writing voice,
   and company research;
+- public-link safety, article extraction, structured JobPosting parsing, and
+  YouTube public-caption parsing;
+- radar defaults, deterministic target matching, exclusions, and public ATS
+  adapter behavior;
 - invalid API requests and the no-key local fallback;
 - anonymous access and optional account-allowlist protection;
-- rendered availability of the AI/reliability and diagnostics interface.
+- rendered availability of the radar, connections, AI/reliability, and
+  diagnostics interfaces.
 
 ## Local commands
 

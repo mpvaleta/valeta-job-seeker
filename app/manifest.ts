@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Valeta's Job Seeker",
-    short_name: "Valeta Jobs",
+    name: "V's Job Seeker",
+    short_name: "V's Jobs",
     description:
       "Personal job-search command center for tailored resumes, cover letters, application tracking, and company monitoring.",
     start_url: "/",
