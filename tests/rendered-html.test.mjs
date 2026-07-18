@@ -32,5 +32,6 @@ test("renders development preview metadata", async () => {
   const html = await response.text();
   assert.match(html, developmentPreviewMeta);
   assert.match(html, /AI &amp; reliability|AI & reliability/);
+  assert.match(html, /Knowledge sources/);
   assert.match(html, /VERIFIED LOCAL RECOMMENDATION/);
 });
