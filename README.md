@@ -73,14 +73,19 @@ browser; only facts explicitly approved by the user can enter the request.
 
 ### Cloud setup
 
-Copy `.env.example` to the environment used by the deployment, then store the
-real key as a protected server secret:
+For production, open [ChatGPT Sites](https://chatgpt.com/sites), find **Valeta's
+Job Seeker**, choose **More actions → Settings**, and add `OPENAI_API_KEY` as a
+secret. Add the optional non-secret settings in the same screen, then redeploy
+the approved saved version so the new environment revision becomes active:
 
 ```text
 OPENAI_API_KEY=your-server-secret
 OPENAI_MODEL=gpt-5.6-sol
 AI_ALLOWED_EMAILS=you@example.com,friend@example.com
 ```
+
+For local development, copy `.env.example` to a local ignored environment file
+and add the same keys there.
 
 Never commit a real `.env` file, use a `NEXT_PUBLIC_*` key, or paste the key into
 the app UI. Until the protected secret exists, the **AI & reliability** screen
