@@ -10,11 +10,17 @@
 - Persistent application tracker and JSON backup
 - Exportable autofill profile
 - Chrome companion that fills common fields on user command and never submits
+- Local PDF/DOCX/TXT/Markdown/CSV/JSON knowledge-source ingestion
+- Separate career-evidence, résumé-playbook, writing-voice, and research scopes
+- Selectable OpenAI, Anthropic Claude, and Google Gemini review adapters with a
+  deterministic local fallback
+- Browser-local diagnostics and a privacy-safe downloadable error report
 
 ## Next build priorities
 
-1. Resume and writing-sample document ingestion
-2. AI generation with source citations and claim-level approval
+1. AI résumé/cover-letter generation with playbook-rule citations and
+   claim-level approval
+2. Durable encrypted per-user source storage and restore
 3. DOCX/PDF resume templates
 4. Greenhouse and Lever application-specific field adapters
 5. Company and agency monitoring with scheduled public-careers-page checks
