@@ -64,7 +64,7 @@ function factCandidates(text: string) {
       seen.add(key);
       return true;
     })
-    .slice(0, 24);
+    .slice(0, 60);
 }
 
 function flattenText(value: unknown): string[] {
@@ -78,6 +78,32 @@ function overlapScore(left: string, right: string) {
   const leftWords = new Set(keywords(left));
   const rightWords = new Set(keywords(right));
   return [...leftWords].filter((word) => rightWords.has(word)).length;
+}
+
+async function extractPdfText(arrayBuffer: ArrayBuffer) {
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+  const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  const pages: string[] = [];
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    pages.push(content.items.map((item) => "str" in item ? item.str : "").join(" "));
+  }
+  return pages.join("\n");
+}
+
+async function extractFileText(file: File) {
+  if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") return extractPdfText(await file.arrayBuffer());
+  if (/\.docx$/i.test(file.name) || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    const mammoth = (await import("mammoth")).default;
+    return (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
+  }
+  const rawText = await file.text();
+  if (/\.json$/i.test(file.name)) {
+    try { return flattenText(JSON.parse(rawText)).join("\n"); } catch { return rawText; }
+  }
+  return rawText;
 }
 
 function dateToday() {
@@ -191,25 +217,24 @@ export function JobSeekerApp() {
     setDocumentTitle(""); setDocumentText(""); setNotice("Document imported. Review the candidate facts below.");
   }
 
-  function uploadTextDocument(file: File | undefined) {
+  async function uploadTextDocument(file: File | undefined) {
     if (!file) return;
-    const isText = /^(text\/|application\/(json|csv))/.test(file.type) || /\.(txt|md|csv|json)$/i.test(file.name);
-    if (!isText) {
+    const isSupported = /^(text\/|application\/(json|csv|pdf|vnd\.openxmlformats-officedocument\.wordprocessingml\.document))/.test(file.type) || /\.(txt|md|csv|json|pdf|docx)$/i.test(file.name);
+    if (!isSupported) {
       setDocuments([{ id: crypto.randomUUID(), title: file.name, type: file.type || "Document", importedAt: dateToday(), text: "", candidates: [], approved: [], status: "needs-text" }, ...documents]);
-      setNotice("File recorded. Paste its text to create fact candidates; the browser will not pretend to extract a PDF.");
+      setNotice("This file type is not supported yet. Save it as PDF, Word .docx, text, or JSON and try again.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const rawText = String(reader.result ?? "");
-      let reviewText = rawText;
-      if (/\.json$/i.test(file.name)) {
-        try { reviewText = flattenText(JSON.parse(rawText)).join("\n"); } catch {}
-      }
-      setDocuments((current) => [{ id: crypto.randomUUID(), title: file.name, type: /\.json$/i.test(file.name) ? "JSON / GPT export" : file.type || "Text document", importedAt: dateToday(), text: rawText, candidates: factCandidates(reviewText), approved: [], status: "ready" }, ...current]);
+    setNotice(`Reading ${file.name}…`);
+    try {
+      const extractedText = await extractFileText(file);
+      const sourceType = /\.json$/i.test(file.name) ? "JSON / GPT export" : /\.pdf$/i.test(file.name) ? "PDF" : /\.docx$/i.test(file.name) ? "Word document" : file.type || "Text document";
+      setDocuments((current) => [{ id: crypto.randomUUID(), title: file.name, type: sourceType, importedAt: dateToday(), text: extractedText, candidates: factCandidates(extractedText), approved: [], status: "ready" }, ...current]);
       setNotice("Source imported. Review every candidate before it becomes reusable evidence.");
-    };
-    reader.readAsText(file);
+    } catch {
+      setDocuments((current) => [{ id: crypto.randomUUID(), title: file.name, type: file.type || "Document", importedAt: dateToday(), text: "", candidates: [], approved: [], status: "needs-text" }, ...current]);
+      setNotice("I could not read that file. Paste its text instead so no evidence is guessed.");
+    }
   }
 
   function approveCandidate(documentId: string, candidate: string) {
@@ -273,7 +298,7 @@ export function JobSeekerApp() {
 
         {view === "voice" && <section className="profile-workspace voice-workspace"><div className="section-head"><div className="step"><b>VOICE</b><span>COVER LETTER STYLE BANK</span></div><p>Paste writing that sounds like you. These notes guide letters and application answers without changing verified facts.</p></div><div className="profile-form"><label className="wide">Tone<textarea value={writingStyle.tone} onChange={(event) => setWritingStyle({...writingStyle,tone:event.target.value})} /></label><label>Prefer<textarea value={writingStyle.prefer} onChange={(event) => setWritingStyle({...writingStyle,prefer:event.target.value})} /></label><label>Avoid<textarea value={writingStyle.avoid} onChange={(event) => setWritingStyle({...writingStyle,avoid:event.target.value})} /></label><label className="wide">Approved writing samples<textarea className="voice-samples" value={writingStyle.samples} onChange={(event) => setWritingStyle({...writingStyle,samples:event.target.value})} placeholder="Paste emails, introductions, cover letters, or messages that genuinely sound like you." /></label></div><div className="profile-footer"><span>Voice changes style only—never career facts.</span><button onClick={() => { setView("workspace"); setOutput("cover"); }}>Preview cover-letter voice</button></div></section>}
 
-        {view === "documents" && <section className="documents-workspace"><div className="document-import"><div className="step"><b>02</b><span>IMPORT EVIDENCE</span></div><h2>Turn source material into reviewable facts.</h2><p>Use pasted résumé text, LinkedIn exports, writing samples, notes, or text files. A fact is never reused until you approve it.</p><label>Document name<input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="e.g. Resume — January 2026" /></label><label>Paste document text<textarea value={documentText} onChange={(event) => setDocumentText(event.target.value)} placeholder="Paste your résumé, LinkedIn export, writing sample, or other source text here." /></label><div className="input-actions"><button className="primary" onClick={importDocument}>Import pasted text</button><label className="file-button">Choose text file<input type="file" accept=".txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/json,application/pdf" onChange={(event) => uploadTextDocument(event.target.files?.[0])} /></label></div><small>PDFs are recorded but remain unparsed until text extraction is added. This avoids creating claims from unreadable files.</small></div><div className="fact-review"><div className="review-heading"><div><span>FACT REVIEW</span><h2>{documents.length} imported sources</h2></div><strong>{facts.length} approved facts</strong></div>{documents.length === 0 ? <div className="empty-state compact"><strong>Nothing to review yet.</strong><span>Import a source on the left and this area will show candidate facts.</span></div> : <div className="source-list">{documents.map((doc) => <article key={doc.id} className="source-card"><header><div><strong>{doc.title}</strong><span>{doc.type} · {doc.importedAt}</span></div><button onClick={() => setDocuments(documents.filter((item) => item.id !== doc.id))}>Remove</button></header>{doc.status === "needs-text" ? <p className="needs-text">Text is needed before this source can produce evidence. Open the document on your Mac, copy its text, and import it above.</p> : <div className="candidate-list">{doc.candidates.length ? doc.candidates.map((candidate) => <div key={candidate}><p>{candidate}</p><button className={doc.approved.includes(candidate) ? "approved" : ""} onClick={() => approveCandidate(doc.id,candidate)}>{doc.approved.includes(candidate) ? "Approved" : "Approve"}</button></div>) : <p className="needs-text">No useful fact candidates were found. You can add facts directly in Career profile.</p>}</div>}</article>)}</div>}</div></section>}
+        {view === "documents" && <section className="documents-workspace"><div className="document-import"><div className="step"><b>02</b><span>IMPORT EVIDENCE</span></div><h2>Turn source material into reviewable facts.</h2><p>Upload résumé PDFs, Word documents, GPT exports, LinkedIn exports, writing samples, notes, or text. A fact is never reused until you approve it.</p><label>Document name<input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="e.g. Resume — January 2026" /></label><label>Paste document text<textarea value={documentText} onChange={(event) => setDocumentText(event.target.value)} placeholder="Paste your résumé, GPT content, LinkedIn export, writing sample, or other source text here." /></label><div className="input-actions"><button className="primary" onClick={importDocument}>Import pasted text</button><label className="file-button">Choose source file<input type="file" accept=".pdf,.docx,.txt,.md,.csv,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv,application/json" onChange={(event) => uploadTextDocument(event.target.files?.[0])} /></label></div><small>Supported: PDF, Word .docx, text, Markdown, CSV, and JSON/GPT exports. Files stay in this browser; only facts you approve enter the source of truth.</small></div><div className="fact-review"><div className="review-heading"><div><span>FACT REVIEW</span><h2>{documents.length} imported sources</h2></div><strong>{facts.length} approved facts</strong></div>{documents.length === 0 ? <div className="empty-state compact"><strong>Nothing to review yet.</strong><span>Import a source on the left and this area will show candidate facts.</span></div> : <div className="source-list">{documents.map((doc) => <article key={doc.id} className="source-card"><header><div><strong>{doc.title}</strong><span>{doc.type} · {doc.importedAt}</span></div><button onClick={() => setDocuments(documents.filter((item) => item.id !== doc.id))}>Remove</button></header>{doc.status === "needs-text" ? <p className="needs-text">Text is needed before this source can produce evidence. Open the document on your Mac, copy its text, and import it above.</p> : <div className="candidate-list">{doc.candidates.length ? doc.candidates.map((candidate) => <div key={candidate}><p>{candidate}</p><button className={doc.approved.includes(candidate) ? "approved" : ""} onClick={() => approveCandidate(doc.id,candidate)}>{doc.approved.includes(candidate) ? "Approved" : "Approve"}</button></div>) : <p className="needs-text">No useful fact candidates were found. You can add facts directly in Career profile.</p>}</div>}</article>)}</div>}</div></section>}
 
         {view === "companies" && <section className="companies-workspace"><div className="target-form"><div className="step"><b>03</b><span>ADD A TARGET</span></div><h2>Companies, brands, and agencies — in one list.</h2><p>Keep only targets you want to follow. Career links and notes are optional, so this works even before you have every detail.</p><label>Company or agency name<input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Agency, brand, or sports organization" /></label><div className="field-row"><label>Type<select value={companyKind} onChange={(event) => setCompanyKind(event.target.value as CompanyTarget["kind"])}><option>Brand</option><option>Agency</option><option>Sports</option><option>Tech</option></select></label><label>Focus<input value={companyFocus} onChange={(event) => setCompanyFocus(event.target.value)} /></label></div><label>Website<input value={companyWebsite} onChange={(event) => setCompanyWebsite(event.target.value)} placeholder="https://" /></label><label>Careers page<input value={companyCareers} onChange={(event) => setCompanyCareers(event.target.value)} placeholder="https://" /></label><button className="primary" onClick={addCompany}>Add to directory</button></div><div className="target-directory"><div className="review-heading"><div><span>TARGET DIRECTORY</span><h2>{companies.length} saved targets</h2></div><strong>Bay Area first</strong></div>{companies.length === 0 ? <div className="empty-state compact"><strong>Your target list starts here.</strong><span>Add brands, agencies, sports organizations, or tech teams. Nothing is marked as an open role until you verify it.</span></div> : <div className="company-list">{companies.map((target) => <article key={target.id}><div className="company-title"><span>{target.kind}</span><strong>{target.name}</strong><small>{target.market} · {target.focus || "No focus set"}</small></div><div className="company-links">{target.website && <a href={target.website} target="_blank" rel="noreferrer">Website</a>}{target.careers && <a href={target.careers} target="_blank" rel="noreferrer">Careers</a>}<button onClick={() => loadCompanyForRole(target)}>Use for role</button></div><div className="company-actions"><label>Status<select value={target.status} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: event.target.value as CompanyTarget["status"] } : item))}><option>Researching</option><option>Monitoring</option><option>Applied</option><option>Paused</option></select></label><label>Notes<input value={target.notes} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, notes: event.target.value } : item))} placeholder="Contact, role, or next step" /></label><button onClick={() => setCompanies(companies.filter((item) => item.id !== target.id))}>Remove</button></div></article>)}</div>}</div></section>}
 
