@@ -1,1 +1,12 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="popup.css"><title>Valeta Autofill</title></head><body><header><b>VALETA</b><span>APPLICATION AUTOFILL</span></header><label>Paste the JSON package downloaded from Valeta Job Seeker<textarea id="profile" placeholder="{ &quot;version&quot;: 1, ... }"></textarea></label><div class="actions"><button id="save">Save profile</button><button id="fill">Fill this page</button></div><p id="status">Nothing is submitted automatically.</p><script src="popup.js"></script></body></html>
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="popup.css"><title>Valeta Autofill</title></head>
+  <body>
+    <header><b>VALETA</b><span>REVIEW-FIRST AUTOFILL</span></header>
+    <label>Paste the JSON package downloaded from Valeta Job Seeker<textarea id="profile" placeholder="{ &quot;version&quot;: 1, ... }"></textarea></label>
+    <div class="actions"><button id="save">Save profile</button><button id="scan">Scan page</button><button id="fill" disabled>Fill ready fields</button></div>
+    <section id="results" aria-live="polite"></section>
+    <p id="status">Scan first. Nothing is submitted automatically.</p>
+    <script src="popup.js"></script>
+  </body>
+</html>
