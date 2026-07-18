@@ -1,7 +1,7 @@
 # Valeta's Job Seeker
 
-A personalized job-search command center for Marcos Valeta first, designed to
-become reusable for family and friends through separate user profiles.
+A private-first, personalized job-search command center designed to become
+reusable for family and friends through separate user profiles.
 
 The product helps with:
 
