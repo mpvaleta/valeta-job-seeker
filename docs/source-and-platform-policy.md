@@ -1,5 +1,20 @@
 # Source and platform policy
 
+## Knowledge source scopes
+
+Sources must be classified before they can influence an output:
+
+- **career evidence** supports personal claims and requires fact-level approval;
+- **résumé playbook** stores tips, do/don't rules, templates, and authoritative
+  guidance about creating a strong résumé;
+- **writing voice** shapes tone only;
+- **research context** describes a company, market, or role and is never
+  evidence about the candidate.
+
+Résumé guidance must never be promoted into the verified career fact bank. A
+writing sample is not evidence that the candidate performed the work discussed
+in it, and company research is not candidate experience.
+
 ## Career content sources
 
 The database should prioritize sources that are either owned by the user or
@@ -20,6 +35,10 @@ Each content source should store:
 - refresh cadence;
 - last checked timestamp;
 - notes about limitations.
+
+Uploaded files are processed locally in the current MVP. URLs are provenance
+records only unless a later, explicitly authorized public-source monitor fetches
+them.
 
 ## LinkedIn handling
 
