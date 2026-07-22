@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     const db = getRuntimeDatabase();
     const user = await ensureRadarUser(db, identity.email, identity.name);
     const dashboard = await readRadarDashboard(db, user.id);
-    return NextResponse.json({ ok: true, ...dashboard, automation: { weeklyCatchUp: true, backgroundScheduler: "prepared" } });
+    return NextResponse.json({ ok: true, ...dashboard, automation: { dailyCatchUp: true, backgroundScheduler: "prepared" } });
   } catch (cause) {
     return routeError(cause);
   }
@@ -52,23 +52,27 @@ export async function POST(request: Request) {
       result = await saveRadarProfile(db, user.id, object(input.profile));
     } else if (action === "add_monitor") {
       const monitor = object(input.monitor);
-      const careersUrl = publicCareersUrl(text(monitor.careersUrl, 4_000));
-      const websiteUrl = monitor.websiteUrl ? validatePublicUrl(text(monitor.websiteUrl, 4_000)).href : "";
+      const careersUrl = monitor.careersUrl ? publicScanUrl(optionalText(monitor.careersUrl, 4_000)) : "";
+      const websiteUrl = monitor.websiteUrl ? publicScanUrl(optionalText(monitor.websiteUrl, 4_000)) : "";
+      if (!careersUrl && !websiteUrl) throw new RadarHttpError(400, "scan_source_required", "Add either the company website or its public careers page.");
+      const referenceUrl = monitor.referenceUrl ? validatePublicUrl(optionalText(monitor.referenceUrl, 4_000)).href : "";
       result = await addRadarMonitor(db, user.id, {
         company: text(monitor.company, 180),
         kind: optionalText(monitor.kind, 80),
         websiteUrl,
         careersUrl,
+        referenceUrl,
+        sourceKind: optionalText(monitor.sourceKind, 80),
         focus: optionalText(monitor.focus, 1_000),
         market: optionalText(monitor.market, 180),
-        cadence: monitor.cadence === "manual" ? "manual" : "weekly",
+        cadence: monitor.cadence === "manual" ? "manual" : "daily",
       });
     } else if (action === "update_monitor") {
       const monitorId = text(input.monitorId, 100);
       const patch = object(input.patch);
       await updateRadarMonitor(db, user.id, monitorId, {
         active: typeof patch.active === "boolean" ? patch.active : undefined,
-        cadence: patch.cadence === "manual" || patch.cadence === "weekly" ? patch.cadence : undefined,
+        cadence: patch.cadence === "manual" || patch.cadence === "daily" || patch.cadence === "weekly" ? String(patch.cadence) : undefined,
         focus: typeof patch.focus === "string" ? patch.focus : undefined,
       });
     } else if (action === "delete_monitor") {
@@ -86,7 +90,7 @@ export async function POST(request: Request) {
     }
 
     const dashboard = await readRadarDashboard(db, user.id);
-    return NextResponse.json({ ok: true, action, result, ...dashboard, automation: { weeklyCatchUp: true, backgroundScheduler: "prepared" } });
+    return NextResponse.json({ ok: true, action, result, ...dashboard, automation: { dailyCatchUp: true, backgroundScheduler: "prepared" } });
   } catch (cause) {
     return routeError(cause);
   }
@@ -103,7 +107,7 @@ function requireIdentity(request: Request) {
   return { email, name };
 }
 
-function publicCareersUrl(value: string) {
+function publicScanUrl(value: string) {
   const url = validatePublicUrl(value);
   if (isLinkedInUrl(url.href)) throw new RadarHttpError(422, "linkedin_monitoring_blocked", "LinkedIn does not permit automated monitoring. Add the company’s public careers page, Greenhouse, Lever, Ashby, or another official job board instead.");
   return url.href;

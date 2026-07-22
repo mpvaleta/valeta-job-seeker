@@ -62,12 +62,13 @@ test("private radar persists goals, targets, discoveries, and approval state", a
         kind: "Agency",
         careersUrl: "https://boards.greenhouse.io/example",
         focus: "creative operations, integrated production",
-        cadence: "weekly",
+        cadence: "daily",
       } }),
     }), env, context);
     const addedData = await added.json();
     assert.equal(added.status, 200);
     assert.equal(addedData.monitors.length, 1);
+    assert.equal(addedData.monitors[0].cadence, "daily");
     assert.equal(addedData.dueCount, 1);
 
     globalThis.fetch = async (url) => {

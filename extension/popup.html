@@ -5,6 +5,8 @@
     <header><b>VALETA</b><span>REVIEW-FIRST AUTOFILL</span></header>
     <label>Paste the JSON package downloaded from V's Job Seeker<textarea id="profile" placeholder="{ &quot;version&quot;: 1, ... }"></textarea></label>
     <div class="actions"><button id="save">Save profile</button><button id="scan">Scan page</button><button id="fill" disabled>Fill ready fields</button></div>
+    <button id="capture" class="capture">Copy visible job page</button>
+    <small class="capture-note">For LinkedIn or login-only pages: open the job in your own browser, click this, then paste the capture into V&apos;s Role Workspace. No password or cookie leaves your browser.</small>
     <section id="results" aria-live="polite"></section>
     <p id="status">Scan first. Nothing is submitted automatically.</p>
     <script src="popup.js"></script>

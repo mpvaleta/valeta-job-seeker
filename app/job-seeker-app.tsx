@@ -2,17 +2,25 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { analyzeRole } from "@/lib/recommendation-engine.mjs";
-import { mergeWritingSample, removeWritingSample, scopeForCategory, sourceScope, sourceScopeDescription, sourceScopeLabel, SOURCE_CATEGORIES } from "@/lib/knowledge-sources.mjs";
+import { mergeWritingSample, scopeForCategory, sourceScope, sourceScopeDescription, sourceScopeLabel, SOURCE_CATEGORIES } from "@/lib/knowledge-sources.mjs";
 import { CURATED_RESUME_PLAYBOOK } from "@/lib/resume-playbook.mjs";
+import { readJsonResponse } from "@/lib/http-json.mjs";
+import { extractLinkedInArchive } from "@/lib/linkedin-archive.mjs";
+import { deriveWritingVoice } from "@/lib/writing-voice.mjs";
+import { DEFAULT_RESUME_TRACKS, normalizeResumeTracks, selectResumeTrack } from "@/lib/resume-tracks.mjs";
 import { RadarWorkspace } from "./radar-workspace";
 import type { RadarOpportunity } from "./radar-workspace";
 import type { ApplicationRecommendation } from "@/lib/recommendation-engine.mjs";
 import type { SourceCategory, SourceScope } from "@/lib/knowledge-sources.mjs";
+import type { ResumeTrack } from "@/lib/resume-tracks.mjs";
 
 type View = "workspace" | "radar" | "profile" | "documents" | "voice" | "connections" | "companies" | "applications" | "autofill" | "ai";
 type Output = "analysis" | "resume" | "cover" | "answers";
-type Application = { id: string; company: string; role: string; status: string; date: string; url?: string };
-type SourceDocument = { id: string; title: string; type: string; category?: SourceCategory; scope?: SourceScope; sourceUrl?: string; importedAt: string; text: string; candidates: string[]; approved: string[]; status: "reading" | "ready" | "needs-text"; truncated?: boolean };
+type ApplicationStatus = "Saved opportunity" | "Preparing" | "Applied" | "Interview" | "Closed";
+type Application = { id: string; company: string; role: string; status: ApplicationStatus; date: string; url?: string; jobSnapshotId?: string; resumeVersionId?: string; coverVersionId?: string; note?: string };
+type JobSnapshot = { id: string; company: string; role: string; url?: string; description: string; source: "pasted" | "imported" | "radar"; savedAt: string; updatedAt: string; trackId: string };
+type GeneratedDraft = { id: string; type: "resume" | "cover"; title: string; content: string; createdAt: string; updatedAt: string; company: string; role: string; trackId: string; jobSnapshotId?: string; applicationId?: string; origin: "generated" | "edited" };
+type SourceDocument = { id: string; title: string; type: string; category?: SourceCategory; scope?: SourceScope; trackId?: string; sourceUrl?: string; importedAt: string; text: string; candidates: string[]; approved: string[]; status: "reading" | "ready" | "needs-text"; truncated?: boolean };
 type CompanyTarget = { id: string; name: string; website: string; careers: string; kind: "Brand" | "Agency" | "Sports" | "Tech"; focus: string; market: string; status: "Researching" | "Monitoring" | "Applied" | "Paused"; lastChecked: string; notes: string };
 type WritingStyle = { tone: string; prefer: string; avoid: string; samples: string };
 type AiProviderId = "openai" | "anthropic" | "google";
@@ -24,10 +32,13 @@ type AiProviderStatus = { id: AiProviderId; name: string; keyName: string; confi
 type AiConnection = { state: "checking" | "loaded" | "error"; authenticated: boolean; authorized: boolean; providers: AiProviderStatus[]; message: string };
 type AiStatusPayload = { authenticated?: boolean; authorized?: boolean; providers?: AiProviderStatus[]; privacy?: string };
 type CloudRecommendation = { decision: "prioritize_and_apply" | "apply_after_edits" | "hold_and_investigate"; confidence: "high" | "medium" | "low"; summary: string; actions: string[]; priorityFacts: string[]; evidenceGaps: string[]; cautions: string[] };
-type CloudReview = { key: string; provider: AiProviderId; providerName: string; model: string; modelLabel: string; recommendation: CloudRecommendation };
+type CloudReview = { key: string; provider: AiProviderId; providerName: string; model: string; modelKey: AiModelKey; modelLabel: string; recommendation: CloudRecommendation };
 type ErrorLogEntry = { id: string; timestamp: string; area: "app" | "ai" | "connection" | "documents" | "links" | "radar"; code: string; message: string; context?: Record<string, string | number | boolean> };
-type ReadableLinkSource = { requestedUrl: string; finalUrl: string; sourceType: string; title: string; description: string; text: string; jobs: Array<{ title: string; company: string; location: string; description: string; sourceUrl: string }> };
+type ReadableLinkSource = { requestedUrl: string; finalUrl: string; sourceType: string; title: string; description: string; text: string; links?: Array<{ href: string; label: string }>; jobs: Array<{ title: string; company: string; location: string; description: string; sourceUrl: string }> };
 type LinkReadPayload = { ok?: boolean; code?: string; message?: string; source?: ReadableLinkSource };
+type LinkedInStatus = { state: "checking" | "ready" | "error"; configured: boolean; connected: boolean; message: string; identity?: { name?: string; email?: string; picture?: string } };
+type OperationProgress = { label: string; detail: string } | null;
+type LinkAssist = { kind: "linkedin" | "indeed" | "login"; title: string; message: string } | null;
 
 type Profile = {
   name: string;
@@ -58,8 +69,9 @@ const initialWritingStyle: WritingStyle = {
   samples: "",
 };
 
-const APP_BUILD = "2026.07-radar-r1";
+const APP_BUILD = "2026.07-application-workflow-r3";
 const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_LINKEDIN_ARCHIVE_BYTES = 50 * 1024 * 1024;
 const MAX_SOURCE_TEXT = 300_000;
 
 function safeErrorMessage(value: unknown) {
@@ -124,6 +136,10 @@ function dateToday() {
   return new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" }).format(new Date());
 }
 
+function dateInputToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function createId() {
   if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
   const random = Math.random().toString(36).slice(2);
@@ -151,14 +167,29 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character] ?? character));
 }
 
+function linkKind(value: string) {
+  try {
+    const host = new URL(value).hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "linkedin.com" || host.endsWith(".linkedin.com")) return "linkedin" as const;
+    if (host === "indeed.com" || host.endsWith(".indeed.com")) return "indeed" as const;
+    return "public" as const;
+  } catch {
+    return "invalid" as const;
+  }
+}
+
 export function JobSeekerApp() {
   const [view, setView] = useState<View>("workspace");
   const [output, setOutput] = useState<Output>("analysis");
   const [profile, setProfile] = useSavedState("valeta-profile-v2", initialProfile);
   const [writingStyle, setWritingStyle] = useSavedState("valeta-writing-style-v1", initialWritingStyle);
+  const [resumeTracks, setResumeTracks] = useSavedState<ResumeTrack[]>("v-jobs-resume-tracks-v1", DEFAULT_RESUME_TRACKS);
+  const [activeTrackId, setActiveTrackId] = useSavedState("v-jobs-active-track-v1", "auto");
   const [aiPreference, setAiPreference] = useSavedState<AiPreference>("valeta-ai-preference-v1", { provider: "openai", modelKey: "reliable" });
   const [playbookSettings, setPlaybookSettings] = useSavedState<PlaybookSettings>("valeta-playbook-settings-v1", { curatedEnabled: true });
-  const [applications, setApplications] = useSavedState<Application[]>("valeta-applications-v2", []);
+  const [applications, setApplications] = useSavedState<Application[]>("valeta-applications-v3", []);
+  const [jobSnapshots, setJobSnapshots] = useSavedState<JobSnapshot[]>("v-jobs-market-history-v1", []);
+  const [generatedDrafts, setGeneratedDrafts] = useSavedState<GeneratedDraft[]>("v-jobs-generated-drafts-v1", []);
   const [documents, setDocuments] = useSavedState<SourceDocument[]>("valeta-documents-v1", []);
   const [companies, setCompanies] = useSavedState<CompanyTarget[]>("valeta-companies-v1", []);
   const [jobText, setJobText] = useSavedState("valeta-job-v2", "");
@@ -169,9 +200,12 @@ export function JobSeekerApp() {
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentText, setDocumentText] = useState("");
   const [sourceCategory, setSourceCategory] = useState<SourceCategory>("Résumé");
+  const [sourceTrackId, setSourceTrackId] = useState("all");
   const [sourceUrl, setSourceUrl] = useState("");
   const [sourceReading, setSourceReading] = useState(false);
   const [roleReading, setRoleReading] = useState(false);
+  const [draftEditor, setDraftEditor] = useState("");
+  const [draftEditorKey, setDraftEditorKey] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [companyName, setCompanyName] = useState("");
   const [companyKind, setCompanyKind] = useState<CompanyTarget["kind"]>("Brand");
@@ -180,7 +214,12 @@ export function JobSeekerApp() {
   const [companyFocus, setCompanyFocus] = useState("Creative operations, project management, production");
   const [aiConnection, setAiConnection] = useState<AiConnection>({ state: "checking", authenticated: false, authorized: false, providers: [], message: "Checking the secure backend connection…" });
   const [cloudReview, setCloudReview] = useState<CloudReview | null>(null);
+  const [comparisonResults, setComparisonResults] = useState<CloudReview[]>([]);
+  const [comparisonRunning, setComparisonRunning] = useState(false);
   const [aiRunning, setAiRunning] = useState(false);
+  const [operationProgress, setOperationProgress] = useState<OperationProgress>(null);
+  const [linkAssist, setLinkAssist] = useState<LinkAssist>(null);
+  const [linkedinStatus, setLinkedinStatus] = useState<LinkedInStatus>({ state: "checking", configured: false, connected: false, message: "Checking official LinkedIn sign-in…" });
   const [errorLog, setErrorLog] = useSavedState<ErrorLogEntry[]>("valeta-error-log-v1", []);
 
   const logError = useCallback((area: ErrorLogEntry["area"], code: string, message: unknown, context?: ErrorLogEntry["context"]) => {
@@ -188,16 +227,29 @@ export function JobSeekerApp() {
   }, [setErrorLog]);
 
   const facts = useMemo(() => profile.facts.split("\n").map((x) => x.trim()).filter(Boolean), [profile.facts]);
-  const evidenceSources = useMemo(() => documents.filter((document) => sourceScope(document) === "evidence"), [documents]);
+  const normalizedTracks = useMemo(() => normalizeResumeTracks(resumeTracks), [resumeTracks]);
+  const trackSelection = useMemo(() => selectResumeTrack(normalizedTracks, `${role}\n${jobText}`, activeTrackId), [activeTrackId, jobText, normalizedTracks, role]);
+  const selectedTrack = trackSelection.track;
+  const evidenceSources = useMemo(() => documents.filter((document) => sourceScope(document) === "evidence" && (!document.trackId || document.trackId === "all" || document.trackId === selectedTrack.id)), [documents, selectedTrack.id]);
   const knowledgeStats = useMemo(() => ({
     evidence: documents.filter((document) => sourceScope(document) === "evidence").length,
     voice: documents.filter((document) => sourceScope(document) === "voice").length,
     guidance: documents.filter((document) => sourceScope(document) === "guidance").length,
     research: documents.filter((document) => sourceScope(document) === "research").length,
   }), [documents]);
+  const learnedVoice = useMemo(() => deriveWritingVoice(writingStyle.samples), [writingStyle.samples]);
   const userPlaybookRules = useMemo(() => documents.filter((document) => sourceScope(document) === "guidance").flatMap((document) => document.approved), [documents]);
   const approvedPlaybookRules = useMemo(() => [...(playbookSettings.curatedEnabled ? CURATED_RESUME_PLAYBOOK.rules.map((rule) => rule.text) : []), ...userPlaybookRules], [playbookSettings.curatedEnabled, userPlaybookRules]);
-  const analysis = useMemo(() => analyzeRole({ jobText, facts, profile, sources: evidenceSources.map((document) => ({ title: document.title, approved: document.approved })) }), [evidenceSources, facts, jobText, profile]);
+  const learningSteps = useMemo(() => [
+    { label: "Career foundation", detail: "Upload current and past résumés", complete: knowledgeStats.evidence > 0 },
+    { label: "Verified evidence", detail: "Approve at least 8 reusable career facts", complete: facts.length >= 8 },
+    { label: "Writing voice", detail: "Add enough real writing to learn your style", complete: learnedVoice.ready },
+    { label: "Résumé playbook", detail: "Keep authoritative do/don’t guidance active", complete: approvedPlaybookRules.length >= 5 },
+    { label: "LinkedIn archive", detail: "Import the official ZIP for profile, recommendations, saved jobs, and AI context", complete: documents.some((document) => document.type === "Official LinkedIn ZIP export") },
+    { label: "Résumé tracks", detail: "Add a summary for each career direction you want to pursue", complete: normalizedTracks.filter((track) => track.summary.trim()).length >= Math.min(2, normalizedTracks.length) },
+  ], [approvedPlaybookRules.length, documents, facts.length, knowledgeStats.evidence, learnedVoice.ready, normalizedTracks]);
+  const effectiveProfile = useMemo(() => ({ ...profile, headline: selectedTrack.headline || profile.headline, summary: selectedTrack.summary || profile.summary }), [profile, selectedTrack]);
+  const analysis = useMemo(() => analyzeRole({ jobText, facts, profile: effectiveProfile, sources: evidenceSources.map((document) => ({ title: document.title, approved: document.approved })) }), [effectiveProfile, evidenceSources, facts, jobText]);
   const { roleKeywords, requirements, matchedFacts, evidenceMap, counts: evidenceCounts, profileReadiness, evidenceCoverage, sourceQuality, fit, recommendation, firstGap } = analysis;
   const selectedProvider = aiConnection.providers.find((provider) => provider.id === aiPreference.provider) || aiConnection.providers[0] || null;
   const selectedModel = selectedProvider?.models.find((model) => model.key === aiPreference.modelKey) || selectedProvider?.models.find((model) => model.key === selectedProvider.defaultModelKey) || selectedProvider?.models[0] || null;
@@ -218,12 +270,28 @@ export function JobSeekerApp() {
   useEffect(() => {
     let active = true;
     fetch("/api/ai/recommend", { cache: "no-store" })
-      .then(async (response) => ({ response, data: await response.json() as AiStatusPayload }))
+      .then(async (response) => ({ response, data: await readJsonResponse<AiStatusPayload>(response, "The AI connection status could not be read.") }))
       .then(({ response, data }) => {
         if (!active) return;
         setAiConnection(response.ok ? connectionFromStatus(data) : { state: "error", authenticated: false, authorized: false, providers: [], message: "The connection check returned an error. Local analysis remains active." });
       })
       .catch((cause) => { if (active) { setAiConnection({ state: "error", authenticated: false, authorized: false, providers: [], message: "The connection check failed. Local analysis remains active." }); logError("connection", "connection_check_failed", cause); } });
+    return () => { active = false; };
+  }, [logError]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/linkedin/status", { cache: "no-store" })
+      .then(async (response) => ({ response, data: await readJsonResponse<{ ok?: boolean; configured?: boolean; connected?: boolean; message?: string; identity?: LinkedInStatus["identity"] }>(response, "LinkedIn sign-in status could not be read.") }))
+      .then(({ response, data }) => {
+        if (!active) return;
+        setLinkedinStatus({ state: response.ok ? "ready" : "error", configured: Boolean(data.configured), connected: Boolean(data.connected), message: data.message || (data.connected ? "Official LinkedIn identity connected." : "LinkedIn sign-in is not connected."), identity: data.identity });
+      })
+      .catch((cause) => {
+        if (!active) return;
+        setLinkedinStatus({ state: "error", configured: false, connected: false, message: cause instanceof Error ? cause.message : "LinkedIn sign-in status could not be checked." });
+        logError("connection", "linkedin_status_failed", cause);
+      });
     return () => { active = false; };
   }, [logError]);
 
@@ -235,13 +303,40 @@ export function JobSeekerApp() {
     return () => { window.removeEventListener("error", handleError); window.removeEventListener("unhandledrejection", handleRejection); };
   }, [logError]);
 
-  const resume = `${profile.name}\n${profile.headline}\n${profile.location} | ${profile.email} | ${profile.phone} | ${profile.linkedin}\n\nTARGET\n${role || "Target role"}${company ? ` — ${company}` : ""}\n\nSUMMARY\n${profile.summary} For this opportunity, the strongest verified themes are ${roleKeywords.slice(0, 5).join(", ") || "project leadership, creative operations, and delivery"}.\n\nSELECTED RELEVANT EXPERIENCE\n${matchedFacts.map((fact) => `• ${fact}`).join("\n")}\n\nCORE CAPABILITIES\n${roleKeywords.slice(0, 10).join(" • ") || "Add a job description to prioritize capabilities."}\n\nREVIEW REQUIRED\nThis draft reorganizes approved facts only. Confirm wording and add verified outcomes before applying.`;
+  function saveMarketSnapshot(source: JobSnapshot["source"] = "pasted", override?: Partial<Pick<JobSnapshot, "company" | "role" | "url" | "description">>) {
+    const description = (override?.description ?? jobText).trim();
+    if (description.length < 80) { setNotice("Add a more complete job description before saving it to market learning"); return null; }
+    const snapshotCompany = (override?.company ?? company).trim() || "Unknown company";
+    const snapshotRole = (override?.role ?? role).trim() || "Untitled role";
+    const normalizedUrl = (override?.url ?? roleUrl).trim();
+    const signature = `${normalizedUrl.toLowerCase()}|${snapshotCompany.toLowerCase()}|${snapshotRole.toLowerCase()}|${description.slice(0, 400).toLowerCase()}`;
+    const existing = jobSnapshots.find((item) => `${(item.url || "").toLowerCase()}|${item.company.toLowerCase()}|${item.role.toLowerCase()}|${item.description.slice(0, 400).toLowerCase()}` === signature);
+    const now = dateToday();
+    if (existing) {
+      setJobSnapshots((current) => current.map((item) => item.id === existing.id ? { ...item, company: snapshotCompany, role: snapshotRole, url: normalizedUrl || item.url, description, trackId: selectedTrack.id, source: source === "imported" ? "imported" : item.source, updatedAt: now } : item));
+      return existing.id;
+    }
+    const id = createId();
+    setJobSnapshots((current) => [{ id, company: snapshotCompany, role: snapshotRole, url: normalizedUrl || undefined, description, source, savedAt: now, updatedAt: now, trackId: selectedTrack.id }, ...current]);
+    return id;
+  }
 
-  const cover = `Dear ${company ? `${company} Hiring Team` : "Hiring Team"},\n\nI’m interested in the ${role || "position"} because it connects closely with the work reflected in my verified experience.\n\n${profile.summary || "Add an approved professional summary in Career profile."}${matchedFacts.length ? ` For this role, the most relevant evidence includes ${matchedFacts.slice(0, 3).join("; ")}.` : " Add approved career facts before using this draft."}\n\nWhat draws me to ${company || "your team"} is the opportunity to contribute with clarity, care, and reliable execution. I would welcome the chance to discuss how my experience could support the team.\n\nThank you for your consideration.\n\nBest,\n${profile.name || "Your name"}\n\nVOICE NOTES USED\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}`;
+  useEffect(() => {
+    if (jobText.trim().length < 80) return;
+    const timer = window.setTimeout(() => { saveMarketSnapshot("pasted"); }, 900);
+    return () => window.clearTimeout(timer);
+    // Deliberately save meaningful pasted descriptions as market history, while preserving all earlier snapshots.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobText, company, role, roleUrl, selectedTrack.id]);
 
-  const answers = `APPLICATION ANSWER KIT\n\nProfessional headline\n${profile.headline || "Add an approved headline."}\n\nCurrent location\n${profile.location || "Add your location."}\n\nWhy are you interested in this role?\nI’m interested because the role emphasizes ${roleKeywords.slice(0, 3).join(", ") || "the responsibilities in the posting"}, and I can connect those needs to approved evidence in my career profile.\n\nTell us about yourself\n${profile.summary || "Add an approved professional summary before using this answer."}\n\nWhy ${company || "this company"}?\nThe opportunity stands out because of the work described in the posting. Before submitting, add one specific, researched reason for your interest in the company.\n\nCompensation, work authorization, demographic, and legal questions\nREQUIRES USER REVIEW — never infer or autofill these sensitive answers.`;
+  const resume = `${profile.name}\n${effectiveProfile.headline}\n${profile.location} | ${profile.email} | ${profile.phone} | ${profile.linkedin}\n\nTARGET\n${role || "Target role"}${company ? ` — ${company}` : ""}\nRésumé track: ${selectedTrack.name}${trackSelection.automatic ? " (selected automatically)" : ""}\n\nSUMMARY\n${effectiveProfile.summary} For this opportunity, the strongest verified themes are ${roleKeywords.slice(0, 5).join(", ") || "project leadership, creative operations, and delivery"}.\n\nSELECTED RELEVANT EXPERIENCE\n${matchedFacts.map((fact) => `• ${fact}`).join("\n")}\n\nCORE CAPABILITIES\n${roleKeywords.slice(0, 10).join(" • ") || "Add a job description to prioritize capabilities."}\n\nREVIEW REQUIRED\nThis draft reorganizes approved facts only. Confirm wording and add verified outcomes before applying.`;
 
-  const activeText = output === "resume" ? resume : output === "cover" ? cover : output === "answers" ? answers : "";
+  const cover = `Dear ${company ? `${company} Hiring Team` : "Hiring Team"},\n\nI’m interested in the ${role || "position"} because it connects closely with the work reflected in my verified experience.\n\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}${matchedFacts.length ? ` For this role, the most relevant evidence includes ${matchedFacts.slice(0, 3).join("; ")}.` : " Add approved career facts before using this draft."}\n\nWhat draws me to ${company || "your team"} is the opportunity to contribute with clarity, care, and reliable execution. I would welcome the chance to discuss how my experience could support the team.\n\nThank you for your consideration.\n\nBest,\n${profile.name || "Your name"}\n\nVOICE NOTES USED\nLearned from: ${knowledgeStats.voice} uploaded source${knowledgeStats.voice === 1 ? "" : "s"}\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}`;
+
+  const answers = `APPLICATION ANSWER KIT\n\nProfessional headline\n${effectiveProfile.headline || "Add an approved headline."}\n\nCurrent location\n${profile.location || "Add your location."}\n\nWhy are you interested in this role?\nI’m interested because the role emphasizes ${roleKeywords.slice(0, 3).join(", ") || "the responsibilities in the posting"}, and I can connect those needs to approved evidence in my career profile.\n\nTell us about yourself\n${effectiveProfile.summary || "Add an approved professional summary before using this answer."}\n\nWhy ${company || "this company"}?\nThe opportunity stands out because of the work described in the posting. Before submitting, add one specific, researched reason for your interest in the company.\n\nCompensation, work authorization, demographic, and legal questions\nREQUIRES USER REVIEW — never infer or autofill these sensitive answers.`;
+
+  const generatedText = output === "resume" ? resume : output === "cover" ? cover : output === "answers" ? answers : "";
+  const activeText = (output === "resume" || output === "cover") && draftEditorKey === output ? draftEditor : generatedText;
   const autofillData = JSON.stringify({
     version: 1,
     profile: { fullName: profile.name, email: profile.email, phone: profile.phone, location: profile.location, linkedin: profile.linkedin },
@@ -256,21 +351,57 @@ export function JobSeekerApp() {
     if (facts.length < 3) { setNotice("Approve at least three career facts before running cloud AI"); return; }
     if (!aiReady || !selectedProvider || !selectedModel) { setView("ai"); setNotice(aiConnectionMessage); return; }
     setAiRunning(true);
+    setOperationProgress({ label: `Reviewing with ${selectedProvider.name}`, detail: `${selectedModel.label} is comparing the role with approved facts only. Raw files and writing samples are not sent.` });
     try {
-      const response = await fetch("/api/ai/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: selectedProvider.id, modelKey: selectedModel.key, company, role, jobText, approvedFacts: facts, localAnalysis: { decision: recommendation.label, evidenceCoverage, strong: evidenceCounts.strong, partial: evidenceCounts.partial, gaps: evidenceCounts.gaps } }),
-      });
-      const data = await response.json() as { ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; requestId?: string | null; recommendation?: CloudRecommendation };
-      if (!response.ok || !data.ok || !data.recommendation) { logError("ai", data.code || "cloud_review_failed", data.message || `Cloud review returned status ${response.status}`, { status: response.status, provider: data.provider || selectedProvider.id, model: data.model || aiModel, requestId: data.requestId || "not-provided" }); setNotice(data.message || "Cloud review was unavailable. The verified local recommendation remains active."); return; }
-      setCloudReview({ key: reviewKey, provider: data.provider || selectedProvider.id, providerName: data.providerName || selectedProvider.name, model: data.model || aiModel, modelLabel: data.modelLabel || selectedModel.label, recommendation: data.recommendation });
-      setNotice(`${data.providerName || selectedProvider.name} review completed and checked against your approved facts`);
+      const review = await requestModelReview(selectedProvider, selectedModel);
+      setCloudReview(review);
+      setNotice(`${review.providerName} review completed and checked against your approved facts`);
     } catch (cause) {
       logError("ai", "cloud_connection_failed", cause, { provider: selectedProvider.id, model: aiModel });
-      setNotice("Cloud review could not connect. The verified local recommendation remains active.");
+      setNotice(cause instanceof Error ? cause.message : "Cloud review could not connect. The verified local recommendation remains active.");
     } finally {
       setAiRunning(false);
+      setOperationProgress(null);
+    }
+  }
+
+  async function requestModelReview(provider: AiProviderStatus, model: AiModelOption) {
+    const response = await fetch("/api/ai/recommend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: provider.id, modelKey: model.key, company, role, jobText, approvedFacts: facts, localAnalysis: { decision: recommendation.label, evidenceCoverage, strong: evidenceCounts.strong, partial: evidenceCounts.partial, gaps: evidenceCounts.gaps } }),
+    });
+    const data = await readJsonResponse<{ ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; requestId?: string | null; recommendation?: CloudRecommendation }>(response, `${provider.name} did not return readable app data.`);
+    if (!response.ok || !data.ok || !data.recommendation) {
+      logError("ai", data.code || "cloud_review_failed", data.message || `Cloud review returned status ${response.status}`, { status: response.status, provider: data.provider || provider.id, model: data.model || model.id, requestId: data.requestId || "not-provided" });
+      throw new Error(data.message || `${provider.name} could not complete the review. The verified local recommendation remains active.`);
+    }
+    const key = `${jobText}\u0000${facts.join("\u0000")}\u0000${provider.id}\u0000${model.key}`;
+    return { key, provider: data.provider || provider.id, providerName: data.providerName || provider.name, model: data.model || model.id, modelKey: model.key, modelLabel: data.modelLabel || model.label, recommendation: data.recommendation } satisfies CloudReview;
+  }
+
+  async function compareSelectedModels() {
+    if (jobText.trim().length < 80) { setView("workspace"); setNotice("Paste the complete job description before comparing models."); return; }
+    if (facts.length < 3) { setView("documents"); setNotice("Approve at least three career facts before comparing models."); return; }
+    if (!selectedProvider?.configured || !aiConnection.authenticated || !aiConnection.authorized) { setNotice(aiConnectionMessage); return; }
+    setComparisonRunning(true);
+    setComparisonResults([]);
+    const completed: CloudReview[] = [];
+    try {
+      for (let index = 0; index < selectedProvider.models.slice(0, 3).length; index += 1) {
+        const model = selectedProvider.models[index];
+        setOperationProgress({ label: `Comparing ${selectedProvider.name} models · ${index + 1}/3`, detail: `Waiting for ${model.label}. Each model receives the same role and approved facts so the comparison is fair.` });
+        try {
+          completed.push(await requestModelReview(selectedProvider, model));
+          setComparisonResults([...completed]);
+        } catch (cause) {
+          logError("ai", "model_comparison_item_failed", cause, { provider: selectedProvider.id, model: model.id });
+        }
+      }
+      setNotice(completed.length ? `${completed.length} ${selectedProvider.name} model reviews completed. Compare their reasoning below.` : "No comparison review completed. Check the error report and provider connection.");
+    } finally {
+      setComparisonRunning(false);
+      setOperationProgress(null);
     }
   }
 
@@ -278,7 +409,7 @@ export function JobSeekerApp() {
     setAiConnection((current) => ({ ...current, state: "checking", message: "Checking the secure backend connection…" }));
     try {
       const response = await fetch("/api/ai/recommend", { cache: "no-store" });
-      const data = await response.json() as AiStatusPayload;
+      const data = await readJsonResponse<AiStatusPayload>(response, "The AI connection status could not be read.");
       setAiConnection(response.ok ? connectionFromStatus(data) : { state: "error", authenticated: false, authorized: false, providers: [], message: "The connection check returned an error. Local analysis remains active." });
     } catch (cause) {
       logError("connection", "connection_recheck_failed", cause);
@@ -288,8 +419,34 @@ export function JobSeekerApp() {
 
   function saveApplication() {
     if (!company.trim() && !role.trim()) { setNotice("Add a company or role first"); return; }
-    setApplications([{ id: createId(), company: company || "Unknown company", role: role || "Untitled role", status: "Preparing", date: dateToday(), url: roleUrl.trim() || undefined }, ...applications]);
-    setNotice("Application added to tracker");
+    const jobSnapshotId = saveMarketSnapshot("pasted") || undefined;
+    const existing = applications.find((item) => item.jobSnapshotId === jobSnapshotId && jobSnapshotId);
+    if (existing) { setNotice("This role is already in your application pipeline"); setView("applications"); return; }
+    const id = createId();
+    setApplications((current) => [{ id, company: company || "Unknown company", role: role || "Untitled role", status: "Preparing", date: dateInputToday(), url: roleUrl.trim() || undefined, jobSnapshotId, note: "Saved from Role workspace" }, ...current]);
+    setNotice("Role saved to your application pipeline. It is not marked as submitted.");
+  }
+
+  function openDraftEditor(kind: "resume" | "cover") {
+    const seed = kind === "resume" ? resume : cover;
+    setDraftEditor(seed);
+    setDraftEditorKey(kind);
+  }
+
+  function saveDraftVersion(kind: "resume" | "cover") {
+    const content = (draftEditorKey === kind ? draftEditor : kind === "resume" ? resume : cover).trim();
+    if (!content) { setNotice("There is no draft to save yet"); return; }
+    const jobSnapshotId = saveMarketSnapshot("pasted") || undefined;
+    const id = createId();
+    const title = `${company || "Untitled company"} — ${role || (kind === "resume" ? "Tailored resume" : "Cover letter")} · ${dateToday()}`;
+    setGeneratedDrafts((current) => [{ id, type: kind, title, content, createdAt: dateToday(), updatedAt: dateToday(), company: company || "Unknown company", role: role || "Untitled role", trackId: selectedTrack.id, jobSnapshotId, origin: draftEditorKey === kind && draftEditor !== (kind === "resume" ? resume : cover) ? "edited" : "generated" }, ...current]);
+    setNotice(`${kind === "resume" ? "Résumé" : "Cover letter"} version saved for reuse and application tracking.`);
+  }
+
+  function attachDraftToApplication(applicationId: string, draft: GeneratedDraft) {
+    setApplications((current) => current.map((item) => item.id === applicationId ? { ...item, resumeVersionId: draft.type === "resume" ? draft.id : item.resumeVersionId, coverVersionId: draft.type === "cover" ? draft.id : item.coverVersionId } : item));
+    setGeneratedDrafts((current) => current.map((item) => item.id === draft.id ? { ...item, applicationId } : item));
+    setNotice(`${draft.type === "resume" ? "Résumé" : "Cover letter"} linked to this application.`);
   }
 
   function download(name: string, content: string, type = "text/plain") {
@@ -321,9 +478,33 @@ export function JobSeekerApp() {
     }
   }
 
+  async function pasteVisibleRoleCapture() {
+    try {
+      const clipboard = await navigator.clipboard.readText();
+      const parsed = JSON.parse(clipboard) as { schema?: unknown; sourceUrl?: unknown; title?: unknown; text?: unknown };
+      if (parsed.schema !== "v-jobs-role-capture-v1" || typeof parsed.text !== "string" || parsed.text.trim().length < 80) throw new Error("not a V’s visible-page capture");
+      const capturedTitle = typeof parsed.title === "string" ? parsed.title.trim() : "";
+      const capturedUrl = typeof parsed.sourceUrl === "string" ? parsed.sourceUrl.trim() : "";
+      const titleParts = capturedTitle.split(/\s+(?:at|@|\||—|–)\s+/i).map((item) => item.trim()).filter(Boolean);
+      const capturedRole = titleParts[0] || role;
+      const capturedCompany = titleParts.length > 1 ? titleParts[1] : company;
+      if (capturedRole) setRole(capturedRole);
+      if (capturedCompany) setCompany(capturedCompany);
+      if (capturedUrl) setRoleUrl(capturedUrl);
+      setJobText(parsed.text.trim());
+      saveMarketSnapshot("imported", { company: capturedCompany, role: capturedRole, url: capturedUrl, description: parsed.text.trim() });
+      setLinkAssist(null);
+      setOutput("analysis");
+      setNotice("Visible job page imported and saved to private market learning. Review the title, company, and description before applying.");
+    } catch (cause) {
+      logError("links", "visible_role_capture_failed", cause);
+      setNotice("Clipboard does not contain a valid V’s visible-page capture. In the extension, choose “Copy visible job page,” then try again.");
+    }
+  }
+
   async function readLink(url: string, purpose: "knowledge" | "role") {
     const response = await fetch("/api/link/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, purpose }) });
-    const data = await response.json() as LinkReadPayload;
+    const data = await readJsonResponse<LinkReadPayload>(response, purpose === "role" ? "The public job page could not be read." : "The public knowledge source could not be read.");
     if (!response.ok || !data.ok || !data.source) throw new Error(data.message || "The public link could not be read.");
     return data.source;
   }
@@ -334,37 +515,68 @@ export function JobSeekerApp() {
     const trimmedText = rawText.trim();
     const text = trimmedText.slice(0, MAX_SOURCE_TEXT);
     const truncated = trimmedText.length > MAX_SOURCE_TEXT;
-    const document: SourceDocument = { id: createId(), title, type, category: sourceCategory, scope, sourceUrl: originalUrl || undefined, importedAt: dateToday(), text, candidates: scope === "evidence" || scope === "guidance" ? factCandidates(text) : [], approved: [], status: "ready", truncated };
+    const document: SourceDocument = { id: createId(), title, type, category: sourceCategory, scope, trackId: sourceTrackId, sourceUrl: originalUrl || undefined, importedAt: dateToday(), text, candidates: scope === "evidence" || scope === "guidance" ? factCandidates(text) : [], approved: [], status: "ready", truncated };
     setDocuments((current) => [document, ...current]);
-    if (scope === "voice") setWritingStyle((current) => ({ ...current, samples: mergeWritingSample(current.samples, title, text) }));
+    if (scope === "voice") addWritingSample(title, text);
     return scope;
+  }
+
+  function addWritingSample(title: string, text: string) {
+    setWritingStyle((current) => {
+      const samples = mergeWritingSample(current.samples, title, text);
+      const learned = deriveWritingVoice(samples);
+      return learned.ready ? { samples, tone: learned.tone, prefer: learned.prefer, avoid: learned.avoid } : { ...current, samples };
+    });
+  }
+
+  function relearnWritingVoice(samples = writingStyle.samples) {
+    const learned = deriveWritingVoice(samples);
+    if (!learned.ready) { setNotice(learned.tone); return; }
+    setWritingStyle((current) => ({ ...current, tone: learned.tone, prefer: learned.prefer, avoid: learned.avoid }));
+    setNotice(`Writing voice relearned from ${learned.stats.words} words across ${learned.stats.sentences} sentences.`);
   }
 
   async function readRoleFromLink(urlValue = roleUrl) {
     if (!urlValue.trim()) { setNotice("Paste a public job link first"); return; }
+    const kind = linkKind(urlValue.trim());
+    if (kind === "invalid") { setNotice("Use a complete link beginning with https://"); return; }
+    if (kind === "linkedin") {
+      setLinkAssist({ kind: "linkedin", title: "LinkedIn job detected", message: "You do not need to sign in to V’s. LinkedIn blocks automated job-page reading, and official LinkedIn sign-in does not grant job-page access. Open the original link, copy the job description, then paste it here." });
+      setNotice("LinkedIn requires the copy-and-paste path. Official login cannot unlock job pages for this app.");
+      return;
+    }
+    setLinkAssist(null);
     setRoleReading(true);
+    setOperationProgress({ label: "Reading public job page", detail: `Opening ${kind === "indeed" ? "the public Indeed page" : "the employer or ATS page"}, checking access, and extracting the role text…` });
     try {
       const source = await readLink(urlValue.trim(), "role");
       const structuredJob = source.jobs[0];
       const extractedText = structuredJob?.description?.trim() || source.text.trim();
-      setRoleUrl(structuredJob?.sourceUrl || source.finalUrl);
-      if (structuredJob?.company) setCompany(structuredJob.company);
-      if (structuredJob?.title) setRole(structuredJob.title);
-      else if (!role.trim() && source.title) setRole(source.title.replace(/\s*[|–—-].*$/, "").trim());
+      const extractedUrl = structuredJob?.sourceUrl || source.finalUrl;
+      const extractedCompany = structuredJob?.company || company;
+      const extractedRole = structuredJob?.title || (!role.trim() && source.title ? source.title.replace(/\s*[|–—-].*$/, "").trim() : role);
+      setRoleUrl(extractedUrl);
+      if (extractedCompany) setCompany(extractedCompany);
+      if (extractedRole) setRole(extractedRole);
       setJobText(extractedText);
+      saveMarketSnapshot("imported", { company: extractedCompany, role: extractedRole, url: extractedUrl, description: extractedText });
       setOutput("analysis");
-      setNotice(`Role imported from ${new URL(source.finalUrl).hostname}. Review the extracted text before using it.`);
+      setNotice(`Role imported from ${new URL(source.finalUrl).hostname} and saved to private market learning. Review the extracted text before using it.`);
     } catch (cause) {
       logError("links", "role_link_read_failed", cause);
+      if (kind === "indeed") setLinkAssist({ kind: "indeed", title: "Indeed page needs manual copy", message: "Indeed sometimes returns a challenge or sign-in page instead of the public posting. Open the original link, copy the description, and paste it below. V’s never uses your Indeed password or browser session." });
+      else setLinkAssist({ kind: "login", title: "This page could not be read publicly", message: "The site may require sign-in, block automated readers, or render the description only in your browser. Open the original page and paste the job description below." });
       setNotice(cause instanceof Error ? cause.message : "The role link could not be read. Paste the job description instead.");
     } finally {
       setRoleReading(false);
+      setOperationProgress(null);
     }
   }
 
   async function readKnowledgeFromLink() {
     if (!sourceUrl.trim()) { setNotice("Paste a public article or YouTube link first"); return; }
     setSourceReading(true);
+    setOperationProgress({ label: "Importing knowledge", detail: /youtu(?:\.be|be\.com)/i.test(sourceUrl) ? "Reading the public video metadata and exposed captions, then separating the transcript into the selected knowledge type…" : "Reading the public article and separating it into the selected knowledge type…" });
     try {
       const source = await readLink(sourceUrl.trim(), "knowledge");
       const scope = storeImportedSource(source.title, source.sourceType === "youtube-transcript" ? "YouTube transcript" : "Public article", source.text, source.finalUrl);
@@ -375,6 +587,7 @@ export function JobSeekerApp() {
       setNotice(cause instanceof Error ? cause.message : "The public source could not be read. Paste its text instead.");
     } finally {
       setSourceReading(false);
+      setOperationProgress(null);
     }
   }
 
@@ -402,36 +615,61 @@ export function JobSeekerApp() {
     const importedUrl = sourceUrl.trim() || undefined;
     const queued = files.map((file) => ({
       file,
-      document: { id: createId(), title: file.name, type: file.type || "Document", category: sourceCategory, scope, sourceUrl: importedUrl, importedAt: dateToday(), text: "", candidates: [], approved: [], status: "reading" as const },
+      document: { id: createId(), title: file.name, type: file.type || "Document", category: sourceCategory, scope, trackId: sourceTrackId, sourceUrl: importedUrl, importedAt: dateToday(), text: "", candidates: [], approved: [], status: "reading" as const },
     }));
     setSourceUrl("");
     setDocuments((current) => [...queued.map((item) => item.document), ...current]);
     setNotice(`Reading ${files.length} ${files.length === 1 ? "file" : "files"} on this Mac…`);
+    setOperationProgress({ label: "Learning from uploaded content", detail: "Extracting text locally, classifying its knowledge scope, and preparing only evidence or résumé rules for your approval…" });
 
     await Promise.all(queued.map(async ({ file, document }) => {
-      if (file.size > MAX_SOURCE_FILE_BYTES) {
-        logError("documents", "source_file_too_large", "The selected file is larger than the 10 MB import limit.", { size: file.size, limit: MAX_SOURCE_FILE_BYTES });
+      const isZip = /\.zip$/i.test(file.name) || file.type === "application/zip" || file.type === "application/x-zip-compressed";
+      const fileLimit = isZip ? MAX_LINKEDIN_ARCHIVE_BYTES : MAX_SOURCE_FILE_BYTES;
+      if (file.size > fileLimit) {
+        logError("documents", "source_file_too_large", `The selected file is larger than the ${isZip ? "50" : "10"} MB import limit.`, { size: file.size, limit: fileLimit });
         setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, status: "needs-text" } : item));
         return;
       }
-      const isSupported = /^(text\/|application\/(json|csv|pdf|vnd\.openxmlformats-officedocument\.wordprocessingml\.document))/.test(file.type) || /\.(txt|md|csv|json|pdf|docx)$/i.test(file.name);
+      const isSupported = isZip || /^(text\/|application\/(json|csv|pdf|vnd\.openxmlformats-officedocument\.wordprocessingml\.document))/.test(file.type) || /\.(txt|md|csv|json|pdf|docx)$/i.test(file.name);
       if (!isSupported) {
         logError("documents", "unsupported_file_type", "The selected file type is not supported.", { extension: file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() || "unknown" : "none", mime: file.type || "unknown", size: file.size });
         setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, status: "needs-text" } : item));
         return;
       }
       try {
+        if (isZip) {
+          const groups = await extractLinkedInArchive(await file.arrayBuffer());
+          if (!groups.length) throw new Error("No supported LinkedIn export sections were found in this ZIP. Upload the complete archive LinkedIn provided, without changing its filenames.");
+          const imported = groups.map((group) => ({
+            id: createId(),
+            title: group.title,
+            type: group.type,
+            category: group.category,
+            scope: group.scope,
+            trackId: sourceTrackId,
+            importedAt: dateToday(),
+            text: group.text,
+            candidates: group.scope === "evidence" ? factCandidates(group.text) : [],
+            approved: [],
+            status: "ready" as const,
+            truncated: group.truncated,
+          }));
+          setDocuments((current) => [...imported, ...current.filter((item) => item.id !== document.id)]);
+          imported.filter((item) => item.scope === "voice").forEach((item) => addWritingSample(item.title, item.text));
+          return;
+        }
         const extractedText = (await extractFileText(file)).trim();
         const text = extractedText.slice(0, MAX_SOURCE_TEXT);
         const truncated = extractedText.length > MAX_SOURCE_TEXT;
         const sourceType = /\.json$/i.test(file.name) ? "JSON / GPT export" : /\.pdf$/i.test(file.name) ? "PDF" : /\.docx$/i.test(file.name) ? "Word document" : file.type || "Text document";
         setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, type: sourceType, text, candidates: scope === "evidence" || scope === "guidance" ? factCandidates(text) : [], status: "ready", truncated } : item));
-        if (scope === "voice") setWritingStyle((current) => ({ ...current, samples: mergeWritingSample(current.samples, document.title, text) }));
+        if (scope === "voice") addWritingSample(document.title, text);
       } catch (cause) {
         logError("documents", "document_read_failed", cause, { extension: file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() || "unknown" : "none", mime: file.type || "unknown", size: file.size });
         setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, status: "needs-text" } : item));
       }
     }));
+    setOperationProgress(null);
     setNotice(scope === "evidence" ? "Import finished. Review each candidate before it becomes reusable evidence." : scope === "voice" ? "Writing samples are now in your voice bank and cannot create career facts." : scope === "guidance" ? "Résumé playbook sources are ready. Review the detected tips and activate the rules you trust." : "Research sources are saved as context and cannot create career facts.");
   }
 
@@ -451,10 +689,20 @@ export function JobSeekerApp() {
     setNotice(source.approved.includes(rule) ? "That résumé rule is already active" : "Résumé rule added to the playbook—not to your career facts");
   }
 
-  function removeSource(source: SourceDocument) {
-    if (sourceScope(source) === "voice") setWritingStyle((current) => ({ ...current, samples: removeWritingSample(current.samples, source.title) }));
-    setDocuments((current) => current.filter((document) => document.id !== source.id));
-    setNotice("Knowledge source removed from this browser");
+  function approveAllCandidates(documentId: string) {
+    const source = documents.find((document) => document.id === documentId);
+    if (!source) return;
+    const scope = sourceScope(source);
+    if (scope !== "evidence" && scope !== "guidance") return;
+    const candidates = source.candidates.filter(Boolean);
+    if (!candidates.length) { setNotice("There are no candidate items to approve in this source"); return; }
+    setDocuments((current) => current.map((document) => document.id === documentId ? { ...document, approved: [...new Set([...document.approved, ...candidates])] } : document));
+    if (scope === "evidence") {
+      const known = new Set(facts.map((fact) => fact.toLowerCase()));
+      const additions = candidates.filter((candidate) => !known.has(candidate.toLowerCase()));
+      if (additions.length) setProfile({ ...profile, facts: [...facts, ...additions].join("\n") });
+    }
+    setNotice(scope === "evidence" ? `${candidates.length} career facts approved. Review or edit them any time in Career profile.` : `${candidates.length} résumé playbook rules activated.`);
   }
 
   function addCompany() {
@@ -467,8 +715,39 @@ export function JobSeekerApp() {
     setCompany(target.name); setView("workspace"); setNotice("Company loaded into the role workspace");
   }
 
+  function updateResumeTrack(trackId: string, patch: Partial<ResumeTrack>) {
+    setResumeTracks(normalizedTracks.map((track) => track.id === trackId ? { ...track, ...patch } : track));
+  }
+
+  function addResumeTrack() {
+    if (normalizedTracks.length >= 12) { setNotice("V’s supports up to 12 résumé tracks."); return; }
+    const id = `track-${createId().slice(0, 8)}`;
+    setResumeTracks([...normalizedTracks, { id, name: "New résumé direction", headline: "", summary: "", focus: [] }]);
+    setActiveTrackId(id);
+    setNotice("New résumé track added. Give it a name, headline, summary, and matching role terms.");
+  }
+
+  function removeResumeTrack(trackId: string) {
+    if (normalizedTracks.length <= 1) { setNotice("Keep at least one résumé track."); return; }
+    setResumeTracks(normalizedTracks.filter((track) => track.id !== trackId));
+    if (activeTrackId === trackId) setActiveTrackId("auto");
+  }
+
+  async function disconnectLinkedin() {
+    try {
+      const response = await fetch("/api/linkedin/disconnect", { method: "POST" });
+      const data = await readJsonResponse<{ ok?: boolean; message?: string }>(response, "LinkedIn sign-in could not be disconnected.");
+      if (!response.ok || !data.ok) throw new Error(data.message || "LinkedIn sign-in could not be disconnected.");
+      setLinkedinStatus({ state: "ready", configured: true, connected: false, message: data.message || "LinkedIn sign-in disconnected." });
+      setNotice("Official LinkedIn identity disconnected. Imported files remain in your private knowledge library.");
+    } catch (cause) {
+      logError("connection", "linkedin_disconnect_failed", cause);
+      setNotice(cause instanceof Error ? cause.message : "LinkedIn sign-in could not be disconnected.");
+    }
+  }
+
   function exportWorkspace() {
-    download("v-jobs-private-workspace.json", JSON.stringify({ version: 3, product: "V's Job Seeker", exportedAt: new Date().toISOString(), profile, writingStyle, documents, companies, applications, aiPreference, playbookSettings }, null, 2), "application/json");
+    download("v-jobs-private-workspace.json", JSON.stringify({ version: 4, product: "V's Job Seeker", exportedAt: new Date().toISOString(), profile, resumeTracks: normalizedTracks, activeTrackId, writingStyle, documents, companies, applications, aiPreference, playbookSettings }, null, 2), "application/json");
   }
 
   function createErrorReport() {
@@ -495,17 +774,21 @@ export function JobSeekerApp() {
       </aside>
 
       <section className="main-stage">
-        <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your weekly radar." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : "Choose and understand your AI."}</h1></div><div className="status-pill"><i /> Private autosave on</div></header>
+        <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your daily radar." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : "Choose and understand your AI."}</h1></div><div className="status-pill"><i /> Private autosave on</div></header>
         {notice && <button className="notice" onClick={() => setNotice("")}>{notice} ×</button>}
+        {operationProgress && <div className="operation-status global-operation" role="status" aria-live="polite"><i /><div><strong>{operationProgress.label}</strong><span>{operationProgress.detail}</span></div></div>}
 
         {view === "workspace" && <div className="workspace-grid">
           <section className="input-card">
             <div className="step"><b>01</b><span>ROLE INTAKE</span></div>
-            <div className="link-intake"><label>Job link<input type="url" value={roleUrl} onChange={(event) => setRoleUrl(event.target.value)} placeholder="Copy a public job link, then press Command–V" /></label><div><button onClick={() => pasteFromClipboard(setRoleUrl, "job link")}>Paste link</button><button className="primary" onClick={() => readRoleFromLink()} disabled={roleReading}>{roleReading ? "Reading…" : "Read public job page"}</button></div><small>Works with public company and ATS pages. LinkedIn or login-only pages require you to paste the job text.</small></div>
+            <div className="link-intake"><label>Job link<input type="url" value={roleUrl} onChange={(event) => { setRoleUrl(event.target.value); setLinkAssist(null); }} placeholder="Copy a job link, then press Command–V" /></label><div><button onClick={() => pasteFromClipboard(setRoleUrl, "job link")}>Paste link</button><button onClick={pasteVisibleRoleCapture}>Paste visible-page capture</button><button className="primary" onClick={() => readRoleFromLink()} disabled={roleReading}>{roleReading ? "Reading and extracting…" : "Read public job page"}</button></div><small>Employer and ATS pages can usually be read directly. For LinkedIn, Indeed, and login-only pages, use the companion’s “Copy visible job page” while you are viewing the page, then paste it here.</small></div>
+            {linkAssist && <div className={`link-assist ${linkAssist.kind}`}><div><span>USE THE PAGE YOU CAN SEE</span><strong>{linkAssist.title}</strong><p>{linkAssist.message} Your LinkedIn login stays in your browser. V’s never receives your password or LinkedIn cookies.</p></div><div>{/^https?:\/\//i.test(roleUrl) && <a href={roleUrl} target="_blank" rel="noreferrer">Open original job ↗</a>}<button className="primary" onClick={() => { void pasteFromClipboard(setJobText, "job description"); setLinkAssist(null); }}>Paste copied job text</button></div></div>}
             <div className="field-row"><label>Company<input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="e.g. Apple" /></label><label>Role title<input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Brand Project Manager" /></label></div>
-            <label>Job description<textarea value={jobText} onChange={(e) => setJobText(e.target.value)} placeholder="Paste the complete job description here, or import it from the public job link above." /></label>
+            <div className="track-selector"><label>Résumé direction<select value={activeTrackId} onChange={(event) => setActiveTrackId(event.target.value)}><option value="auto">Auto-select from the role</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label><div><span>{trackSelection.automatic ? "AUTO MATCH" : "MANUAL"}</span><strong>{selectedTrack.name}</strong><small>{selectedTrack.headline || "Add a headline in Career profile → Résumé tracks"}</small></div></div>
+            <label>Job description<textarea value={jobText} onBlur={() => { if (jobText.trim().length >= 80) { saveMarketSnapshot("pasted"); setNotice("Job description saved to private market learning."); } }} onChange={(e) => setJobText(e.target.value)} placeholder="Paste the complete job description here, or import it from the public job link above." /></label>
             {(!evidenceSources.length || facts.length < 3) && <button className="knowledge-cta" onClick={() => setView("documents")}><span>YOUR SOURCE OF TRUTH</span><strong>Upload knowledge sources</strong><small>Add your résumé, Custom GPT content, résumé rules, and writing samples. Personal claims require your approval.</small></button>}
-            <div className="input-actions"><button className="primary" onClick={() => setOutput("analysis")}>Analyze locally</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Running secure review…" : aiReady ? `Review with ${aiProviderName}` : "Cloud AI setup"}</button><button onClick={saveApplication}>Save to applications</button><button onClick={() => { setJobText(""); setCompany(""); setRole(""); setRoleUrl(""); }}>Clear</button></div>
+            <div className="input-actions"><button className="primary" onClick={() => setOutput("analysis")}>Analyze locally</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Running secure review…" : aiReady ? `Review with ${aiProviderName}` : "Cloud AI setup"}</button><button onClick={() => { saveMarketSnapshot("pasted"); setNotice("Saved to market learning. This does not create an application."); }}>Save description</button><button onClick={saveApplication}>Save to applications</button><button onClick={() => { setJobText(""); setCompany(""); setRole(""); setRoleUrl(""); setDraftEditor(""); setDraftEditorKey(""); }}>Clear</button></div>
+            <div className="workspace-feedback" aria-live="polite"><strong>{jobSnapshots.length} saved job descriptions</strong><span>Descriptions are preserved for market learning; “Save to applications” creates a separate pipeline record.</span></div>
           </section>
 
           <section className="output-card">
@@ -529,10 +812,10 @@ export function JobSeekerApp() {
               <div className="evidence-map"><div className="evidence-head"><h2>Requirement → evidence map</h2><span>{evidenceMap.filter((item) => item.strength !== "Gap").length}/{evidenceMap.length || 0} supported</span></div>{evidenceMap.length ? evidenceMap.map((item) => <article key={item.requirement}><div><span className={`strength ${item.strength.toLowerCase()}`}>{item.strength}</span><p>{item.requirement}</p></div>{item.evidence.length ? <ul>{item.evidence.map((match) => <li key={match.fact}><strong>{match.fact}</strong><small>Source: {match.source}</small></li>)}</ul> : <p className="gap-copy">No approved evidence found. Ask for clarification or leave this claim out.</p>}</article>) : <p className="gap-copy">Paste a complete posting to map its requirements to approved facts.</p>}</div>
               <div className="truth-check"><strong>Truth check</strong><p>The score measures approved evidence coverage and profile readiness—not your chance of being hired. Unknown metrics and experience must be reviewed by you.</p><ul><li>{matchedFacts.length} approved facts are currently relevant to this role.</li><li>{firstGap ? `First unsupported requirement: ${firstGap}` : roleKeywords.length ? "Every detected requirement has at least partial evidence; review quality before using it." : "Paste a complete role description to produce a better check."}</li><li>Final application decisions and all sensitive answers remain yours.</li></ul></div>
             </div> : <div className="document-view">
-              <div className="document-actions"><span>Generated from approved facts</span><button onClick={() => copyText(activeText, setNotice)}>Copy</button><button onClick={() => download(`tailored-${output}.txt`, activeText)}>Text</button><button onClick={() => downloadWordDocument(`tailored-${output}.doc`, `${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Word</button><button className="primary" onClick={() => printDocument(`${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Save as PDF</button></div>
+              <div className="document-actions"><span>{output === "resume" || output === "cover" ? "Editable working draft — based on approved facts" : "Generated from approved facts"}</span>{(output === "resume" || output === "cover") && <button onClick={() => openDraftEditor(output)}>Edit draft</button>}{(output === "resume" || output === "cover") && <button onClick={() => saveDraftVersion(output)}>Save version</button>}<button onClick={() => copyText(activeText, setNotice)}>Copy</button><button onClick={() => download(`tailored-${output}.txt`, activeText)}>Text</button><button onClick={() => downloadWordDocument(`tailored-${output}.doc`, `${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Word</button><button className="primary" onClick={() => printDocument(`${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Save as PDF</button></div>
               {output === "resume" && <div className={`playbook-banner ${approvedPlaybookRules.length ? "active" : "empty"}`}><div><span>RÉSUMÉ PLAYBOOK</span><strong>{approvedPlaybookRules.length ? `${approvedPlaybookRules.length} active do/don’t rules` : "No résumé rules active yet"}</strong><small>{approvedPlaybookRules.length ? "These rules stay visible as an editorial checklist and never become career claims." : "Upload a Résumé playbook source, then approve the tips you trust."}</small></div><button onClick={() => setView("documents")}>{approvedPlaybookRules.length ? "Review rules" : "Add playbook"}</button>{approvedPlaybookRules.length > 0 && <ul>{approvedPlaybookRules.slice(0, 3).map((rule) => <li key={rule}>{rule}</li>)}</ul>}</div>}
               {output === "cover" && knowledgeStats.voice > 0 && <div className="playbook-banner active"><div><span>WRITING VOICE</span><strong>{knowledgeStats.voice} uploaded voice {knowledgeStats.voice === 1 ? "source" : "sources"}</strong><small>Voice affects phrasing only; approved career facts remain the truth boundary.</small></div><button onClick={() => setView("voice")}>Review voice</button></div>}
-              <pre>{activeText}</pre>
+              {(output === "resume" || output === "cover") && draftEditorKey === output ? <textarea className="draft-editor" aria-label={`Editable ${output} draft`} value={draftEditor} onChange={(event) => setDraftEditor(event.target.value)} /> : <pre>{activeText}</pre>}
             </div>}
           </section>
         </div>}
@@ -552,6 +835,11 @@ export function JobSeekerApp() {
             {selectedProvider && !selectedProvider.configured && <div className="setup-note"><strong>Connect {selectedProvider.name}</strong><p>Open ChatGPT Sites, find <em>V&apos;s Job Seeker</em>, choose <b>More actions → Settings</b>, and add <code>{selectedProvider.keyName}</code> as a secret. Then redeploy the saved version. Create the key in that provider&apos;s developer console; API access and billing are separate from consumer chat subscriptions. Never paste a key into chat or this app, commit it to GitHub, or store it in browser data.</p><a href="https://chatgpt.com/sites" target="_blank" rel="noreferrer">Open ChatGPT Sites ↗</a></div>}
             {selectedProvider?.configured && !aiReady && <div className="setup-note"><strong>Access protection is working</strong><p>{aiConnection.authenticated ? "Add this account to the optional AI_ALLOWED_EMAILS deployment allowlist, or remove the allowlist restriction." : "Open V’s through your signed-in ChatGPT account. Protected provider keys are never exposed to anonymous visitors."}</p></div>}
             {aiReady && <div className="ready-note"><strong>{selectedModel?.label} is ready</strong><span>V’s sends one protected request only when you click a cloud-review button. Switching the selector changes the next review, not the local engine.</span></div>}
+            <div className="model-comparison">
+              <div><span>OPTIONAL MODEL LAB</span><strong>Compare all three {selectedProvider?.name || "provider"} models</strong><p>Each model receives the same current role and approved facts. This uses three paid API requests and runs only after your click.</p></div>
+              <button className="primary" onClick={compareSelectedModels} disabled={!aiReady || comparisonRunning}>{comparisonRunning ? "Comparing models…" : "Run 3-model comparison"}</button>
+              {comparisonResults.length > 0 && <div className="comparison-results">{comparisonResults.map((review) => <article key={`${review.provider}-${review.model}`}><div><span>{review.modelLabel}</span><code>{review.model}</code></div><strong>{review.recommendation.decision.replaceAll("_", " ")}</strong><p>{review.recommendation.summary}</p><small>{review.recommendation.confidence} confidence · {review.recommendation.evidenceGaps.length} evidence gaps</small><button onClick={() => { setAiPreference({ provider: review.provider, modelKey: review.modelKey }); setCloudReview(review); setOutput("analysis"); setView("workspace"); setNotice(`${review.modelLabel} selected for the current recommendation.`); }}>Use this review</button></article>)}</div>}
+            </div>
           </div>
 
           <div className="ai-explainer">
@@ -581,12 +869,15 @@ export function JobSeekerApp() {
         </section>}
 
         {view === "connections" && <section className="connections-workspace">
-          <div className="connections-hero"><div><span>CONNECTED SOURCES</span><h2>LinkedIn, without scraping or handing over your password.</h2><p>V’s uses the strongest access LinkedIn officially permits. Your profile URL and official export can enrich your evidence; private recommendations and job recommendations are not exposed through a general member API.</p></div><div className="connection-verdict"><strong>Safe import available now</strong><span>Official API connection requires a LinkedIn developer app and approval.</span></div></div>
+          <div className="connections-hero"><div><span>CONNECTED SOURCES</span><h2>LinkedIn and job boards, without scraping or sharing passwords.</h2><p>V’s uses the strongest access each service officially permits. Your profile URL and official LinkedIn export can enrich your evidence; private job recommendations and LinkedIn AI advice are not exposed through a general member API.</p></div><div className="connection-verdict"><strong>{linkedinStatus.connected ? "LinkedIn identity connected" : "Safe import available now"}</strong><span>{linkedinStatus.message}</span></div></div>
           <div className="connections-grid">
             <article className="linkedin-card">
               <div className="integration-title"><div className="linkedin-mark">in</div><div><span>LINKEDIN</span><h3>Your professional source</h3></div></div>
               <label>LinkedIn profile URL<input type="url" value={profile.linkedin} onChange={(event) => setProfile({ ...profile, linkedin: event.target.value })} placeholder="https://www.linkedin.com/in/…" /></label>
-              <div className="integration-actions"><a className="primary-link" href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank" rel="noreferrer">Request official data export ↗</a><button onClick={() => { setSourceCategory("LinkedIn export"); setView("documents"); setNotice("Upload the LinkedIn export here. Every possible career fact still requires your approval."); }}>Import LinkedIn export</button><a href="https://www.linkedin.com/my-items/saved-jobs/" target="_blank" rel="noreferrer">Open saved jobs ↗</a></div>
+              <div className={`linkedin-login-status ${linkedinStatus.connected ? "connected" : ""}`}><strong>{linkedinStatus.state === "checking" ? "Checking official sign-in…" : linkedinStatus.connected ? `Connected as ${linkedinStatus.identity?.name || linkedinStatus.identity?.email || "LinkedIn member"}` : linkedinStatus.configured ? "Official sign-in is ready" : "Developer credentials required"}</strong><span>{linkedinStatus.connected ? "Identity only: name, picture, and email. It does not unlock job pages, recommendations, saved jobs, or LinkedIn AI suggestions." : linkedinStatus.message}</span></div>
+              <div className="integration-actions">{linkedinStatus.connected ? <button onClick={disconnectLinkedin}>Disconnect official sign-in</button> : linkedinStatus.configured ? <a className="primary-link" href="/api/linkedin/start">Connect official LinkedIn sign-in</a> : <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noreferrer">Create LinkedIn developer app ↗</a>}<a className="primary-link" href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank" rel="noreferrer">Request official data export ↗</a><button onClick={() => { setSourceCategory("LinkedIn export"); setView("documents"); setNotice("Upload LinkedIn’s ZIP here. V’s separates career evidence, saved jobs/AI context, and public writing automatically."); }}>Import LinkedIn ZIP</button><a href="https://www.linkedin.com/my-items/saved-jobs/" target="_blank" rel="noreferrer">Open saved jobs ↗</a></div>
+              {!linkedinStatus.configured && <div className="integration-config"><strong>To activate official sign-in</strong><span>Add <code>LINKEDIN_CLIENT_ID</code>, <code>LINKEDIN_CLIENT_SECRET</code>, <code>LINKEDIN_REDIRECT_URI</code>, and <code>LINKEDIN_SESSION_SECRET</code> as protected deployment secrets. The redirect URI must end in <code>/api/linkedin/callback</code>.</span></div>}
+              <div className="integration-safety"><strong>The official ZIP is the useful data path</strong><span>LinkedIn’s export can include Profile, Positions, Skills, Recommendations Received, Saved Jobs, Saved Job Alerts, résumé data, AI-powered conversations, Profile Summary AI, Shares, Comments, and Articles. V’s separates these into evidence, research, and writing voice.</span></div>
               <div className="integration-safety"><strong>Never requested</strong><span>Your LinkedIn password, browser cookies, private messages, or session.</span></div>
             </article>
 
@@ -597,25 +888,43 @@ export function JobSeekerApp() {
               <div className="api-capability limited"><b>Restricted partner products</b><p>Talent Solutions APIs focus on approved recruiting partners, ATS integrations, and job posting—not a personal job-recommendation feed.</p></div>
               <div className="integration-actions"><a href="https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2" target="_blank" rel="noreferrer">Review official sign-in API ↗</a><a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noreferrer">LinkedIn developer apps ↗</a></div>
             </article>
+            <article className="api-reality-card job-board-card">
+              <span>JOB BOARD REFERENCES</span><h3>Indeed and other sites</h3>
+              <div className="api-capability yes"><b>Available now</b><p>Paste public Indeed, Glassdoor, and other job-board URLs into Role intake or save them as radar references.</p></div>
+              <div className="api-capability limited"><b>Access varies by page</b><p>If the site returns a sign-in or anti-bot page, V’s shows the manual-copy path instead of an unreadable JSON error.</p></div>
+              <div className="api-capability no"><b>No candidate-feed shortcut</b><p>Indeed’s official APIs primarily support approved employer, job-posting, and partner workflows. V’s does not use your password or pretend a general personal job-feed API exists.</p></div>
+              <div className="integration-actions"><button onClick={() => setView("workspace")}>Open Role intake</button><button onClick={() => setView("radar")}>Add radar reference</button></div>
+            </article>
           </div>
-          <div className="linkedin-next-step"><div><span>IMPLEMENTATION STATUS</span><strong>API-ready boundary, no fake connection</strong></div><p>V’s now has a compliant source path: save your public profile URL, import LinkedIn’s official export, and bring saved job links into Role intake. OAuth can be added after a LinkedIn developer app is approved, but it will not unlock recommendations or job feeds LinkedIn does not expose.</p><a href="https://www.linkedin.com/help/linkedin/answer/a1341387" target="_blank" rel="noreferrer">Why V’s does not scrape or automate LinkedIn ↗</a></div>
+          <div className="linkedin-next-step"><div><span>IMPLEMENTATION STATUS</span><strong>Official OIDC scaffold + export intelligence</strong></div><p>V’s can now run the official OpenID Connect flow once deployment credentials are added. That connection is intentionally identity-only. For profile evidence, received recommendations, saved jobs, and LinkedIn AI/profile context, import the official ZIP.</p><a href="https://www.linkedin.com/help/linkedin/answer/a1341387" target="_blank" rel="noreferrer">Why V’s does not scrape or automate LinkedIn ↗</a></div>
         </section>}
 
-        {view === "profile" && <section className="profile-workspace"><div className="section-head"><div className="step"><b>PROFILE</b><span>VERIFIED SOURCE OF TRUTH</span></div><p>Edit this once. Every résumé, letter, answer, and autofill package uses these fields.</p></div><div className="profile-form"><label>Full name<input value={profile.name} onChange={(e) => setProfile({...profile,name:e.target.value})} /></label><label>Professional headline<input value={profile.headline} onChange={(e) => setProfile({...profile,headline:e.target.value})} /></label><label>Email<input value={profile.email} onChange={(e) => setProfile({...profile,email:e.target.value})} /></label><label>Phone<input value={profile.phone} onChange={(e) => setProfile({...profile,phone:e.target.value})} /></label><label>Location<input value={profile.location} onChange={(e) => setProfile({...profile,location:e.target.value})} /></label><label>LinkedIn<input value={profile.linkedin} onChange={(e) => setProfile({...profile,linkedin:e.target.value})} /></label><label className="wide">Base summary<textarea value={profile.summary} onChange={(e) => setProfile({...profile,summary:e.target.value})} /></label><label className="wide">Verified career facts — one per line<textarea className="facts-area" value={profile.facts} onChange={(e) => setProfile({...profile,facts:e.target.value})} /></label></div><div className="profile-footer"><span>{facts.length} approved facts available</span><div><button onClick={() => download("v-jobs-career-profile.json", JSON.stringify(profile,null,2), "application/json")}>Export profile</button><button className="primary" onClick={exportWorkspace}>Back up private workspace</button></div></div></section>}
+        {view === "profile" && <section className="profile-workspace">
+          <div className="section-head"><div className="step"><b>PROFILE</b><span>VERIFIED SOURCE OF TRUTH</span></div><p>Edit this once. Every résumé, letter, answer, and autofill package uses these fields.</p></div>
+          <div className="profile-form"><label>Full name<input value={profile.name} onChange={(e) => setProfile({...profile,name:e.target.value})} /></label><label>Default professional headline<input value={profile.headline} onChange={(e) => setProfile({...profile,headline:e.target.value})} /></label><label>Email<input value={profile.email} onChange={(e) => setProfile({...profile,email:e.target.value})} /></label><label>Phone<input value={profile.phone} onChange={(e) => setProfile({...profile,phone:e.target.value})} /></label><label>Location<input value={profile.location} onChange={(e) => setProfile({...profile,location:e.target.value})} /></label><label>LinkedIn<input value={profile.linkedin} onChange={(e) => setProfile({...profile,linkedin:e.target.value})} /></label><label className="wide">Default base summary<textarea value={profile.summary} onChange={(e) => setProfile({...profile,summary:e.target.value})} /></label><label className="wide">Verified career facts — one per line<textarea className="facts-area" value={profile.facts} onChange={(e) => setProfile({...profile,facts:e.target.value})} /></label></div>
+          <div className="resume-tracks-section">
+            <div className="resume-tracks-head"><div><span>RÉSUMÉ DIRECTIONS</span><h2>Keep different career areas distinct.</h2><p>Auto-select uses role terms. Each track can override the default headline and summary; approved career facts remain shared truth unless a source is assigned to one track.</p></div><button onClick={addResumeTrack}>Add track</button></div>
+            <label className="track-default">Role workspace selection<select value={activeTrackId} onChange={(event) => setActiveTrackId(event.target.value)}><option value="auto">Auto-select from each role</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>
+            <div className="resume-track-list">{normalizedTracks.map((track) => <article key={track.id} className={selectedTrack.id === track.id ? "selected" : ""}><div className="track-card-head"><span>{selectedTrack.id === track.id ? trackSelection.automatic ? "CURRENT AUTO MATCH" : "CURRENT TRACK" : "RÉSUMÉ TRACK"}</span><button onClick={() => removeResumeTrack(track.id)}>Remove</button></div><label>Name<input value={track.name} onChange={(event) => updateResumeTrack(track.id, { name: event.target.value })} /></label><label>Headline<input value={track.headline} onChange={(event) => updateResumeTrack(track.id, { headline: event.target.value })} /></label><label>Track summary<textarea value={track.summary} onChange={(event) => updateResumeTrack(track.id, { summary: event.target.value })} placeholder="Use a truthful summary tailored to this career direction." /></label><label>Matching role terms<textarea value={track.focus.join(", ")} onChange={(event) => updateResumeTrack(track.id, { focus: event.target.value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) })} placeholder="brand, campaign, creative, agency" /></label></article>)}</div>
+          </div>
+          <div className="profile-footer"><span>{facts.length} approved facts · {normalizedTracks.length} résumé tracks</span><div><button onClick={() => download("v-jobs-career-profile.json", JSON.stringify({ profile, resumeTracks: normalizedTracks },null,2), "application/json")}>Export profile</button><button className="primary" onClick={exportWorkspace}>Back up private workspace</button></div></div>
+        </section>}
 
-        {view === "voice" && <section className="profile-workspace voice-workspace"><div className="section-head"><div className="step"><b>VOICE</b><span>COVER LETTER STYLE BANK</span></div><p>Paste writing that sounds like you. These notes guide letters and application answers without changing verified facts.</p></div><div className="profile-form"><label className="wide">Tone<textarea value={writingStyle.tone} onChange={(event) => setWritingStyle({...writingStyle,tone:event.target.value})} /></label><label>Prefer<textarea value={writingStyle.prefer} onChange={(event) => setWritingStyle({...writingStyle,prefer:event.target.value})} /></label><label>Avoid<textarea value={writingStyle.avoid} onChange={(event) => setWritingStyle({...writingStyle,avoid:event.target.value})} /></label><label className="wide">Approved writing samples<textarea className="voice-samples" value={writingStyle.samples} onChange={(event) => setWritingStyle({...writingStyle,samples:event.target.value})} placeholder="Paste emails, introductions, cover letters, or messages that genuinely sound like you." /></label></div><div className="profile-footer"><span>Voice changes style only—never career facts.</span><button onClick={() => { setView("workspace"); setOutput("cover"); }}>Preview cover-letter voice</button></div></section>}
+        {view === "voice" && <section className="profile-workspace voice-workspace"><div className="section-head"><div className="step"><b>VOICE</b><span>COVER LETTER STYLE BANK</span></div><p>Upload or paste writing that genuinely sounds like you. V’s derives a deterministic style profile from those samples without changing verified facts.</p></div><div className={`voice-learning-status ${learnedVoice.ready ? "ready" : "learning"}`}><div><span>{learnedVoice.ready ? "VOICE PROFILE READY" : "MORE WRITING NEEDED"}</span><strong>{learnedVoice.stats.words} words · {learnedVoice.stats.sentences} sentences · {learnedVoice.stats.averageSentenceWords || 0} words per sentence</strong><small>{knowledgeStats.voice} uploaded writing {knowledgeStats.voice === 1 ? "source" : "sources"}. You can still edit every learned instruction.</small></div><button onClick={() => relearnWritingVoice()}>{learnedVoice.ready ? "Relearn from samples" : "Check samples"}</button></div><div className="profile-form"><label className="wide">Learned tone<textarea value={writingStyle.tone} onChange={(event) => setWritingStyle({...writingStyle,tone:event.target.value})} /></label><label>Prefer<textarea value={writingStyle.prefer} onChange={(event) => setWritingStyle({...writingStyle,prefer:event.target.value})} /></label><label>Avoid<textarea value={writingStyle.avoid} onChange={(event) => setWritingStyle({...writingStyle,avoid:event.target.value})} /></label><label className="wide">Approved writing samples<textarea className="voice-samples" value={writingStyle.samples} onChange={(event) => setWritingStyle({...writingStyle,samples:event.target.value})} placeholder="Paste emails, introductions, cover letters, articles, or messages that genuinely sound like you." /></label></div><div className="profile-footer"><span>Voice changes style only—never career facts.</span><div><button onClick={() => { setSourceCategory("Writing sample"); setView("documents"); }}>Upload more writing</button><button onClick={() => { setView("workspace"); setOutput("cover"); }}>Preview cover-letter voice</button></div></div></section>}
 
         {view === "documents" && <section className="documents-workspace knowledge-workspace">
           <div className="document-import">
             <div className="step"><b>02</b><span>KNOWLEDGE SOURCES</span></div>
             <h2>Upload evidence, voice, and the rules for a great résumé.</h2>
             <p>V’s keeps four kinds of knowledge separate so a tip, article, or writing sample can never become a claim about your experience.</p>
+            <div className="learning-path"><div className="learning-path-head"><span>YOUR LEARNING PATH</span><strong>{learningSteps.filter((step) => step.complete).length}/{learningSteps.length} foundations ready</strong><small>V’s uses this sequence to learn your history, voice, résumé rules, LinkedIn context, and different career directions.</small></div><ol>{learningSteps.map((step, index) => <li key={step.label} className={step.complete ? "complete" : ""}><b>{step.complete ? "✓" : index + 1}</b><div><strong>{step.label}</strong><span>{step.detail}</span></div></li>)}</ol></div>
             <label className="source-type">What kind of knowledge is this?<select value={sourceCategory} onChange={(event) => setSourceCategory(event.target.value as SourceCategory)}>{SOURCE_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label>
+            <label className="source-type">Use this source for<select value={sourceTrackId} onChange={(event) => setSourceTrackId(event.target.value)}><option value="all">All résumé tracks</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>
             <div className={`scope-preview ${scopeForCategory(sourceCategory)}`}><strong>{sourceScopeLabel(scopeForCategory(sourceCategory))}</strong><span>{sourceScopeDescription(scopeForCategory(sourceCategory))}</span></div>
             <div className="link-source-import"><label className="source-url">Public article or YouTube URL <small>V’s can read a public article or public captions. It never logs in, sends cookies, or reads private pages.</small><input type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://article… or https://youtu.be/…" /></label><div><button onClick={() => pasteFromClipboard(setSourceUrl, "source link")}>Paste link</button><button className="primary" onClick={readKnowledgeFromLink} disabled={sourceReading}>{sourceReading ? "Reading public source…" : "Read and import link"}</button></div></div>
             <label className={isDragging ? "upload-zone dragging" : "upload-zone"} onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setIsDragging(false); }} onDrop={(event) => { event.preventDefault(); setIsDragging(false); uploadDocuments(Array.from(event.dataTransfer.files)); }}>
-              <input type="file" multiple accept=".pdf,.docx,.txt,.md,.csv,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv,application/json" onChange={(event) => { uploadDocuments(Array.from(event.target.files || [])); event.currentTarget.value = ""; }} />
-              <span className="upload-icon">↑</span><strong>Drop files here</strong><span>or click to browse your Mac</span><small>PDF · Word .docx · TXT · Markdown · CSV · JSON / GPT export · 10 MB each</small>
+              <input type="file" multiple accept=".pdf,.docx,.txt,.md,.csv,.json,.zip,application/pdf,application/zip,application/x-zip-compressed,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv,application/json" onChange={(event) => { uploadDocuments(Array.from(event.target.files || [])); event.currentTarget.value = ""; }} />
+              <span className="upload-icon">↑</span><strong>Drop files here</strong><span>or click to browse your Mac</span><small>PDF · Word · TXT · Markdown · CSV · JSON / GPT export · LinkedIn ZIP (50 MB) · other files 10 MB</small>
             </label>
             <div className="privacy-strip"><strong>Private by default</strong><span>Files are processed and saved in this browser. They are not uploaded to GitHub or sent to an AI provider.</span></div>
             <details className="paste-fallback"><summary>Paste text instead</summary><div><label>Source name<input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="e.g. Résumé do’s and don’ts — 2026" /></label><label>Source text<textarea value={documentText} onChange={(event) => setDocumentText(event.target.value)} placeholder="Paste career evidence, Custom GPT content, résumé tips and rules, writing samples, or company research." /></label><button className="primary" onClick={importDocument}>Import pasted text</button></div></details>
@@ -629,8 +938,8 @@ export function JobSeekerApp() {
             {documents.length === 0 ? <div className="empty-state compact"><strong>Your knowledge library is empty.</strong><span>Start with your current résumé for evidence. Then add “Résumé playbook” sources containing tips, do’s, don’ts, templates, or best practices.</span></div> : <div className="source-list">{documents.map((doc) => {
               const scope = sourceScope(doc);
               return <article key={doc.id} className={`source-card ${doc.status} ${scope}`}>
-                <header><div><div className="source-badges"><span className="source-category">{doc.category || "Imported source"}</span><span className={`source-scope ${scope}`}>{sourceScopeLabel(scope)}</span></div><strong>{doc.title}</strong><span>{doc.type} · {doc.importedAt}{doc.truncated ? " · first 300,000 characters stored" : ""}</span>{doc.sourceUrl && /^https?:\/\//i.test(doc.sourceUrl) && <a href={doc.sourceUrl} target="_blank" rel="noreferrer">Open original source ↗</a>}</div><div className="source-controls"><span className={`source-status ${doc.status}`}>{doc.status === "reading" ? "Reading…" : doc.status === "ready" ? scope === "evidence" || scope === "guidance" ? "Ready for review" : "Stored safely" : "Needs text"}</span><button onClick={() => removeSource(doc)}>Remove</button></div></header>
-                {doc.status === "reading" ? <p className="needs-text">Reading this file on your Mac…</p> : doc.status === "needs-text" ? <p className="needs-text">This file could not be read. It may be unsupported or over 10 MB. Save it as PDF, Word .docx, text, or JSON, or open it and paste its text on the left.</p> : scope === "voice" ? <div className="scope-result"><strong>Added to Writing voice</strong><span>This source shapes tone and phrasing only. It cannot create career facts.</span><button onClick={() => setView("voice")}>Review writing voice</button></div> : scope === "research" ? <div className="scope-result"><strong>Saved as research context</strong><span>This information stays separate from your experience and is not sent in fit reviews.</span></div> : <div className="candidate-list">{doc.candidates.length ? doc.candidates.map((candidate) => <div key={candidate}><p>{candidate}</p><button className={doc.approved.includes(candidate) ? "approved" : ""} onClick={() => scope === "evidence" ? approveCandidate(doc.id, candidate) : approvePlaybookRule(doc.id, candidate)}>{doc.approved.includes(candidate) ? scope === "evidence" ? "Approved fact" : "Active rule" : scope === "evidence" ? "Approve fact" : "Use rule"}</button></div>) : <p className="needs-text">{scope === "evidence" ? "No useful fact candidates were found. You can add facts directly in Career profile." : "No clear tip or rule was detected. Paste shorter do/don’t statements for the playbook."}</p>}</div>}
+                <header><div><div className="source-badges"><span className="source-category">{doc.category || "Imported source"}</span><span className={`source-scope ${scope}`}>{sourceScopeLabel(scope)}</span><span className="source-track">{doc.trackId && doc.trackId !== "all" ? normalizedTracks.find((track) => track.id === doc.trackId)?.name || "Specific track" : "All tracks"}</span></div><strong>{doc.title}</strong><span>{doc.type} · {doc.importedAt}{doc.truncated ? " · first 300,000 characters stored" : ""}</span>{doc.sourceUrl && /^https?:\/\//i.test(doc.sourceUrl) && <a href={doc.sourceUrl} target="_blank" rel="noreferrer">Open original source ↗</a>}</div><div className="source-controls"><span className={`source-status ${doc.status}`}>{doc.status === "reading" ? "Reading…" : doc.status === "ready" ? scope === "evidence" || scope === "guidance" ? "Ready for review" : "Stored safely" : "Needs text"}</span><small>Preserved in your library</small></div></header>
+                {doc.status === "reading" ? <p className="needs-text">Reading this file on your Mac…</p> : doc.status === "needs-text" ? <p className="needs-text">This file could not be read. It may be unsupported or over 10 MB. Save it as PDF, Word .docx, text, or JSON, or open it and paste its text on the left.</p> : scope === "voice" ? <div className="scope-result"><strong>Added to Writing voice</strong><span>This source shapes tone and phrasing only. It cannot create career facts.</span><button onClick={() => setView("voice")}>Review writing voice</button></div> : scope === "research" ? <div className="scope-result"><strong>Saved as research context</strong><span>This information stays separate from your experience and is not sent in fit reviews.</span></div> : <div className="candidate-list">{doc.candidates.length ? <><div className="candidate-batch"><strong>{doc.approved.length}/{doc.candidates.length} {scope === "evidence" ? "facts" : "rules"} active</strong><button onClick={() => approveAllCandidates(doc.id)}>Approve all</button></div>{doc.candidates.map((candidate) => <div key={candidate}><p>{candidate}</p><button className={doc.approved.includes(candidate) ? "approved" : ""} onClick={() => scope === "evidence" ? approveCandidate(doc.id, candidate) : approvePlaybookRule(doc.id, candidate)}>{doc.approved.includes(candidate) ? scope === "evidence" ? "Approved fact" : "Active rule" : scope === "evidence" ? "Approve fact" : "Use rule"}</button></div>)}</> : <p className="needs-text">{scope === "evidence" ? "No useful fact candidates were found. You can add facts directly in Career profile." : "No clear tip or rule was detected. Paste shorter do/don’t statements for the playbook."}</p>}</div>}
               </article>;
             })}</div>}
           </div>
@@ -638,7 +947,7 @@ export function JobSeekerApp() {
 
         {view === "companies" && <section className="companies-workspace"><div className="target-form"><div className="step"><b>03</b><span>ADD A TARGET</span></div><h2>Companies, brands, and agencies — in one list.</h2><p>Keep only targets you want to follow. Career links and notes are optional, so this works even before you have every detail.</p><label>Company or agency name<input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Agency, brand, or sports organization" /></label><div className="field-row"><label>Type<select value={companyKind} onChange={(event) => setCompanyKind(event.target.value as CompanyTarget["kind"])}><option>Brand</option><option>Agency</option><option>Sports</option><option>Tech</option></select></label><label>Focus<input value={companyFocus} onChange={(event) => setCompanyFocus(event.target.value)} /></label></div><label>Website<input value={companyWebsite} onChange={(event) => setCompanyWebsite(event.target.value)} placeholder="https://" /></label><label>Careers page<input value={companyCareers} onChange={(event) => setCompanyCareers(event.target.value)} placeholder="https://" /></label><button className="primary" onClick={addCompany}>Add to directory</button></div><div className="target-directory"><div className="review-heading"><div><span>TARGET DIRECTORY</span><h2>{companies.length} saved targets</h2></div><strong>Bay Area first</strong></div>{companies.length === 0 ? <div className="empty-state compact"><strong>Your target list starts here.</strong><span>Add brands, agencies, sports organizations, or tech teams. Nothing is marked as an open role until you verify it.</span></div> : <div className="company-list">{companies.map((target) => <article key={target.id}><div className="company-title"><span>{target.kind}</span><strong>{target.name}</strong><small>{target.market} · {target.focus || "No focus set"}</small></div><div className="company-links">{target.website && <a href={target.website} target="_blank" rel="noreferrer">Website</a>}{target.careers && <a href={target.careers} target="_blank" rel="noreferrer">Careers</a>}<button onClick={() => loadCompanyForRole(target)}>Use for role</button></div><div className="company-actions"><label>Status<select value={target.status} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: event.target.value as CompanyTarget["status"] } : item))}><option>Researching</option><option>Monitoring</option><option>Applied</option><option>Paused</option></select></label><label>Notes<input value={target.notes} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, notes: event.target.value } : item))} placeholder="Contact, role, or next step" /></label><button onClick={() => setCompanies(companies.filter((item) => item.id !== target.id))}>Remove</button></div></article>)}</div>}</div></section>}
 
-        {view === "applications" && <section className="table-card"><div className="table-head"><div><span>PIPELINE</span><h2>{applications.length} saved applications</h2></div><button onClick={() => download("v-jobs-applications.json", JSON.stringify(applications,null,2), "application/json")}>Export</button></div>{applications.length === 0 ? <div className="empty-state"><strong>No applications saved yet.</strong><span>Prepare a role in the workspace, then choose “Save to applications.”</span><button className="primary" onClick={() => setView("workspace")}>Prepare first role</button></div> : <div className="application-list">{applications.map((app) => <article key={app.id}><div><strong>{app.role}</strong><span>{app.company} · {app.date}</span>{app.url && <a href={app.url} target="_blank" rel="noreferrer">Original role ↗</a>}</div><select value={app.status} onChange={(e) => setApplications(applications.map((item) => item.id === app.id ? {...item,status:e.target.value}:item))}><option>Preparing</option><option>Applied</option><option>Interview</option><option>Closed</option></select><button onClick={() => setApplications(applications.filter((item) => item.id !== app.id))}>Remove</button></article>)}</div>}</section>}
+        {view === "applications" && <section className="table-card"><div className="table-head"><div><span>PIPELINE</span><h2>{applications.length} saved applications</h2></div><button onClick={() => download("v-jobs-applications.json", JSON.stringify({ applications, generatedDrafts, jobSnapshots },null,2), "application/json")}>Export</button></div>{applications.length === 0 ? <div className="empty-state"><strong>No applications saved yet.</strong><span>Prepare a role in the workspace, then choose “Save to applications.”</span><button className="primary" onClick={() => setView("workspace")}>Prepare first role</button></div> : <div className="application-list">{applications.map((app) => { const resumeDraft = generatedDrafts.find((draft) => draft.id === app.resumeVersionId); const coverDraft = generatedDrafts.find((draft) => draft.id === app.coverVersionId); return <article key={app.id}><div className="application-main"><strong>{app.role}</strong><span>{app.company}</span>{app.url && <a href={app.url} target="_blank" rel="noreferrer">Original role ↗</a>}<small>{app.note || "Saved opportunity — not submitted"}</small></div><label>Application date<input type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(app.date) ? app.date : ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,date:e.target.value}:item))} /></label><label>Status<select value={app.status} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:e.target.value as ApplicationStatus}:item))}><option>Saved opportunity</option><option>Preparing</option><option>Applied</option><option>Interview</option><option>Closed</option></select></label><label>Note<input value={app.note || ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,note:e.target.value}:item))} placeholder="Follow-up, contact, or reminder" /></label><div className="application-document-links"><span>Résumé: {resumeDraft ? resumeDraft.title : "Not linked"}</span><span>Cover letter: {coverDraft ? coverDraft.title : "Not linked"}</span></div><div className="application-actions"><button onClick={() => { setCompany(app.company); setRole(app.role); setRoleUrl(app.url || ""); setView("workspace"); setNotice("Role reopened. Its saved history remains intact."); }}>Open role</button><button onClick={() => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:"Closed"}:item))}>Archive as closed</button></div>{generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role && !draft.applicationId).length > 0 && <div className="application-draft-picker">{generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role && !draft.applicationId).map((draft) => <button key={draft.id} onClick={() => attachDraftToApplication(app.id, draft)}>Link {draft.type === "resume" ? "résumé" : "cover letter"}: {draft.updatedAt}</button>)}</div>}</article>; })}</div>}</section>}
 
         {view === "autofill" && <section className="autofill-grid"><div className="autofill-intro"><div className="step"><b>04</b><span>ASSISTED AUTOFILL</span></div><h2>Your data, ready for application forms.</h2><p>The browser companion scans visible fields, previews what it can map, and fills only approved profile answers after your click. Sensitive questions, dropdowns, uploads, and unknown fields remain for your review.</p><div className="safety-list"><span>✓ Preview mapped fields before filling</span><span>✓ Never presses Submit</span><span>✓ Never guesses legal or demographic answers</span><span>✓ Works from your approved profile</span></div></div><div className="autofill-package"><span>AUTOFILL PACKAGE</span><pre>{autofillData}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load this package into the Chrome companion in the GitHub project. On an application page, choose Scan page, review the field map, then choose Fill ready fields.</small></div></section>}
       </section>

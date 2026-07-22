@@ -74,3 +74,15 @@ fillButton.addEventListener("click", async () => {
     status.textContent = "Could not fill this page. Refresh it, scan again, and review the highlighted fields.";
   }
 });
+
+document.querySelector("#capture").addEventListener("click", async () => {
+  try {
+    const tab = await activeTab();
+    const capture = await chrome.tabs.sendMessage(tab.id, { type: "VJOBS_CAPTURE_ROLE" });
+    if (!capture?.text || capture.text.length < 80) throw new Error("not enough visible role text");
+    await navigator.clipboard.writeText(JSON.stringify(capture));
+    status.textContent = "Visible role capture copied. Go to V’s Role Workspace and choose Paste visible-page capture.";
+  } catch {
+    status.textContent = "Could not read this page. Refresh the job page, then try again. Nothing was sent anywhere.";
+  }
+});

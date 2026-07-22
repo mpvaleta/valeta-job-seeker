@@ -133,7 +133,24 @@ function fill(data) {
   return { ...before, filled };
 }
 
+function captureVisibleRole() {
+  const headings = [...document.querySelectorAll("h1, h2")].map((element) => element.innerText.trim()).filter(Boolean);
+  const metaTitle = document.querySelector('meta[property="og:title"], meta[name="twitter:title"]')?.getAttribute("content") || "";
+  const description = document.querySelector('meta[property="og:description"], meta[name="description"]')?.getAttribute("content") || "";
+  const text = (document.querySelector("main, [role=main], article")?.innerText || document.body.innerText || "").replace(/\s+/g, " ").trim().slice(0, 120_000);
+  return {
+    schema: "v-jobs-role-capture-v1",
+    sourceUrl: location.href,
+    pageTitle: document.title,
+    title: headings[0] || metaTitle || "",
+    description,
+    text,
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "VALETA_SCAN") sendResponse(scan(message.payload, true));
   if (message.type === "VALETA_FILL") sendResponse(fill(message.payload));
+  if (message.type === "VJOBS_CAPTURE_ROLE") sendResponse(captureVisibleRole());
 });

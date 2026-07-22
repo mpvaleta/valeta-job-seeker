@@ -8,27 +8,33 @@ Reviewed July 18, 2026 against the user's full V's Job Seeker request.
   experience.
 - Resume, cover-letter, and common application-answer drafts from approved
   career facts.
-- Writing-voice bank for cover letters and answers.
-- PDF, DOCX, TXT, Markdown, CSV, JSON, and Custom GPT-export ingestion.
+- Writing-voice learning from uploaded samples for cover letters and answers.
+- PDF, DOCX, TXT, Markdown, CSV, JSON, Custom GPT-export, and official LinkedIn
+  ZIP ingestion.
 - Separate career-evidence, résumé-playbook, writing-voice, and company-research
   scopes.
 - Public résumé-article and YouTube-caption ingestion with provenance.
 - OpenAI, Anthropic, and Google provider/model selection with server-only keys,
-  structured output, exact-fact validation, local fallback, and error reports.
+  structured output, three-model comparison, exact-fact validation, local
+  fallback, and error reports.
 - Role intake from pasted text or a copied public job link.
 - Application tracker with date, status, and original source URL.
 - Review-first Chrome autofill companion that never presses Submit and never
   guesses sensitive answers.
 - Private job radar with positions, skills, goals, exclusions, locations,
-  company targets, public careers URLs, weekly/manual cadence, discovered-role
+  company targets, career-page discovery, daily/manual cadence, discovered-role
   inbox, fit reasons, shortlisting, and handoff to Role intake.
 - Public Greenhouse, Lever, Ashby, structured JobPosting, and generic careers-
   page adapters.
+- Separate résumé tracks for brand/creative project management, operations,
+  production, and general project management.
+- Official LinkedIn OpenID Connect implementation boundary, ready once a
+  LinkedIn developer app and protected deployment secrets are supplied.
 - GitHub-portable code and MacBook Pro-friendly responsive interface.
 
 ## Partially complete
 
-- Weekly radar: due targets catch up when V's opens and the Worker has a
+- Daily radar: due targets catch up when V's opens and the Worker has a
   scheduled-event hook. A verified hosting scheduler trigger is still required
   for scans while the app is completely closed.
 - Resume/cover-letter generation: functional drafts exist, but document-quality
@@ -51,13 +57,13 @@ Reviewed July 18, 2026 against the user's full V's Job Seeker request.
 - Automated LinkedIn browsing, scraping, or application activity.
 
 V's therefore uses official exports, user-pasted links/text, and public company
-career pages. LinkedIn OpenID can be added after developer-app approval for its
-actual limited identity fields; restricted Talent Solutions access would
+career pages. LinkedIn OpenID is implemented for its actual limited identity
+fields and activates after developer-app configuration; restricted Talent Solutions access would
 require a separate LinkedIn partner agreement.
 
 ## Remaining roadmap
 
-1. Activate and verify a true closed-app weekly scheduler.
+1. Activate and verify a true closed-app daily scheduler.
 2. Persist encrypted source files and approved facts per user, with restore and
    cross-device sync.
 3. Add claim-level AI editing, playbook citations, and polished PDF/DOCX résumé
@@ -71,8 +77,9 @@ require a separate LinkedIn partner agreement.
 
 - One protected AI-provider key for optional cloud review.
 - A hosting scheduler control or equivalent verified trigger for closed-app
-  weekly radar runs.
-- A LinkedIn developer application if limited OpenID identity is desired.
+  daily radar runs.
+- A LinkedIn developer application and four protected deployment secrets if
+  limited OpenID identity is desired.
 - User installation of the local Chrome companion for application-page field
   assistance. V's should not request full-screen control or LinkedIn session
   access.

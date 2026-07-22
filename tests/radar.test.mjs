@@ -6,6 +6,7 @@ import {
   discoverTargetJobs,
   normalizeRadarProfile,
   scoreRadarOpportunity,
+  rankCareerLinks,
 } from "../lib/radar.mjs";
 
 test("radar defaults preserve the Bay Area-first creative and agency focus", () => {
@@ -64,4 +65,29 @@ test("Greenhouse discovery uses its public jobs API and preserves original links
   assert.equal(jobs[0].sourceType, "greenhouse");
   assert.equal(jobs[0].sourceUrl, "https://boards.greenhouse.io/example/jobs/100");
   assert.match(calls[0], /boards-api\.greenhouse\.io/);
+});
+
+test("company homepage discovery follows a ranked Careers or Opportunities hub once", async () => {
+  const calls = [];
+  const jobs = await discoverTargetJobs({ company: "Example", websiteUrl: "https://example.com" }, {
+    fetchImpl: async (url) => {
+      calls.push(String(url));
+      if (String(url) === "https://example.com/") return new Response('<html><head><title>Example</title></head><body><a href="/about">About</a><a href="/opportunities">Opportunities</a></body></html>', { headers: { "content-type": "text/html" } });
+      return new Response('<html><head><title>Careers</title></head><body><a href="/opportunities/creative-operations-manager">Creative Operations Manager</a></body></html>', { headers: { "content-type": "text/html" } });
+    },
+  });
+  assert.equal(calls.length, 2);
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].title, "Creative Operations Manager");
+  assert.equal(jobs[0].sourceUrl, "https://example.com/opportunities/creative-operations-manager");
+});
+
+test("career link ranking prefers official ATS and careers links over generic navigation", () => {
+  const ranked = rankCareerLinks([
+    { href: "https://example.com/about", label: "About" },
+    { href: "https://boards.greenhouse.io/example", label: "Open jobs" },
+    { href: "https://example.com/careers", label: "Careers" },
+  ]);
+  assert.equal(ranked[0].href, "https://boards.greenhouse.io/example");
+  assert.equal(ranked.length, 2);
 });

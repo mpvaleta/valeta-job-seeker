@@ -5,12 +5,13 @@ reusable for family and friends through separate user profiles.
 
 The product helps with:
 
-- importing resumes, LinkedIn exports, writing samples, and other career docs;
+- importing resumes, official LinkedIn ZIP exports, writing samples, and other career docs;
 - maintaining a separate résumé playbook of trusted tips, do/don't rules,
   templates, and best practices;
 - maintaining a verified career fact bank so generated claims stay truthful;
 - tailoring resumes to specific roles;
 - drafting cover letters and application answers in the user's writing style;
+- maintaining separate résumé tracks for different career directions;
 - tracking companies, agencies, roles, applications, dates, and next steps;
 - monitoring selected company and ATS sources for Bay Area and US roles;
 - assisting with repetitive application forms through a review-first workflow.
@@ -68,6 +69,8 @@ when a model, key, rate limit, or network connection has a problem.
    those indexes back to the exact original facts and rejects malformed output.
 5. A timeout, provider error, rate limit, or invalid response produces a safe
    error message and leaves the local recommendation active.
+6. The optional model lab runs the selected provider's three allowlisted models
+   against the same role and approved facts so the user can compare results.
 
 Raw uploaded documents, résumé playbooks, writing samples, company research,
 profile contact fields, LinkedIn credentials, browser history, sensitive
@@ -96,7 +99,9 @@ The **Knowledge sources** screen deliberately separates four scopes:
 - **Research context**: company and role research. It stays separate from the
   candidate's experience.
 
-PDF, DOCX, TXT, Markdown, CSV, and JSON/GPT exports are read on the user's Mac.
+PDF, DOCX, TXT, Markdown, CSV, JSON/GPT exports, and official LinkedIn ZIP
+archives are read on the user's Mac. LinkedIn archives are separated into
+career evidence, saved-job/AI research context, and public writing samples.
 Each file is limited to 10 MB and each extracted source to 300,000 characters
 to keep browser storage and document processing predictable. An optional source
 URL can be used to read a public article, public job page, or exposed YouTube
@@ -115,7 +120,10 @@ The **Job radar** is a private, review-first company monitor:
 
 - users save target positions, skills, markets, work modes, goals, exclusions,
   and a minimum alignment threshold;
-- each target has a public careers URL and a weekly or manual cadence;
+- each target has a company website and/or public careers URL and a daily or
+  manual cadence;
+- V's can discover and follow a public Careers, Jobs, Opportunities, Openings,
+  or Join-us hub from the company homepage;
 - Greenhouse, Lever, and Ashby use their public job-board endpoints, while
   other public careers pages use structured `JobPosting` data and job links;
 - matching roles enter a discovery inbox with deterministic goal-alignment
@@ -123,7 +131,7 @@ The **Job radar** is a private, review-first company monitor:
   states;
 - **Prepare application** loads the original role into Role intake; it never
   submits or applies automatically;
-- due weekly targets catch up when the private app is opened. The Worker also
+- due daily targets catch up when the private app is opened. The Worker also
   contains a scheduled-event hook, but a true closed-app background cadence
   requires a verified hosting scheduler trigger.
 
@@ -143,7 +151,10 @@ LinkedIn is intentionally excluded from automated reading. Official LinkedIn
 OpenID access is limited to identity fields, while Talent Solutions APIs are
 restricted partner products and do not provide a general personal job-
 recommendations or received-recommendations feed. V's supports profile URLs,
-official LinkedIn data exports, and user-pasted saved-job links instead.
+official LinkedIn data exports, and user-pasted saved-job links instead. Indeed
+and other job-board links can be saved or attempted as public sources; if a
+site returns HTML sign-in/challenge content, the app shows an explicit manual-
+copy path instead of a raw JSON parser error.
 
 ### Cloud setup
 
@@ -158,6 +169,10 @@ OPENAI_MODEL=gpt-5.6-sol
 ANTHROPIC_API_KEY=your-server-secret
 GEMINI_API_KEY=your-server-secret
 AI_ALLOWED_EMAILS=you@example.com,friend@example.com
+LINKEDIN_CLIENT_ID=your-linkedin-app-client-id
+LINKEDIN_CLIENT_SECRET=your-server-secret
+LINKEDIN_REDIRECT_URI=https://your-site.example/api/linkedin/callback
+LINKEDIN_SESSION_SECRET=at-least-32-random-characters
 ```
 
 For local development, copy `.env.example` to a local ignored environment file
@@ -172,6 +187,12 @@ protected secret exists, the **AI & reliability** screen correctly reports
 `AI_ALLOWED_EMAILS` is optional but recommended before sharing the URL; it
 limits cloud-key usage to the listed signed-in ChatGPT accounts. The backend
 also applies best-effort burst protection per authenticated account.
+
+LinkedIn sign-in uses the official OpenID Connect product and stores only a
+signed, HTTP-only identity session. It does not store the access token and does
+not grant access to job pages, received recommendations, saved jobs, or
+LinkedIn's AI/profile suggestions. Import LinkedIn's official ZIP for those
+exportable datasets.
 
 ## Diagnostics
 
@@ -199,7 +220,9 @@ documents, profile fields, credentials, and API keys.
 - public-link safety, article extraction, structured JobPosting parsing, and
   YouTube public-caption parsing;
 - radar defaults, deterministic target matching, exclusions, and public ATS
-  adapter behavior;
+  adapter behavior, including company-homepage career-hub discovery;
+- official LinkedIn ZIP scope separation and signed OpenID state handling;
+- deterministic writing-voice learning and résumé-track selection;
 - invalid API requests and the no-key local fallback;
 - anonymous access and optional account-allowlist protection;
 - rendered availability of the radar, connections, AI/reliability, and

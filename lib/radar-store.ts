@@ -44,10 +44,12 @@ export type RadarMonitorInput = {
   company: string;
   kind?: string;
   websiteUrl?: string;
-  careersUrl: string;
+  careersUrl?: string;
+  referenceUrl?: string;
+  sourceKind?: string;
   focus?: string;
   market?: string;
-  cadence?: "weekly" | "manual";
+  cadence?: "daily" | "manual";
 };
 
 export async function ensureRadarUser(db: D1Database, email: string, displayName?: string | null) {
@@ -113,16 +115,21 @@ export async function saveRadarProfile(db: D1Database, userId: string, value: Pa
 export async function addRadarMonitor(db: D1Database, userId: string, input: RadarMonitorInput) {
   const company = clean(input.company, 180);
   const careersUrl = clean(input.careersUrl, 4_000);
+  const websiteUrl = clean(input.websiteUrl, 4_000);
   if (!company) throw new Error("Add a company, brand, or agency name.");
-  if (!careersUrl) throw new Error("Add the public careers page you want V’s to monitor.");
+  if (!careersUrl && !websiteUrl) throw new Error("Add the company website or the public careers page you want V’s to monitor.");
   const companyId = crypto.randomUUID();
   const monitorId = crypto.randomUUID();
-  const query = JSON.stringify({ focus: clean(input.focus, 1_000) });
+  const query = JSON.stringify({
+    focus: clean(input.focus, 1_000),
+    referenceUrl: clean(input.referenceUrl, 4_000),
+    sourceKind: clean(input.sourceKind, 80),
+  });
   await db.batch([
     db.prepare("INSERT INTO companies (id, name, website_url, careers_url, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
-      .bind(companyId, company, clean(input.websiteUrl, 4_000) || null, careersUrl, clean(input.kind, 80) || "Company", clean(input.market, 180) || "Bay Area / U.S.", "Added to V’s weekly radar"),
+      .bind(companyId, company, websiteUrl || null, careersUrl || null, clean(input.kind, 80) || "Company", clean(input.market, 180) || "Bay Area / U.S.", "Added to V’s daily radar"),
     db.prepare("INSERT INTO company_monitors (id, user_id, company_id, query, cadence, is_active) VALUES (?, ?, ?, ?, ?, ?)")
-      .bind(monitorId, userId, companyId, query, input.cadence === "manual" ? "manual" : "weekly", 1),
+      .bind(monitorId, userId, companyId, query, input.cadence === "manual" ? "manual" : "daily", 1),
   ]);
   return monitorId;
 }
@@ -132,7 +139,7 @@ export async function updateRadarMonitor(db: D1Database, userId: string, monitor
   if (!current) throw new Error("That radar target could not be found.");
   const query = parseObject(current.query);
   if (patch.focus != null) query.focus = clean(patch.focus, 1_000);
-  const cadence = patch.cadence === "manual" ? "manual" : patch.cadence === "weekly" ? "weekly" : current.cadence;
+  const cadence = patch.cadence === "manual" ? "manual" : patch.cadence === "daily" || patch.cadence === "weekly" ? "daily" : current.cadence;
   const active = patch.active == null ? Boolean(current.is_active) : Boolean(patch.active);
   await db.prepare("UPDATE company_monitors SET query = ?, cadence = ?, is_active = ? WHERE id = ? AND user_id = ?")
     .bind(JSON.stringify(query), cadence, active ? 1 : 0, monitorId, userId).run();
@@ -163,7 +170,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   for (const monitor of selected) {
     const runId = crypto.randomUUID();
     try {
-      const jobs = await discoverTargetJobs({ company: monitor.company, careersUrl: monitor.careersUrl });
+      const jobs = await discoverTargetJobs({ company: monitor.company, careersUrl: monitor.careersUrl, websiteUrl: monitor.websiteUrl });
       const focus = monitor.focus ? monitor.focus.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) : [];
       const profile = normalizeRadarProfile({ ...dashboard.profile, skills: [...dashboard.profile.skills, ...focus] });
       const matches = jobs.map((job) => ({ job, match: scoreRadarOpportunity(job, profile) }))
@@ -201,7 +208,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
 }
 
 export async function scanAllDueRadars(db: D1Database) {
-  const result = await db.prepare("SELECT DISTINCT user_id FROM company_monitors WHERE is_active = 1 AND cadence = 'weekly'").all<{ user_id: string }>();
+  const result = await db.prepare("SELECT DISTINCT user_id FROM company_monitors WHERE is_active = 1 AND cadence IN ('daily', 'weekly')").all<{ user_id: string }>();
   const summaries = [];
   for (const row of (result.results || []).slice(0, 500)) {
     summaries.push({ userId: row.user_id, ...(await scanRadar(db, row.user_id, { dueOnly: true })) });
@@ -235,18 +242,21 @@ function monitorFromRow(row: MonitorRow) {
     market: row.primary_market || "Bay Area / U.S.",
     notes: row.notes || "",
     focus: typeof query.focus === "string" ? query.focus : "",
-    cadence: row.cadence === "manual" ? "manual" : "weekly",
+    referenceUrl: typeof query.referenceUrl === "string" ? query.referenceUrl : "",
+    sourceKind: typeof query.sourceKind === "string" ? query.sourceKind : "",
+    cadence: row.cadence === "manual" ? "manual" : "daily",
     active: Boolean(row.is_active),
     lastCheckedAt: row.last_checked_at,
     createdAt: row.created_at,
   };
 }
 
-function isMonitorDue(monitor: { cadence: string; lastCheckedAt: string | null }) {
-  if (monitor.cadence !== "weekly") return false;
+export function isMonitorDue(monitor: { cadence: string; lastCheckedAt: string | null }) {
+  if (monitor.cadence === "manual") return false;
+  if (monitor.cadence !== "daily" && monitor.cadence !== "weekly") return false;
   if (!monitor.lastCheckedAt) return true;
   const checked = new Date(monitor.lastCheckedAt).getTime();
-  return !Number.isFinite(checked) || Date.now() - checked >= 7 * 24 * 60 * 60 * 1_000;
+  return !Number.isFinite(checked) || Date.now() - checked >= 24 * 60 * 60 * 1_000;
 }
 
 async function ownedMonitor(db: D1Database, userId: string, monitorId: string) {

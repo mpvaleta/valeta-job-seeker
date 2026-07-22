@@ -41,7 +41,7 @@ export default function AppError({ error, reset }: FatalErrorProps) {
       const stored = JSON.parse(localStorage.getItem("valeta-error-log-v1") || "[]");
       if (Array.isArray(stored)) errors = stored;
     } catch {}
-    return JSON.stringify({ product: "V's Job Seeker", build: "2026.07-radar-r1", generatedAt: new Date().toISOString(), privacy: "No résumé text, approved facts, raw documents, profile fields, credentials, or API keys are included.", errors }, null, 2);
+    return JSON.stringify({ product: "V's Job Seeker", build: "2026.07-learning-r2", generatedAt: new Date().toISOString(), privacy: "No résumé text, approved facts, raw documents, profile fields, credentials, or API keys are included.", errors }, null, 2);
   }
 
   function downloadReport() {
