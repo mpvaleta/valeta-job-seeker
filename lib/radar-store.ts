@@ -49,7 +49,7 @@ export type RadarMonitorInput = {
   sourceKind?: string;
   focus?: string;
   market?: string;
-  cadence?: "daily" | "manual";
+  cadence?: "twice_daily" | "daily" | "manual";
 };
 
 export async function ensureRadarUser(db: D1Database, email: string, displayName?: string | null) {
@@ -127,9 +127,9 @@ export async function addRadarMonitor(db: D1Database, userId: string, input: Rad
   });
   await db.batch([
     db.prepare("INSERT INTO companies (id, name, website_url, careers_url, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
-      .bind(companyId, company, websiteUrl || null, careersUrl || null, clean(input.kind, 80) || "Company", clean(input.market, 180) || "Bay Area / U.S.", "Added to V’s daily radar"),
+      .bind(companyId, company, websiteUrl || null, careersUrl || null, clean(input.kind, 80) || "Company", clean(input.market, 180) || "Bay Area / U.S.", "Added to V’s twice-daily radar"),
     db.prepare("INSERT INTO company_monitors (id, user_id, company_id, query, cadence, is_active) VALUES (?, ?, ?, ?, ?, ?)")
-      .bind(monitorId, userId, companyId, query, input.cadence === "manual" ? "manual" : "daily", 1),
+      .bind(monitorId, userId, companyId, query, input.cadence === "manual" ? "manual" : input.cadence === "daily" ? "daily" : "twice_daily", 1),
   ]);
   return monitorId;
 }
@@ -139,14 +139,14 @@ export async function updateRadarMonitor(db: D1Database, userId: string, monitor
   if (!current) throw new Error("That radar target could not be found.");
   const query = parseObject(current.query);
   if (patch.focus != null) query.focus = clean(patch.focus, 1_000);
-  const cadence = patch.cadence === "manual" ? "manual" : patch.cadence === "daily" || patch.cadence === "weekly" ? "daily" : current.cadence;
+  const cadence = patch.cadence === "manual" ? "manual" : patch.cadence === "twice_daily" ? "twice_daily" : patch.cadence === "daily" || patch.cadence === "weekly" ? "daily" : current.cadence;
   const active = patch.active == null ? Boolean(current.is_active) : Boolean(patch.active);
   await db.prepare("UPDATE company_monitors SET query = ?, cadence = ?, is_active = ? WHERE id = ? AND user_id = ?")
     .bind(JSON.stringify(query), cadence, active ? 1 : 0, monitorId, userId).run();
 }
 
 export async function deleteRadarMonitor(db: D1Database, userId: string, monitorId: string) {
-  await db.prepare("DELETE FROM company_monitors WHERE id = ? AND user_id = ?").bind(monitorId, userId).run();
+  await db.prepare("UPDATE company_monitors SET is_active = 0 WHERE id = ? AND user_id = ?").bind(monitorId, userId).run();
 }
 
 export async function setRadarOpportunityStatus(db: D1Database, userId: string, opportunityId: string, status: string) {
@@ -208,7 +208,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
 }
 
 export async function scanAllDueRadars(db: D1Database) {
-  const result = await db.prepare("SELECT DISTINCT user_id FROM company_monitors WHERE is_active = 1 AND cadence IN ('daily', 'weekly')").all<{ user_id: string }>();
+  const result = await db.prepare("SELECT DISTINCT user_id FROM company_monitors WHERE is_active = 1 AND cadence IN ('twice_daily', 'daily', 'weekly')").all<{ user_id: string }>();
   const summaries = [];
   for (const row of (result.results || []).slice(0, 500)) {
     summaries.push({ userId: row.user_id, ...(await scanRadar(db, row.user_id, { dueOnly: true })) });
@@ -244,7 +244,7 @@ function monitorFromRow(row: MonitorRow) {
     focus: typeof query.focus === "string" ? query.focus : "",
     referenceUrl: typeof query.referenceUrl === "string" ? query.referenceUrl : "",
     sourceKind: typeof query.sourceKind === "string" ? query.sourceKind : "",
-    cadence: row.cadence === "manual" ? "manual" : "daily",
+    cadence: row.cadence === "manual" ? "manual" : row.cadence === "daily" || row.cadence === "weekly" ? "daily" : "twice_daily",
     active: Boolean(row.is_active),
     lastCheckedAt: row.last_checked_at,
     createdAt: row.created_at,
@@ -253,10 +253,11 @@ function monitorFromRow(row: MonitorRow) {
 
 export function isMonitorDue(monitor: { cadence: string; lastCheckedAt: string | null }) {
   if (monitor.cadence === "manual") return false;
-  if (monitor.cadence !== "daily" && monitor.cadence !== "weekly") return false;
+  if (monitor.cadence !== "twice_daily" && monitor.cadence !== "daily" && monitor.cadence !== "weekly") return false;
   if (!monitor.lastCheckedAt) return true;
   const checked = new Date(monitor.lastCheckedAt).getTime();
-  return !Number.isFinite(checked) || Date.now() - checked >= 24 * 60 * 60 * 1_000;
+  const interval = monitor.cadence === "twice_daily" ? 12 * 60 * 60 * 1_000 : 24 * 60 * 60 * 1_000;
+  return !Number.isFinite(checked) || Date.now() - checked >= interval;
 }
 
 async function ownedMonitor(db: D1Database, userId: string, monitorId: string) {
