@@ -32,7 +32,7 @@ type RadarMonitor = {
   market: string;
   notes: string;
   focus: string;
-  cadence: "daily" | "manual";
+  cadence: "twice_daily" | "daily" | "manual";
   active: boolean;
   lastCheckedAt: string | null;
   createdAt: string;
@@ -107,7 +107,7 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
   const [referenceUrl, setReferenceUrl] = useState("");
   const [sourceKind, setSourceKind] = useState(REFERENCE_SOURCES[0]);
   const [focus, setFocus] = useState("Creative operations, brand programs, project management, production");
-  const [cadence, setCadence] = useState<"daily" | "manual">("daily");
+  const [cadence, setCadence] = useState<"twice_daily" | "daily" | "manual">("twice_daily");
   const autoScanStarted = useRef(false);
 
   const visibleOpportunities = useMemo(() => opportunities
@@ -199,10 +199,10 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
 
   async function addMonitor() {
     if (!company.trim() || (!careersUrl.trim() && !websiteUrl.trim())) { onNotice("Add the company name and either its website or public careers page."); return; }
-    const data = await mutate({ action: "add_monitor", monitor: { company, kind, websiteUrl, careersUrl, referenceUrl, sourceKind, focus, cadence, market: "San Francisco Bay Area / United States" } }, "target", "Validating public sources and saving this daily radar target…");
+    const data = await mutate({ action: "add_monitor", monitor: { company, kind, websiteUrl, careersUrl, referenceUrl, sourceKind, focus, cadence, market: "San Francisco Bay Area / United States" } }, "target", "Validating public sources and saving this radar target…");
     if (!data) return;
     setCompany(""); setWebsiteUrl(""); setCareersUrl(""); setReferenceUrl(""); setSourceKind("None");
-    onNotice("Radar target added. V’s will catch up daily when the app opens; you can also scan now.");
+    onNotice("Radar target added. V’s catches up when it opens; you can also scan now. Background timing activates once the hosting scheduler is connected.");
   }
 
   async function runScan(options: { monitorId?: string; dueOnly?: boolean; automatic?: boolean } = {}) {
@@ -218,8 +218,8 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
   }
 
   async function removeMonitor(monitorId: string) {
-    const data = await mutate({ action: "delete_monitor", monitorId }, `monitor-${monitorId}`, "Removing this radar target…");
-    if (data) onNotice("Radar target removed. Existing discoveries remain in your inbox.");
+    const data = await mutate({ action: "delete_monitor", monitorId }, `monitor-${monitorId}`, "Archiving this radar target while preserving its discoveries…");
+    if (data) onNotice("Radar target archived. Its discoveries and history remain in your inbox.");
   }
 
   async function updateOpportunity(opportunity: RadarOpportunity, status: RadarOpportunity["status"]) {
@@ -241,7 +241,7 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
     {progress && <div className="operation-status" role="status" aria-live="polite"><i /><div><strong>Radar working</strong><span>{progress}</span></div></div>}
 
     <div className="radar-metrics">
-      <div><span>Active targets</span><strong>{monitors.filter((item) => item.active).length}</strong><small>{dueCount} due for a daily check</small></div>
+      <div><span>Active targets</span><strong>{monitors.filter((item) => item.active).length}</strong><small>{dueCount} due for their next check</small></div>
       <div><span>New discoveries</span><strong>{newCount}</strong><small>Waiting for your review</small></div>
       <div><span>Approved to prepare</span><strong>{shortlistedCount}</strong><small>No automatic applications</small></div>
       <div><span>Last radar run</span><strong>{lastRunAt ? compactDate(lastRunAt) : "Not yet"}</strong><small>Daily catch-up when V’s opens</small></div>
@@ -260,20 +260,20 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
       <article className="radar-target-card">
         <div className="card-heading"><div><span>02 · ADD A TARGET</span><h3>Company, brand, agency, or team</h3></div></div>
         <label>Company name<input value={company} onChange={(event) => setCompany(event.target.value)} placeholder="e.g. Apple" /></label>
-        <div className="radar-two"><label>Type<select value={kind} onChange={(event) => setKind(event.target.value)}>{TARGET_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label><label>Cadence<select value={cadence} onChange={(event) => setCadence(event.target.value as "daily" | "manual")}><option value="daily">Daily</option><option value="manual">Manual only</option></select></label></div>
+        <div className="radar-two"><label>Type<select value={kind} onChange={(event) => setKind(event.target.value)}>{TARGET_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label><label>Cadence<select value={cadence} onChange={(event) => setCadence(event.target.value as "twice_daily" | "daily" | "manual")}><option value="twice_daily">Twice daily (recommended)</option><option value="daily">Daily</option><option value="manual">Manual only</option></select></label></div>
         <label>Company website<input type="url" value={websiteUrl} onChange={(event) => setWebsiteUrl(event.target.value)} placeholder="https://company.com" /></label>
         <div className="careers-discovery"><label>Public careers page <small>optional if website is provided</small><input type="url" value={careersUrl} onChange={(event) => setCareersUrl(event.target.value)} placeholder="Company careers, Greenhouse, Lever, Ashby, or Workday URL" /></label><button onClick={findCareersPage} disabled={Boolean(busy) || !websiteUrl.trim()}>{busy === "find-careers" ? "Finding…" : "Find careers page"}</button></div>
         <div className="radar-two"><label>Reference source<select value={sourceKind} onChange={(event) => setSourceKind(event.target.value)}>{REFERENCE_SOURCES.map((item) => <option key={item}>{item}</option>)}</select></label><label>LinkedIn / Indeed / other URL<input type="url" value={referenceUrl} onChange={(event) => setReferenceUrl(event.target.value)} placeholder="Optional reference link" /></label></div>
         <label>Target-specific focus<textarea value={focus} onChange={(event) => setFocus(event.target.value)} /></label>
-        <button className="primary wide-action" onClick={addMonitor} disabled={Boolean(busy)}>{busy === "target" ? "Adding…" : "Add to daily radar"}</button>
+        <button className="primary wide-action" onClick={addMonitor} disabled={Boolean(busy)}>{busy === "target" ? "Adding…" : "Add to radar"}</button>
         <div className="radar-safety-note"><strong>Public sources only</strong><span>LinkedIn and Indeed links can be saved as references. Automated scanning uses the employer’s public careers page or official ATS board—never your logged-in session.</span></div>
       </article>
     </div>
 
     <section className="radar-targets-section">
       <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div>
-      {!monitors.length ? <div className="empty-state compact"><strong>Add the first company you want V’s to watch.</strong><span>Add the website and let V’s find the careers page, or paste an official careers URL. Daily targets catch up when the app opens, and you can run the radar anytime.</span></div> : <div className="radar-target-list">{monitors.map((monitor) => <article key={monitor.id} className={!monitor.active ? "paused" : ""}><div className="radar-target-main"><span>{monitor.kind}</span><strong>{monitor.company}</strong><small>{monitor.focus || "Uses your global radar goals"}</small>{(monitor.careersUrl || monitor.websiteUrl) && <a href={monitor.careersUrl || monitor.websiteUrl} target="_blank" rel="noreferrer">Open scan source ↗</a>}{monitor.referenceUrl && <a href={monitor.referenceUrl} target="_blank" rel="noreferrer">Open {monitor.sourceKind || "reference"} ↗</a>}</div><div className="radar-target-status"><strong>{monitor.active ? monitor.cadence === "daily" ? "Daily" : "Manual" : "Paused"}</strong><span>{monitor.lastCheckedAt ? `Checked ${compactDate(monitor.lastCheckedAt)}` : "Never checked"}</span></div><div className="radar-target-actions"><button onClick={() => runScan({ monitorId: monitor.id })} disabled={Boolean(busy) || !monitor.active}>Check now</button><button onClick={() => updateMonitor(monitor.id, { active: !monitor.active })}>{monitor.active ? "Pause" : "Resume"}</button><button onClick={() => removeMonitor(monitor.id)}>Remove</button></div></article>)}</div>}
-      <p className="scheduler-note"><strong>Daily behavior:</strong> V’s catches up on due targets when you open the private app. A background-scan hook is included; scanning while the app is fully closed still depends on the hosting scheduler trigger being enabled.</p>
+      {!monitors.length ? <div className="empty-state compact"><strong>Add the first company you want V’s to watch.</strong><span>Add the website and let V’s find the careers page, or paste an official careers URL. Targets catch up when the app opens, and you can run the radar anytime.</span></div> : <div className="radar-target-list">{monitors.map((monitor) => <article key={monitor.id} className={!monitor.active ? "paused" : ""}><div className="radar-target-main"><span>{monitor.kind}</span><strong>{monitor.company}</strong><small>{monitor.focus || "Uses your global radar goals"}</small>{(monitor.careersUrl || monitor.websiteUrl) && <a href={monitor.careersUrl || monitor.websiteUrl} target="_blank" rel="noreferrer">Open scan source ↗</a>}{monitor.referenceUrl && <a href={monitor.referenceUrl} target="_blank" rel="noreferrer">Open {monitor.sourceKind || "reference"} ↗</a>}</div><div className="radar-target-status"><strong>{monitor.active ? monitor.cadence === "twice_daily" ? "Twice daily" : monitor.cadence === "daily" ? "Daily" : "Manual" : "Archived"}</strong><span>{monitor.lastCheckedAt ? `Checked ${compactDate(monitor.lastCheckedAt)}` : "Never checked"}</span></div><div className="radar-target-actions"><button onClick={() => runScan({ monitorId: monitor.id })} disabled={Boolean(busy) || !monitor.active}>Check now</button><button onClick={() => updateMonitor(monitor.id, { active: !monitor.active })}>{monitor.active ? "Pause" : "Resume"}</button>{monitor.active && <button onClick={() => removeMonitor(monitor.id)}>Archive</button>}</div></article>)}</div>}
+      <p className="scheduler-note"><strong>Twice-daily behavior:</strong> V’s treats recommended targets as due every 12 hours and catches them up when you open the private app. Exact early-morning and mid-afternoon runs while the app is closed still require the hosting scheduler trigger to be enabled.</p>
     </section>
 
     <section className="radar-inbox">
