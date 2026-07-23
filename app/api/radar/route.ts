@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isTrustedSameOriginMutation } from "@/lib/request-security";
 import {
   addRadarMonitor,
   deleteRadarMonitor,
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!isTrustedSameOriginMutation(request)) return NextResponse.json({ ok: false, code: "cross_site_request_blocked", message: "This protected action must start inside V’s Job Seeker." }, { status: 403 });
   const contentLength = Number(request.headers.get("content-length") || "0");
   if (contentLength > MAX_BODY_BYTES) return error(413, "request_too_large", "The radar request is too large.");
   const raw = await request.text();

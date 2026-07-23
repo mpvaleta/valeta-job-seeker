@@ -34,9 +34,13 @@ const validProviderRecommendation = {
   confidence: "medium",
   summary: "The approved evidence covers several core responsibilities, while a few requirements still need verification.",
   actions: ["Prioritize the strongest approved delivery evidence."],
-  priority_fact_indexes: [1, 99, -1],
+  priority_fact_indexes: [1],
   evidence_gaps: ["No approved fact confirms the requested certification."],
   cautions: ["Do not infer missing credentials."],
+  evidence_items: [
+    { requirement: "Coordinate cross-functional campaign delivery", support: "strong", fact_indexes: [1] },
+    { requirement: "Requested certification", support: "gap", fact_indexes: [] },
+  ],
 };
 
 test("AI status endpoint reveals configuration state without revealing secrets", async () => {
@@ -72,6 +76,19 @@ test("AI endpoint rejects incomplete roles before any provider call", async () =
   assert.equal(response.status, 400);
   assert.equal(data.code, "invalid_request");
   assert.match(data.message, /complete job description/i);
+});
+
+test("AI endpoint blocks cross-site attempts before they can spend provider credits", async () => {
+  const worker = await loadWorker();
+  const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: "https://attacker.example", "sec-fetch-site": "cross-site", "oai-authenticated-user-email": "owner@example.com" },
+    body: JSON.stringify(validRequestBody),
+  }), env, context);
+  const data = await response.json();
+  assert.equal(response.status, 403);
+  assert.equal(data.code, "cross_site_request_blocked");
+  assert.equal(data.localFallback, true);
 });
 
 test("AI endpoint fails safely to the local engine when no server key exists", async (t) => {
@@ -185,6 +202,8 @@ test("all allowlisted provider adapters validate structured output and preserve 
       assert.deepEqual(data.recommendation.priorityFacts, [validRequestBody.approvedFacts[1]]);
       assert.equal(data.guardrails.approvedFactsOnly, true);
       assert.equal(data.guardrails.allowlistedModel, true);
+      assert.equal(data.guardrails.evidenceIndexesValidated, true);
+      assert.deepEqual(data.recommendation.evidenceMap[0].facts, [validRequestBody.approvedFacts[1]]);
       assert.match(calls.at(-1).url, new RegExp(scenario.host.replaceAll(".", "\\.")));
       assert.doesNotMatch(JSON.stringify(data), /test-(openai|anthropic|gemini)-key/);
     }
@@ -194,6 +213,36 @@ test("all allowlisted provider adapters validate structured output and preserve 
       if (value === undefined) delete process.env[name];
       else process.env[name] = value;
     }
+  }
+});
+
+test("AI guardrails reject a provider response that cites a fact outside the approved list", async () => {
+  const originalKey = process.env.OPENAI_API_KEY;
+  const originalAllowed = process.env.AI_ALLOWED_EMAILS;
+  const originalFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "test-openai-key";
+  process.env.AI_ALLOWED_EMAILS = "owner@example.com";
+  globalThis.fetch = async () => Response.json({ output_text: JSON.stringify({
+    ...validProviderRecommendation,
+    priority_fact_indexes: [99],
+  }) });
+  try {
+    const worker = await loadWorker();
+    const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
+      method: "POST",
+      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      body: JSON.stringify({ ...validRequestBody, provider: "openai", modelKey: "reliable" }),
+    }), env, context);
+    const data = await response.json();
+    assert.equal(response.status, 503);
+    assert.equal(data.code, "guardrail_rejected");
+    assert.equal(data.localFallback, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = originalKey;
+    if (originalAllowed === undefined) delete process.env.AI_ALLOWED_EMAILS;
+    else process.env.AI_ALLOWED_EMAILS = originalAllowed;
   }
 });
 

@@ -2,8 +2,8 @@ const AUTHORIZATION_ENDPOINT = "https://www.linkedin.com/oauth/v2/authorization"
 const TOKEN_ENDPOINT = "https://www.linkedin.com/oauth/v2/accessToken";
 const USERINFO_ENDPOINT = "https://api.linkedin.com/v2/userinfo";
 
-export const LINKEDIN_STATE_COOKIE = "vjobs_linkedin_state";
-export const LINKEDIN_SESSION_COOKIE = "vjobs_linkedin_session";
+export const LINKEDIN_STATE_COOKIE = "__Host-vjobs_linkedin_state";
+export const LINKEDIN_SESSION_COOKIE = "__Host-vjobs_linkedin_session";
 
 export type LinkedInConfig = {
   clientId: string;
@@ -77,7 +77,7 @@ export function readCookie(request: Request, name: string) {
 }
 
 export function secureCookie(name: string, value: string, maxAge: number) {
-  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}; Priority=High`;
 }
 
 export function clearCookie(name: string) {

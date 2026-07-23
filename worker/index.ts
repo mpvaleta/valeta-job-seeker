@@ -2,11 +2,12 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { scanAllDueRadars } from "../lib/radar-store";
-import { setRuntimeDatabase } from "../lib/runtime-bindings";
+import { setRuntimeBucket, setRuntimeDatabase } from "../lib/runtime-bindings";
 
 interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
+  BUCKET: R2Bucket;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -30,6 +31,7 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     setRuntimeDatabase(env.DB);
+    setRuntimeBucket(env.BUCKET);
     const url = new URL(request.url);
 
     if (url.pathname === "/_vinext/image") {
@@ -48,6 +50,7 @@ const worker = {
 
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     setRuntimeDatabase(env.DB);
+    setRuntimeBucket(env.BUCKET);
     ctx.waitUntil(scanAllDueRadars(env.DB).then(() => undefined));
   },
 };

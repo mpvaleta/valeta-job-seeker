@@ -8,6 +8,13 @@
       "when": 1784346540114,
       "tag": "0000_loose_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1784773715772,
+      "tag": "0001_wandering_jetstream",
+      "breakpoints": true
     }
   ]
 }

@@ -40,8 +40,9 @@ Reviewed July 18, 2026 against the user's full V's Job Seeker request.
 - Resume/cover-letter generation: functional drafts exist, but document-quality
   templates, playbook-rule citations, claim-level revision approval, and deeper
   writing-style learning remain.
-- Knowledge database: local source processing and D1 radar persistence work;
-  encrypted per-user R2 originals, full restore, and cross-device sync remain.
+- Knowledge database: local source processing, D1 radar persistence, and
+  append-only authenticated R2 workspace revisions now work. Per-source object
+  versioning, conflict review, and a selectable historical restore UI remain.
 - Autofill: generic field mapping works; deeper Workday, Greenhouse, Lever,
   Ashby, iCIMS, and SmartRecruiters adapters and upload assistance remain.
 - Multi-user foundation: hosting identity and user-isolated radar rows exist;
@@ -64,8 +65,8 @@ require a separate LinkedIn partner agreement.
 ## Remaining roadmap
 
 1. Activate and verify a true closed-app daily scheduler.
-2. Persist encrypted source files and approved facts per user, with restore and
-   cross-device sync.
+2. Add a selectable historical-restore UI and conflict review on top of the
+   immutable private workspace revision store.
 3. Add claim-level AI editing, playbook citations, and polished PDF/DOCX résumé
    templates.
 4. Expand form adapters and add an in-page review queue for uncertain fields.

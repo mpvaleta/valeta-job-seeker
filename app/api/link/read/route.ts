@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isTrustedSameOriginMutation } from "@/lib/request-security";
 import { PublicLinkError, readPublicLink } from "@/lib/public-link-reader.mjs";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ const recentRequests = new Map<string, number[]>();
 type LinkPurpose = "knowledge" | "radar" | "role";
 
 export async function POST(request: Request) {
+  if (!isTrustedSameOriginMutation(request)) return NextResponse.json({ ok: false, code: "cross_site_request_blocked", message: "This protected action must start inside V’s Job Seeker." }, { status: 403 });
   const identity = request.headers.get(USER_EMAIL_HEADER)?.trim().toLowerCase();
   if (!identity) return error(401, "authentication_required", "Open V’s Job Seeker through your signed-in ChatGPT account before reading a public link.");
   const retryAfterSeconds = rateLimitRetryAfter(identity);

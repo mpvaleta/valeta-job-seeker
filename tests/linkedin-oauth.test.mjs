@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authorizationUrl, signPayload, verifyPayload } from "../lib/linkedin-oauth.ts";
+import { authorizationUrl, LINKEDIN_SESSION_COOKIE, secureCookie, signPayload, verifyPayload } from "../lib/linkedin-oauth.ts";
 
 test("LinkedIn OpenID state is signed, expires, and requests only identity scopes", async () => {
   const secret = "a-secure-test-secret-with-more-than-32-characters";
@@ -14,4 +14,12 @@ test("LinkedIn OpenID state is signed, expires, and requests only identity scope
   assert.equal(url.hostname, "www.linkedin.com");
   assert.equal(url.searchParams.get("scope"), "openid profile email");
   assert.equal(url.searchParams.get("redirect_uri"), "https://example.com/api/linkedin/callback");
+
+  const cookie = secureCookie(LINKEDIN_SESSION_COOKIE, "opaque-token", 600);
+  assert.match(cookie, /^__Host-vjobs_linkedin_session=/);
+  assert.match(cookie, /HttpOnly/);
+  assert.match(cookie, /Secure/);
+  assert.match(cookie, /SameSite=Lax/);
+  assert.match(cookie, /Path=\//);
+  assert.doesNotMatch(cookie, /Domain=/);
 });

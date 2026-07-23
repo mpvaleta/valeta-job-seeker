@@ -66,22 +66,27 @@ when a model, key, rate limit, or network connection has a problem.
    registry; it cannot supply an arbitrary model ID or endpoint.
 4. The model must return a strict JSON shape. It may select evidence only by
    index from the approved facts supplied in that request. The backend maps
-   those indexes back to the exact original facts and rejects malformed output.
+   those indexes back to the exact original facts, validates every requirement
+   citation, and rejects malformed or unsupported output.
 5. A timeout, provider error, rate limit, or invalid response produces a safe
    error message and leaves the local recommendation active.
 6. The optional model lab runs the selected provider's three allowlisted models
    against the same role and approved facts so the user can compare results.
+7. D1 records a privacy-minimized audit event with provider, allowlisted model,
+   status, duration, token counts, and guardrail result. It never stores the
+   prompt, job description, or career facts in the AI usage log.
 
 Raw uploaded documents, résumé playbooks, writing samples, company research,
 profile contact fields, LinkedIn credentials, browser history, sensitive
 application answers, and API keys are not sent in the cloud recommendation
-request. Uploaded sources remain in the browser; only facts explicitly approved
-by the user can enter the request.
+request. The browser keeps a fast local copy and the authenticated workspace can
+also preserve append-only private R2 revisions; only facts explicitly approved
+by the user can enter a recommendation request.
 
 The default registry was reviewed on July 18, 2026 against the official
 [OpenAI model catalog](https://developers.openai.com/api/docs/models),
 [Anthropic model overview](https://platform.claude.com/docs/en/about-claude/models/overview),
-and [Gemini 3.5 guide](https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.5).
+and [Gemini model catalog](https://ai.google.dev/gemini-api/docs/models).
 Each adapter requests structured JSON and the V's backend validates the
 result again before displaying it.
 
@@ -136,8 +141,10 @@ The **Job radar** is a private, review-first company monitor:
   requires a verified hosting scheduler trigger.
 
 Radar targets, goals, and discoveries use per-user D1 records keyed by the
-hosting platform's authenticated identity. Career documents and raw résumé
-evidence remain browser-local in this release.
+hosting platform's authenticated identity. Career/profile state keeps its fast
+browser autosave and is additionally backed up as immutable R2 workspace
+revisions. D1 stores only revision metadata and the current head pointer;
+restoring a newer revision never deletes older ones.
 
 ## Public-link ingestion
 
@@ -186,10 +193,13 @@ protected secret exists, the **AI & reliability** screen correctly reports
 “Setup required” while the local engine stays active.
 `AI_ALLOWED_EMAILS` is optional but recommended before sharing the URL; it
 limits cloud-key usage to the listed signed-in ChatGPT accounts. The backend
-also applies best-effort burst protection per authenticated account.
+also applies a persistent per-account request gate in D1, so a Worker restart
+does not reset the usage boundary.
 
 LinkedIn sign-in uses the official OpenID Connect product and stores only a
-signed, HTTP-only identity session. It does not store the access token and does
+random opaque HTTP-only session token whose hash is held server-side. The
+identity is bound to the signed-in ChatGPT owner, sessions are revocable, and
+the LinkedIn access token is never stored. Identity sign-in does
 not grant access to job pages, received recommendations, saved jobs, or
 LinkedIn's AI/profile suggestions. Import LinkedIn's official ZIP for those
 exportable datasets.

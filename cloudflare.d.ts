@@ -17,6 +17,15 @@ interface D1Database {
   batch<T = unknown>(statements: D1PreparedStatement[]): Promise<Array<D1Result<T>>>;
 }
 
+interface R2ObjectBody {
+  text(): Promise<string>;
+}
+
+interface R2Bucket {
+  get(key: string): Promise<R2ObjectBody | null>;
+  put(key: string, value: string | ArrayBuffer | ArrayBufferView, options?: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> }): Promise<unknown>;
+}
+
 interface Fetcher {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 }
@@ -30,6 +39,6 @@ interface ScheduledController {
 declare module "cloudflare:workers" {
   export const env: {
     DB: D1Database;
-    BUCKET?: unknown;
+    BUCKET?: R2Bucket;
   };
 }

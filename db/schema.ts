@@ -305,3 +305,91 @@ export const monitorRuns = sqliteTable(
     index("monitor_runs_source_idx").on(table.sourceId),
   ],
 );
+
+export const workspaceRevisions = sqliteTable(
+  "workspace_revisions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    storageKey: text("storage_key").notNull(),
+    contentHash: text("content_hash").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    sourceBuild: text("source_build").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("workspace_revisions_user_idx").on(table.userId),
+    index("workspace_revisions_hash_idx").on(table.contentHash),
+  ],
+);
+
+export const workspaceHeads = sqliteTable(
+  "workspace_heads",
+  {
+    userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+    revisionId: text("revision_id").notNull().references(() => workspaceRevisions.id, { onDelete: "restrict" }),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("workspace_heads_revision_idx").on(table.revisionId)],
+);
+
+export const aiUsageEvents = sqliteTable(
+  "ai_usage_events",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    status: text("status").notNull(),
+    errorCode: text("error_code"),
+    providerRequestId: text("provider_request_id"),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    cachedTokens: integer("cached_tokens").notNull().default(0),
+    totalTokens: integer("total_tokens").notNull().default(0),
+    durationMs: integer("duration_ms").notNull().default(0),
+    guardrailStatus: text("guardrail_status").notNull().default("not_run"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("ai_usage_events_user_idx").on(table.userId),
+    index("ai_usage_events_created_idx").on(table.createdAt),
+  ],
+);
+
+export const oauthIdentities = sqliteTable(
+  "oauth_identities",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerSubjectHash: text("provider_subject_hash").notNull(),
+    displayName: text("display_name"),
+    email: text("email"),
+    pictureUrl: text("picture_url"),
+    status: text("status").notNull().default("connected"),
+    connectedAt: text("connected_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    lastVerifiedAt: text("last_verified_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("oauth_identities_user_idx").on(table.userId),
+    index("oauth_identities_subject_idx").on(table.providerSubjectHash),
+  ],
+);
+
+export const oauthSessions = sqliteTable(
+  "oauth_sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    identityId: text("identity_id").notNull().references(() => oauthIdentities.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: text("expires_at").notNull(),
+    revokedAt: text("revoked_at"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("oauth_sessions_user_idx").on(table.userId),
+    index("oauth_sessions_expires_idx").on(table.expiresAt),
+  ],
+);
