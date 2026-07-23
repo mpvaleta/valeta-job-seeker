@@ -65,14 +65,14 @@ export async function POST(request: Request) {
         sourceKind: optionalText(monitor.sourceKind, 80),
         focus: optionalText(monitor.focus, 1_000),
         market: optionalText(monitor.market, 180),
-        cadence: monitor.cadence === "manual" ? "manual" : "daily",
+        cadence: monitor.cadence === "manual" ? "manual" : monitor.cadence === "daily" ? "daily" : "twice_daily",
       });
     } else if (action === "update_monitor") {
       const monitorId = text(input.monitorId, 100);
       const patch = object(input.patch);
       await updateRadarMonitor(db, user.id, monitorId, {
         active: typeof patch.active === "boolean" ? patch.active : undefined,
-        cadence: patch.cadence === "manual" || patch.cadence === "daily" || patch.cadence === "weekly" ? String(patch.cadence) : undefined,
+        cadence: patch.cadence === "manual" || patch.cadence === "twice_daily" || patch.cadence === "daily" || patch.cadence === "weekly" ? String(patch.cadence) : undefined,
         focus: typeof patch.focus === "string" ? patch.focus : undefined,
       });
     } else if (action === "delete_monitor") {
