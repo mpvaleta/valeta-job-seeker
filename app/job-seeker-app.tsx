@@ -69,7 +69,7 @@ const initialWritingStyle: WritingStyle = {
   samples: "",
 };
 
-const APP_BUILD = "2026.07-application-workflow-r3";
+const APP_BUILD = "2026.07-application-workflow-r4";
 const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_LINKEDIN_ARCHIVE_BYTES = 50 * 1024 * 1024;
 const MAX_SOURCE_TEXT = 300_000;
@@ -97,6 +97,22 @@ function factCandidates(text: string) {
       return true;
     })
     .slice(0, 60);
+}
+
+function normalizeFact(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+}
+
+function isOverlappingFact(candidate: string, existing: string[]) {
+  const normalized = normalizeFact(candidate);
+  const tokens = new Set(normalized.split(" ").filter((token) => token.length > 2));
+  return existing.some((item) => {
+    const other = normalizeFact(item);
+    if (other === normalized || other.includes(normalized) || normalized.includes(other)) return true;
+    const otherTokens = new Set(other.split(" ").filter((token) => token.length > 2));
+    const shared = [...tokens].filter((token) => otherTokens.has(token)).length;
+    return tokens.size >= 7 && otherTokens.size >= 7 && shared / Math.min(tokens.size, otherTokens.size) >= 0.85;
+  });
 }
 
 function flattenText(value: unknown): string[] {
@@ -676,7 +692,7 @@ export function JobSeekerApp() {
   function approveCandidate(documentId: string, candidate: string) {
     const source = documents.find((document) => document.id === documentId);
     if (!source || sourceScope(source) !== "evidence") { setNotice("Only a career-evidence source can create an approved fact"); return; }
-    const alreadyAdded = facts.some((item) => item.toLowerCase() === candidate.toLowerCase());
+    const alreadyAdded = isOverlappingFact(candidate, facts);
     if (!alreadyAdded) setProfile({ ...profile, facts: [...facts, candidate].join("\n") });
     setDocuments(documents.map((doc) => doc.id === documentId ? { ...doc, approved: doc.approved.includes(candidate) ? doc.approved : [...doc.approved, candidate] } : doc));
     setNotice(alreadyAdded ? "That fact is already approved" : "Fact approved and added to your profile");
@@ -698,8 +714,7 @@ export function JobSeekerApp() {
     if (!candidates.length) { setNotice("There are no candidate items to approve in this source"); return; }
     setDocuments((current) => current.map((document) => document.id === documentId ? { ...document, approved: [...new Set([...document.approved, ...candidates])] } : document));
     if (scope === "evidence") {
-      const known = new Set(facts.map((fact) => fact.toLowerCase()));
-      const additions = candidates.filter((candidate) => !known.has(candidate.toLowerCase()));
+      const additions = candidates.filter((candidate) => !isOverlappingFact(candidate, facts));
       if (additions.length) setProfile({ ...profile, facts: [...facts, ...additions].join("\n") });
     }
     setNotice(scope === "evidence" ? `${candidates.length} career facts approved. Review or edit them any time in Career profile.` : `${candidates.length} résumé playbook rules activated.`);
@@ -725,12 +740,6 @@ export function JobSeekerApp() {
     setResumeTracks([...normalizedTracks, { id, name: "New résumé direction", headline: "", summary: "", focus: [] }]);
     setActiveTrackId(id);
     setNotice("New résumé track added. Give it a name, headline, summary, and matching role terms.");
-  }
-
-  function removeResumeTrack(trackId: string) {
-    if (normalizedTracks.length <= 1) { setNotice("Keep at least one résumé track."); return; }
-    setResumeTracks(normalizedTracks.filter((track) => track.id !== trackId));
-    if (activeTrackId === trackId) setActiveTrackId("auto");
   }
 
   async function disconnectLinkedin() {
@@ -905,7 +914,7 @@ export function JobSeekerApp() {
           <div className="resume-tracks-section">
             <div className="resume-tracks-head"><div><span>RÉSUMÉ DIRECTIONS</span><h2>Keep different career areas distinct.</h2><p>Auto-select uses role terms. Each track can override the default headline and summary; approved career facts remain shared truth unless a source is assigned to one track.</p></div><button onClick={addResumeTrack}>Add track</button></div>
             <label className="track-default">Role workspace selection<select value={activeTrackId} onChange={(event) => setActiveTrackId(event.target.value)}><option value="auto">Auto-select from each role</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>
-            <div className="resume-track-list">{normalizedTracks.map((track) => <article key={track.id} className={selectedTrack.id === track.id ? "selected" : ""}><div className="track-card-head"><span>{selectedTrack.id === track.id ? trackSelection.automatic ? "CURRENT AUTO MATCH" : "CURRENT TRACK" : "RÉSUMÉ TRACK"}</span><button onClick={() => removeResumeTrack(track.id)}>Remove</button></div><label>Name<input value={track.name} onChange={(event) => updateResumeTrack(track.id, { name: event.target.value })} /></label><label>Headline<input value={track.headline} onChange={(event) => updateResumeTrack(track.id, { headline: event.target.value })} /></label><label>Track summary<textarea value={track.summary} onChange={(event) => updateResumeTrack(track.id, { summary: event.target.value })} placeholder="Use a truthful summary tailored to this career direction." /></label><label>Matching role terms<textarea value={track.focus.join(", ")} onChange={(event) => updateResumeTrack(track.id, { focus: event.target.value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) })} placeholder="brand, campaign, creative, agency" /></label></article>)}</div>
+            <div className="resume-track-list">{normalizedTracks.map((track) => <article key={track.id} className={selectedTrack.id === track.id ? "selected" : ""}><div className="track-card-head"><span>{selectedTrack.id === track.id ? trackSelection.automatic ? "CURRENT AUTO MATCH" : "CURRENT TRACK" : "RÉSUMÉ TRACK"}</span><small>Preserved with its linked sources and versions</small></div><label>Name<input value={track.name} onChange={(event) => updateResumeTrack(track.id, { name: event.target.value })} /></label><label>Headline<input value={track.headline} onChange={(event) => updateResumeTrack(track.id, { headline: event.target.value })} /></label><label>Track summary<textarea value={track.summary} onChange={(event) => updateResumeTrack(track.id, { summary: event.target.value })} placeholder="Use a truthful summary tailored to this career direction." /></label><label>Matching role terms<textarea value={track.focus.join(", ")} onChange={(event) => updateResumeTrack(track.id, { focus: event.target.value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) })} placeholder="brand, campaign, creative, agency" /></label></article>)}</div>
           </div>
           <div className="profile-footer"><span>{facts.length} approved facts · {normalizedTracks.length} résumé tracks</span><div><button onClick={() => download("v-jobs-career-profile.json", JSON.stringify({ profile, resumeTracks: normalizedTracks },null,2), "application/json")}>Export profile</button><button className="primary" onClick={exportWorkspace}>Back up private workspace</button></div></div>
         </section>}
@@ -945,7 +954,7 @@ export function JobSeekerApp() {
           </div>
         </section>}
 
-        {view === "companies" && <section className="companies-workspace"><div className="target-form"><div className="step"><b>03</b><span>ADD A TARGET</span></div><h2>Companies, brands, and agencies — in one list.</h2><p>Keep only targets you want to follow. Career links and notes are optional, so this works even before you have every detail.</p><label>Company or agency name<input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Agency, brand, or sports organization" /></label><div className="field-row"><label>Type<select value={companyKind} onChange={(event) => setCompanyKind(event.target.value as CompanyTarget["kind"])}><option>Brand</option><option>Agency</option><option>Sports</option><option>Tech</option></select></label><label>Focus<input value={companyFocus} onChange={(event) => setCompanyFocus(event.target.value)} /></label></div><label>Website<input value={companyWebsite} onChange={(event) => setCompanyWebsite(event.target.value)} placeholder="https://" /></label><label>Careers page<input value={companyCareers} onChange={(event) => setCompanyCareers(event.target.value)} placeholder="https://" /></label><button className="primary" onClick={addCompany}>Add to directory</button></div><div className="target-directory"><div className="review-heading"><div><span>TARGET DIRECTORY</span><h2>{companies.length} saved targets</h2></div><strong>Bay Area first</strong></div>{companies.length === 0 ? <div className="empty-state compact"><strong>Your target list starts here.</strong><span>Add brands, agencies, sports organizations, or tech teams. Nothing is marked as an open role until you verify it.</span></div> : <div className="company-list">{companies.map((target) => <article key={target.id}><div className="company-title"><span>{target.kind}</span><strong>{target.name}</strong><small>{target.market} · {target.focus || "No focus set"}</small></div><div className="company-links">{target.website && <a href={target.website} target="_blank" rel="noreferrer">Website</a>}{target.careers && <a href={target.careers} target="_blank" rel="noreferrer">Careers</a>}<button onClick={() => loadCompanyForRole(target)}>Use for role</button></div><div className="company-actions"><label>Status<select value={target.status} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: event.target.value as CompanyTarget["status"] } : item))}><option>Researching</option><option>Monitoring</option><option>Applied</option><option>Paused</option></select></label><label>Notes<input value={target.notes} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, notes: event.target.value } : item))} placeholder="Contact, role, or next step" /></label><button onClick={() => setCompanies(companies.filter((item) => item.id !== target.id))}>Remove</button></div></article>)}</div>}</div></section>}
+        {view === "companies" && <section className="companies-workspace"><div className="target-form"><div className="step"><b>03</b><span>ADD A TARGET</span></div><h2>Companies, brands, and agencies — in one list.</h2><p>Keep only targets you want to follow. Career links and notes are optional, so this works even before you have every detail.</p><label>Company or agency name<input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Agency, brand, or sports organization" /></label><div className="field-row"><label>Type<select value={companyKind} onChange={(event) => setCompanyKind(event.target.value as CompanyTarget["kind"])}><option>Brand</option><option>Agency</option><option>Sports</option><option>Tech</option></select></label><label>Focus<input value={companyFocus} onChange={(event) => setCompanyFocus(event.target.value)} /></label></div><label>Website<input value={companyWebsite} onChange={(event) => setCompanyWebsite(event.target.value)} placeholder="https://" /></label><label>Careers page<input value={companyCareers} onChange={(event) => setCompanyCareers(event.target.value)} placeholder="https://" /></label><button className="primary" onClick={addCompany}>Add to directory</button></div><div className="target-directory"><div className="review-heading"><div><span>TARGET DIRECTORY</span><h2>{companies.length} saved targets</h2></div><strong>Bay Area first</strong></div>{companies.length === 0 ? <div className="empty-state compact"><strong>Your target list starts here.</strong><span>Add brands, agencies, sports organizations, or tech teams. Nothing is marked as an open role until you verify it.</span></div> : <div className="company-list">{companies.map((target) => <article key={target.id}><div className="company-title"><span>{target.kind}</span><strong>{target.name}</strong><small>{target.market} · {target.focus || "No focus set"}</small></div><div className="company-links">{target.website && <a href={target.website} target="_blank" rel="noreferrer">Website</a>}{target.careers && <a href={target.careers} target="_blank" rel="noreferrer">Careers</a>}<button onClick={() => loadCompanyForRole(target)}>Use for role</button></div><div className="company-actions"><label>Status<select value={target.status} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: event.target.value as CompanyTarget["status"] } : item))}><option>Researching</option><option>Monitoring</option><option>Applied</option><option>Paused</option></select></label><label>Notes<input value={target.notes} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, notes: event.target.value } : item))} placeholder="Contact, role, or next step" /></label><button onClick={() => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: "Paused" } : item))}>Pause</button></div></article>)}</div>}</div></section>}
 
         {view === "applications" && <section className="table-card"><div className="table-head"><div><span>PIPELINE</span><h2>{applications.length} saved applications</h2></div><button onClick={() => download("v-jobs-applications.json", JSON.stringify({ applications, generatedDrafts, jobSnapshots },null,2), "application/json")}>Export</button></div>{applications.length === 0 ? <div className="empty-state"><strong>No applications saved yet.</strong><span>Prepare a role in the workspace, then choose “Save to applications.”</span><button className="primary" onClick={() => setView("workspace")}>Prepare first role</button></div> : <div className="application-list">{applications.map((app) => { const resumeDraft = generatedDrafts.find((draft) => draft.id === app.resumeVersionId); const coverDraft = generatedDrafts.find((draft) => draft.id === app.coverVersionId); return <article key={app.id}><div className="application-main"><strong>{app.role}</strong><span>{app.company}</span>{app.url && <a href={app.url} target="_blank" rel="noreferrer">Original role ↗</a>}<small>{app.note || "Saved opportunity — not submitted"}</small></div><label>Application date<input type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(app.date) ? app.date : ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,date:e.target.value}:item))} /></label><label>Status<select value={app.status} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:e.target.value as ApplicationStatus}:item))}><option>Saved opportunity</option><option>Preparing</option><option>Applied</option><option>Interview</option><option>Closed</option></select></label><label>Note<input value={app.note || ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,note:e.target.value}:item))} placeholder="Follow-up, contact, or reminder" /></label><div className="application-document-links"><span>Résumé: {resumeDraft ? resumeDraft.title : "Not linked"}</span><span>Cover letter: {coverDraft ? coverDraft.title : "Not linked"}</span></div><div className="application-actions"><button onClick={() => { setCompany(app.company); setRole(app.role); setRoleUrl(app.url || ""); setView("workspace"); setNotice("Role reopened. Its saved history remains intact."); }}>Open role</button><button onClick={() => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:"Closed"}:item))}>Archive as closed</button></div>{generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role && !draft.applicationId).length > 0 && <div className="application-draft-picker">{generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role && !draft.applicationId).map((draft) => <button key={draft.id} onClick={() => attachDraftToApplication(app.id, draft)}>Link {draft.type === "resume" ? "résumé" : "cover letter"}: {draft.updatedAt}</button>)}</div>}</article>; })}</div>}</section>}
 
