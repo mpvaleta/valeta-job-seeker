@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRuntimeBucket, getRuntimeDatabase } from "@/lib/runtime-bindings";
-import { MAX_WORKSPACE_BYTES, readLatestWorkspace, saveWorkspaceRevision } from "@/lib/workspace-store";
+import { listWorkspaceRevisions, MAX_WORKSPACE_BYTES, readLatestWorkspace, readWorkspaceRevision, restoreWorkspaceRevision, saveWorkspaceRevision, WorkspaceRevisionNotFoundError } from "@/lib/workspace-store";
 import { isTrustedSameOriginMutation } from "@/lib/request-security";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,15 @@ const USER_NAME_ENCODING_HEADER = "oai-authenticated-user-full-name-encoding";
 export async function GET(request: Request) {
   try {
     const identity = requireIdentity(request);
-    const result = await readLatestWorkspace(getRuntimeDatabase(), getRuntimeBucket(), identity.email, identity.name);
+    const url = new URL(request.url);
+    const revisionId = url.searchParams.get("revision")?.trim();
+    if (url.searchParams.get("history") === "1") {
+      const revisions = await listWorkspaceRevisions(getRuntimeDatabase(), identity.email, identity.name);
+      return json({ ok: true, revisions });
+    }
+    const result = revisionId
+      ? await readWorkspaceRevision(getRuntimeDatabase(), getRuntimeBucket(), identity.email, revisionId, identity.name)
+      : await readLatestWorkspace(getRuntimeDatabase(), getRuntimeBucket(), identity.email, identity.name);
     return json({ ok: true, ...result });
   } catch (cause) {
     return routeError(cause);
@@ -27,8 +35,18 @@ export async function POST(request: Request) {
     const identity = requireIdentity(request);
     const raw = await request.text();
     if (new TextEncoder().encode(raw).byteLength > MAX_WORKSPACE_BYTES) return json({ ok: false, code: "workspace_too_large", message: "The private workspace is larger than the 5 MB backup limit." }, 413);
-    const envelope = JSON.parse(raw) as { sourceBuild?: unknown; snapshot?: unknown };
-    if (!envelope || typeof envelope !== "object" || typeof envelope.sourceBuild !== "string" || !envelope.snapshot || typeof envelope.snapshot !== "object" || Array.isArray(envelope.snapshot)) {
+    const envelope = JSON.parse(raw) as { action?: unknown; revisionId?: unknown; sourceBuild?: unknown; snapshot?: unknown };
+    if (!envelope || typeof envelope !== "object" || typeof envelope.sourceBuild !== "string") {
+      return json({ ok: false, code: "invalid_workspace", message: "The private workspace backup is incomplete." }, 400);
+    }
+    if (envelope.action === "restore") {
+      if (typeof envelope.revisionId !== "string" || !/^[a-z0-9-]{8,80}$/i.test(envelope.revisionId)) {
+        return json({ ok: false, code: "invalid_revision", message: "Choose a valid private workspace revision." }, 400);
+      }
+      const result = await restoreWorkspaceRevision(getRuntimeDatabase(), getRuntimeBucket(), identity.email, identity.name, envelope.revisionId, envelope.sourceBuild);
+      return json({ ok: true, ...result });
+    }
+    if (!envelope.snapshot || typeof envelope.snapshot !== "object" || Array.isArray(envelope.snapshot)) {
       return json({ ok: false, code: "invalid_workspace", message: "The private workspace backup is incomplete." }, 400);
     }
     const snapshotRaw = JSON.stringify(envelope.snapshot);
@@ -56,6 +74,7 @@ class WorkspaceHttpError extends Error {
 
 function routeError(cause: unknown) {
   if (cause instanceof WorkspaceHttpError) return json({ ok: false, code: cause.code, message: cause.message }, cause.status);
+  if (cause instanceof WorkspaceRevisionNotFoundError) return json({ ok: false, code: "revision_not_found", message: cause.message }, 404);
   const message = cause instanceof Error ? cause.message : "The private workspace could not be backed up.";
   if (/no such table|D1_ERROR|binding is unavailable/i.test(message)) return json({ ok: false, code: "workspace_storage_unavailable", message: "Durable private backup is still being prepared. Browser autosave remains active." }, 503);
   if (/JSON|workspace backup/i.test(message)) return json({ ok: false, code: "invalid_workspace", message: "The private workspace backup could not be read." }, 400);

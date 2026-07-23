@@ -121,7 +121,7 @@ function providerRegistry(): ProviderDefinition[] {
       defaultModelKey: "balanced",
       models: [
         { key: "reliable", id: process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash", label: "Gemini 3.6 Flash · thorough", tier: "Highest quality", description: "Current stable Gemini Flash with high reasoning effort.", effort: "high" },
-        { key: "balanced", id: process.env.GEMINI_BALANCED_MODEL?.trim() || "gemini-3.6-flash", label: "Gemini 3.6 Flash", tier: "Balanced", description: "Current stable model with medium reasoning effort.", effort: "medium" },
+        { key: "balanced", id: process.env.GEMINI_BALANCED_MODEL?.trim() || "gemini-3.5-flash", label: "Gemini 3.5 Flash", tier: "Balanced", description: "Current stable model with medium reasoning effort and a free API tier where available.", effort: "medium" },
         { key: "fast", id: process.env.GEMINI_FAST_MODEL?.trim() || "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash-Lite", tier: "Fast & economical", description: "Current stable, cost-efficient role triage model.", effort: "low" },
       ],
     },
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
       const retryable = response.status === 429 || response.status >= 500;
       const providerErrorCode = await safeProviderErrorCode(response);
       await safeFinish(audit.eventId, { status: "provider_error", errorCode: providerErrorCode || (retryable ? "temporarily_unavailable" : "provider_error"), requestId: providerRequestId, durationMs: Date.now() - startedAt, guardrailStatus: "not_run" });
-      return error(retryable ? 503 : 502, retryable ? "temporarily_unavailable" : "provider_error", retryable ? `${provider.name} is temporarily unavailable. The local recommendation remains active.` : `${provider.name} could not complete this review. The local recommendation remains active.`, { localFallback: true, provider: provider.id, model: model.id, requestId: providerRequestId, diagnosticCode: providerErrorCode });
+      return error(retryable ? 503 : 502, retryable ? "temporarily_unavailable" : "provider_error", providerFailureMessage(provider.name, providerErrorCode, retryable), { localFallback: true, provider: provider.id, model: model.id, requestId: providerRequestId, diagnosticCode: providerErrorCode });
     }
 
     const payload = await response.json() as Record<string, unknown>;
@@ -353,14 +353,19 @@ async function requestProvider(provider: ProviderDefinition, model: ModelDefinit
       signal,
     });
   }
-  return fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+  const thinkingLevel = model.effort === "high" ? "HIGH" : model.effort === "medium" ? "MEDIUM" : "LOW";
+  return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model.id)}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": provider.apiKey },
     body: JSON.stringify({
-      model: model.id,
-      input: `${SYSTEM_INSTRUCTIONS}\n\n<untrusted_application_data>\n${JSON.stringify(input)}\n</untrusted_application_data>\n\nFollow the evidence-only rules above and return only the requested JSON structure.`,
-      generation_config: { thinking_level: model.effort },
-      response_format: { type: "text", mime_type: "application/json", schema: outputSchema },
+      systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTIONS }] },
+      contents: [{ role: "user", parts: [{ text: `<untrusted_application_data>\n${JSON.stringify(input)}\n</untrusted_application_data>` }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: outputSchema,
+        maxOutputTokens: 1_600,
+        thinkingConfig: { thinkingLevel },
+      },
     }),
     signal,
   });
@@ -485,6 +490,13 @@ async function safeProviderErrorCode(response: Response) {
 
 function safeCode(value: unknown) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9_.-]+/g, "_").slice(0, 80);
+}
+
+function providerFailureMessage(providerName: string, code: string, retryable: boolean) {
+  if (/quota|resource_exhausted|rate_limit|insufficient_quota|billing/i.test(code)) return `${providerName} rejected the request because this API project has no available quota or billing credit. The local recommendation remains active.`;
+  if (/model|not_found|unsupported/i.test(code)) return `${providerName} rejected the selected model. Choose another model or check model access for this API key. The local recommendation remains active.`;
+  if (/key|auth|permission|forbidden|unauth/i.test(code)) return `${providerName} rejected the API key or its permissions. The local recommendation remains active.`;
+  return retryable ? `${providerName} is temporarily unavailable. The local recommendation remains active.` : `${providerName} could not complete this review. The local recommendation remains active.`;
 }
 
 async function safeFinish(eventId: string | null, value: Parameters<typeof finishAiReview>[1]) {

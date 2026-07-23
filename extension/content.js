@@ -26,8 +26,12 @@ function platformName() {
 
 function descriptor(field) {
   const labels = field.labels ? [...field.labels].map((label) => label.innerText) : [];
-  const nearby = field.closest("label, fieldset, [role=group]")?.innerText?.slice(0, 180) || "";
-  return [field.name, field.id, field.placeholder, field.getAttribute("aria-label"), ...labels, nearby]
+  const directLabel = field.closest("label")?.innerText?.slice(0, 180) || "";
+  const labelledBy = (field.getAttribute("aria-labelledby") || "")
+    .split(/\s+/)
+    .map((id) => document.getElementById(id)?.innerText || "")
+    .filter(Boolean);
+  return [field.name, field.id, field.placeholder, field.getAttribute("aria-label"), ...labels, ...labelledBy, directLabel]
     .filter(Boolean)
     .join(" ")
     .replace(/\s+/g, " ")
@@ -70,6 +74,9 @@ function scan(data, mark = true) {
     if (type === "file") {
       status = "review";
       reason = "Upload résumé manually";
+    } else if (type === "number") {
+      status = "review";
+      reason = "Numeric field — confirm its meaning and value";
     } else if (sensitive.test(label)) {
       status = "review";
       reason = "Sensitive answer — complete personally";
@@ -134,15 +141,63 @@ function fill(data) {
 }
 
 function captureVisibleRole() {
+  const firstText = (...selectors) => {
+    for (const selector of selectors) {
+      const value = document.querySelector(selector)?.innerText?.replace(/\s+/g, " ").trim();
+      if (value) return value;
+    }
+    return "";
+  };
+  const host = location.hostname.toLowerCase();
+  const selectors = host.includes("linkedin.com")
+    ? {
+        role: [".job-details-jobs-unified-top-card__job-title h1", ".job-details-jobs-unified-top-card__job-title", ".top-card-layout__title", "h1"],
+        company: [".job-details-jobs-unified-top-card__company-name a", ".job-details-jobs-unified-top-card__company-name", ".topcard__org-name-link"],
+        location: [".job-details-jobs-unified-top-card__primary-description-container", ".topcard__flavor--bullet"],
+        description: [".jobs-description__content", ".jobs-box__html-content", ".description__text"],
+      }
+    : host.includes("indeed.")
+      ? {
+          role: ['h1[data-testid="jobsearch-JobInfoHeader-title"]', "h1"],
+          company: ['[data-testid="inlineHeader-companyName"]', '[data-company-name="true"]'],
+          location: ['[data-testid="job-location"]', '[data-testid="jobsearch-JobInfoHeader-companyLocation"]'],
+          description: ["#jobDescriptionText", '[data-testid="jobDescriptionText"]'],
+        }
+      : host.includes("workday")
+        ? {
+            role: ['[data-automation-id="jobPostingHeader"]', "h1"],
+            company: ['[data-automation-id="jobPostingCompany"]'],
+            location: ['[data-automation-id="locations"]'],
+            description: ['[data-automation-id="jobPostingDescription"]'],
+          }
+        : host.includes("greenhouse")
+          ? { role: [".app-title", "h1"], company: [".company-name"], location: [".location"], description: ["#content", ".job__description"] }
+          : host.includes("lever.co")
+            ? { role: [".posting-headline h2", "h1"], company: [".main-header-logo img"], location: [".posting-categories .location"], description: [".posting-page .content", ".posting-description"] }
+            : host.includes("ashbyhq")
+              ? { role: ['[data-testid="JobPostingHeader"] h1', "h1"], company: ['[data-testid="CompanyName"]'], location: ['[data-testid="JobPostingLocation"]'], description: ['[data-testid="JobPostingDescription"]', "main"] }
+              : host.includes("icims")
+                ? { role: [".iCIMS_Header h1", "h1"], company: [".iCIMS_CompanyName"], location: [".iCIMS_JobHeaderField"], description: [".iCIMS_JobContent"] }
+                : host.includes("smartrecruiters")
+                  ? { role: [".job-title", "h1"], company: [".company-name"], location: [".job-location"], description: [".job-sections"] }
+                  : { role: ["h1"], company: ['[itemprop="hiringOrganization"]', '[class*="company"]'], location: ['[itemprop="jobLocation"]', '[class*="location"]'], description: ['[itemprop="description"]', "main", "article"] };
   const headings = [...document.querySelectorAll("h1, h2")].map((element) => element.innerText.trim()).filter(Boolean);
   const metaTitle = document.querySelector('meta[property="og:title"], meta[name="twitter:title"]')?.getAttribute("content") || "";
   const description = document.querySelector('meta[property="og:description"], meta[name="description"]')?.getAttribute("content") || "";
-  const text = (document.querySelector("main, [role=main], article")?.innerText || document.body.innerText || "").replace(/\s+/g, " ").trim().slice(0, 120_000);
+  const role = firstText(...selectors.role);
+  const companyElement = selectors.company.map((selector) => document.querySelector(selector)).find(Boolean);
+  const company = companyElement instanceof HTMLImageElement ? companyElement.alt.trim() : companyElement?.innerText?.replace(/\s+/g, " ").trim() || "";
+  const locationText = firstText(...selectors.location);
+  const jobDescription = firstText(...selectors.description);
+  const text = (jobDescription || document.querySelector("main, [role=main], article")?.innerText || document.body.innerText || "").replace(/\s+/g, " ").trim().slice(0, 120_000);
   return {
     schema: "v-jobs-role-capture-v1",
     sourceUrl: location.href,
     pageTitle: document.title,
-    title: headings[0] || metaTitle || "",
+    title: role || headings[0] || metaTitle || "",
+    role: role || headings[0] || "",
+    company,
+    location: locationText,
     description,
     text,
     capturedAt: new Date().toISOString(),

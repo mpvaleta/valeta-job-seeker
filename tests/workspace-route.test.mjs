@@ -72,6 +72,31 @@ test("private workspace creates immutable revisions, deduplicates, and restores 
     const restoredData = await restored.json();
     assert.deepEqual(restoredData.snapshot, snapshot);
     assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM workspace_revisions").first()).count, 1);
+
+    const second = await worker.fetch(new Request("http://localhost/api/workspace", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ sourceBuild: "test-2", snapshot: { version: 2, applications: [{ id: "app-2" }] } }),
+    }), env, context);
+    assert.equal(second.status, 200);
+    const history = await worker.fetch(new Request("http://localhost/api/workspace?history=1", { headers }), env, context);
+    const historyData = await history.json();
+    assert.equal(historyData.revisions.length, 2);
+    assert.equal(historyData.revisions[0].isCurrent, true);
+
+    const firstRevision = historyData.revisions[1];
+    const oldSnapshot = await worker.fetch(new Request(`http://localhost/api/workspace?revision=${firstRevision.id}`, { headers }), env, context);
+    assert.deepEqual((await oldSnapshot.json()).snapshot, snapshot);
+
+    const restoredRevision = await worker.fetch(new Request("http://localhost/api/workspace", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ action: "restore", revisionId: firstRevision.id, sourceBuild: "test-restore" }),
+    }), env, context);
+    assert.equal(restoredRevision.status, 200);
+    const restoredAgain = await worker.fetch(new Request("http://localhost/api/workspace", { headers }), env, context);
+    assert.deepEqual((await restoredAgain.json()).snapshot, snapshot);
+    assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM workspace_revisions").first()).count, 3);
   } finally {
     await mf.dispose();
   }

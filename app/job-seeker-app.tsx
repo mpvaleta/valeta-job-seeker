@@ -14,12 +14,12 @@ import type { ApplicationRecommendation } from "@/lib/recommendation-engine.mjs"
 import type { SourceCategory, SourceScope } from "@/lib/knowledge-sources.mjs";
 import type { ResumeTrack } from "@/lib/resume-tracks.mjs";
 
-type View = "workspace" | "radar" | "profile" | "documents" | "voice" | "connections" | "companies" | "applications" | "autofill" | "ai";
+type View = "workspace" | "radar" | "profile" | "documents" | "voice" | "connections" | "companies" | "applications" | "autofill" | "ai" | "data";
 type Output = "analysis" | "resume" | "cover" | "answers";
 type ApplicationStatus = "Saved opportunity" | "Preparing" | "Applied" | "Interview" | "Closed";
 type Application = { id: string; company: string; role: string; status: ApplicationStatus; date: string; url?: string; jobSnapshotId?: string; resumeVersionId?: string; coverVersionId?: string; note?: string };
 type JobSnapshot = { id: string; company: string; role: string; url?: string; description: string; source: "pasted" | "imported" | "radar"; savedAt: string; updatedAt: string; trackId: string };
-type GeneratedDraft = { id: string; type: "resume" | "cover"; title: string; content: string; createdAt: string; updatedAt: string; company: string; role: string; trackId: string; jobSnapshotId?: string; applicationId?: string; origin: "generated" | "edited" };
+type GeneratedDraft = { id: string; type: "resume" | "cover"; title: string; content: string; createdAt: string; updatedAt: string; company: string; role: string; trackId: string; jobSnapshotId?: string; applicationId?: string; origin: "generated" | "edited"; provider?: AiProviderId | "local"; model?: string; playbookRuleCount?: number; approvedFactCount?: number };
 type SourceDocument = { id: string; title: string; type: string; category?: SourceCategory; scope?: SourceScope; trackId?: string; sourceUrl?: string; importedAt: string; text: string; candidates: string[]; approved: string[]; status: "reading" | "ready" | "needs-text"; truncated?: boolean };
 type CompanyTarget = { id: string; name: string; website: string; careers: string; kind: "Brand" | "Agency" | "Sports" | "Tech"; focus: string; market: string; status: "Researching" | "Monitoring" | "Applied" | "Paused"; lastChecked: string; notes: string };
 type WritingStyle = { tone: string; prefer: string; avoid: string; samples: string };
@@ -43,6 +43,21 @@ type LinkAssist = { kind: "linkedin" | "indeed" | "login"; title: string; messag
 type WorkspaceSnapshot = { version: number; profile: Profile; writingStyle: WritingStyle; resumeTracks: ResumeTrack[]; activeTrackId: string; aiPreference: AiPreference; playbookSettings: PlaybookSettings; applications: Application[]; jobSnapshots: JobSnapshot[]; generatedDrafts: GeneratedDraft[]; documents: SourceDocument[]; companies: CompanyTarget[]; roleDraft: { jobText: string; company: string; role: string; roleUrl: string } };
 type WorkspaceSync = { state: "loading" | "ready" | "saving" | "error"; message: string; lastSavedAt?: string };
 type WorkspacePayload = { ok?: boolean; code?: string; message?: string; changed?: boolean; snapshot?: unknown; revision?: { id: string; createdAt: string; sizeBytes: number; sourceBuild: string } | null };
+type WorkspaceRevision = { id: string; createdAt: string; sizeBytes: number; sourceBuild: string; isCurrent: boolean };
+type ResumeAiResult = {
+  headline: string;
+  summary: string;
+  summary_fact_indexes: number[];
+  skills: Array<{ label: string; fact_indexes: number[] }>;
+  experience_bullets: Array<{ text: string; fact_indexes: number[] }>;
+  education_bullets: Array<{ text: string; fact_indexes: number[] }>;
+  awards_bullets: Array<{ text: string; fact_indexes: number[] }>;
+  omissions: string[];
+  playbook_checks: Array<{ rule_source: "user" | "curated"; rule_index: number; status: "followed" | "not_applicable" | "conflict"; note: string }>;
+};
+type ResumeAiReview = { score: number; verdict: "ready_for_human_review" | "needs_revision" | "blocked_by_missing_evidence"; strengths: string[]; improvements: string[]; unsupported_claims: string[]; playbook_issues: string[] };
+type ResumeAiResponse = { ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; result?: ResumeAiResult | ResumeAiReview; usage?: CloudUsage; requestId?: string | null; diagnosticCode?: string };
+type ResumeGeneration = { key: string; provider: AiProviderId; providerName: string; model: string; modelLabel: string; result: ResumeAiResult; usage?: CloudUsage };
 
 type Profile = {
   name: string;
@@ -73,10 +88,19 @@ const initialWritingStyle: WritingStyle = {
   samples: "",
 };
 
-const APP_BUILD = "2026.07-security-data-r1";
+const APP_BUILD = "2026.07-resume-data-r2";
 const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_LINKEDIN_ARCHIVE_BYTES = 50 * 1024 * 1024;
 const MAX_SOURCE_TEXT = 300_000;
+const SOURCE_TYPE_DETAILS: Record<SourceCategory, string> = {
+  "Résumé": "Your current or past résumés. Extracted career statements become candidate evidence and can be approved together.",
+  "Custom GPT export": "Career history or application content exported from your MyGPT. It becomes candidate evidence, never résumé-writing rules.",
+  "LinkedIn export": "Your official LinkedIn ZIP or exported profile data. V’s separates profile evidence, received recommendations, saved-job research, and writing.",
+  "Writing sample": "Emails, messages, letters, or articles that genuinely sound like you. These shape voice only and cannot create career facts.",
+  "Résumé playbook": "Tips, do/don’t rules, templates, and résumé best practices. Detected rules activate automatically and outrank V’s built-in guidance.",
+  "Company research": "Employer, market, team, and role research. It informs context but never becomes a claim about your experience.",
+  "Other evidence": "Awards, project notes, certifications, performance feedback, or other documents that support your career history.",
+};
 
 function safeErrorMessage(value: unknown) {
   const message = value instanceof Error ? value.message : typeof value === "string" ? value : "Unexpected error";
@@ -166,14 +190,34 @@ function createId() {
   return `${Date.now().toString(36)}-${random}`;
 }
 
-function useSavedState<T>(key: string, fallback: T) {
+function useSavedState<T>(key: string, fallback: T, legacyKeys: string[] = []) {
   const [value, setValue] = useState<T>(fallback);
   const [ready, setReady] = useState(false);
+  const fallbackRef = useRef(fallback);
+  const legacyKeysRef = useRef(legacyKeys);
   useEffect(() => {
-    // Restore the browser-only workspace after hydration.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    try { const saved = localStorage.getItem(key); if (saved) setValue(JSON.parse(saved)); } catch {}
-    setReady(true);
+    const timer = window.setTimeout(() => {
+      try {
+        const savedValues = [...legacyKeysRef.current, key]
+          .map((savedKey) => localStorage.getItem(savedKey))
+          .filter((saved): saved is string => Boolean(saved))
+          .map((saved) => JSON.parse(saved) as unknown);
+        if (Array.isArray(fallbackRef.current)) {
+          const merged = new Map<string, unknown>();
+          for (const saved of savedValues) {
+            if (!Array.isArray(saved)) continue;
+            for (const item of saved) {
+              if (item && typeof item === "object" && typeof (item as { id?: unknown }).id === "string") merged.set((item as { id: string }).id, item);
+            }
+          }
+          if (merged.size) setValue([...merged.values()] as T);
+        } else if (savedValues.length) {
+          setValue(savedValues.at(-1) as T);
+        }
+      } catch {}
+      setReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [key]);
   useEffect(() => { if (ready) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} } }, [key, ready, value]);
   return [value, setValue] as const;
@@ -185,6 +229,12 @@ function copyText(value: string, setNotice: (value: string) => void) {
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character] ?? character));
+}
+
+function renderStructuredResume(result: ResumeAiResult, profile: Profile) {
+  const contact = [profile.location, profile.email, profile.phone, profile.linkedin].map((item) => item.trim()).filter(Boolean).join(" | ");
+  const section = (name: string, items: string[]) => items.length ? `\n\n${name.toUpperCase()}\n${items.map((item) => `• ${item}`).join("\n")}` : "";
+  return `${profile.name || "Candidate name"}\n${result.headline}${contact ? `\n${contact}` : ""}\n\nPROFESSIONAL SUMMARY\n${result.summary}${section("Professional Experience", result.experience_bullets.map((item) => item.text))}${section("Education", result.education_bullets.map((item) => item.text))}${section("Awards", result.awards_bullets.map((item) => item.text))}${section("Core Skills", result.skills.map((item) => item.label))}`;
 }
 
 function linkKind(value: string) {
@@ -229,7 +279,7 @@ export function JobSeekerApp() {
   const [activeTrackId, setActiveTrackId] = useSavedState("v-jobs-active-track-v1", "auto");
   const [aiPreference, setAiPreference] = useSavedState<AiPreference>("valeta-ai-preference-v1", { provider: "openai", modelKey: "reliable" });
   const [playbookSettings, setPlaybookSettings] = useSavedState<PlaybookSettings>("valeta-playbook-settings-v1", { curatedEnabled: true });
-  const [applications, setApplications] = useSavedState<Application[]>("valeta-applications-v3", []);
+  const [applications, setApplications] = useSavedState<Application[]>("valeta-applications-v3", [], ["valeta-applications-v1", "valeta-applications-v2"]);
   const [jobSnapshots, setJobSnapshots] = useSavedState<JobSnapshot[]>("v-jobs-market-history-v1", []);
   const [generatedDrafts, setGeneratedDrafts] = useSavedState<GeneratedDraft[]>("v-jobs-generated-drafts-v1", []);
   const [documents, setDocuments] = useSavedState<SourceDocument[]>("valeta-documents-v1", []);
@@ -257,6 +307,7 @@ export function JobSeekerApp() {
   const [aiConnection, setAiConnection] = useState<AiConnection>({ state: "checking", authenticated: false, authorized: false, providers: [], message: "Checking the secure backend connection…" });
   const [cloudReview, setCloudReview] = useState<CloudReview | null>(null);
   const [comparisonResults, setComparisonResults] = useState<CloudReview[]>([]);
+  const [comparisonCount, setComparisonCount] = useState<1 | 2 | 3>(3);
   const [comparisonRunning, setComparisonRunning] = useState(false);
   const [aiRunning, setAiRunning] = useState(false);
   const [operationProgress, setOperationProgress] = useState<OperationProgress>(null);
@@ -265,6 +316,12 @@ export function JobSeekerApp() {
   const [errorLog, setErrorLog] = useSavedState<ErrorLogEntry[]>("valeta-error-log-v1", []);
   const [workspaceSync, setWorkspaceSync] = useState<WorkspaceSync>({ state: "loading", message: "Opening durable private backup…" });
   const [workspaceLoaded, setWorkspaceLoaded] = useState(false);
+  const [browserStateReady, setBrowserStateReady] = useState(false);
+  const [workspaceRevisions, setWorkspaceRevisions] = useState<WorkspaceRevision[]>([]);
+  const [workspaceHistoryState, setWorkspaceHistoryState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [resumeGeneration, setResumeGeneration] = useState<ResumeGeneration | null>(null);
+  const [resumeReview, setResumeReview] = useState<{ providerName: string; modelLabel: string; result: ResumeAiReview; usage?: CloudUsage } | null>(null);
+  const [resumeAiRunning, setResumeAiRunning] = useState<"generate" | "review" | null>(null);
   const workspaceAbort = useRef<AbortController | null>(null);
 
   const logError = useCallback((area: ErrorLogEntry["area"], code: string, message: unknown, context?: ErrorLogEntry["context"]) => {
@@ -284,7 +341,8 @@ export function JobSeekerApp() {
   }), [documents]);
   const learnedVoice = useMemo(() => deriveWritingVoice(writingStyle.samples), [writingStyle.samples]);
   const userPlaybookRules = useMemo(() => documents.filter((document) => sourceScope(document) === "guidance").flatMap((document) => document.approved), [documents]);
-  const approvedPlaybookRules = useMemo(() => [...(playbookSettings.curatedEnabled ? CURATED_RESUME_PLAYBOOK.rules.map((rule) => rule.text) : []), ...userPlaybookRules], [playbookSettings.curatedEnabled, userPlaybookRules]);
+  const curatedPlaybookRules = useMemo(() => playbookSettings.curatedEnabled ? CURATED_RESUME_PLAYBOOK.rules.map((rule) => rule.text) : [], [playbookSettings.curatedEnabled]);
+  const approvedPlaybookRules = useMemo(() => [...userPlaybookRules, ...curatedPlaybookRules], [curatedPlaybookRules, userPlaybookRules]);
   const learningSteps = useMemo(() => [
     { label: "Career foundation", detail: "Upload current and past résumés", complete: knowledgeStats.evidence > 0 },
     { label: "Verified evidence", detail: "Approve at least 8 reusable career facts", complete: facts.length >= 8 },
@@ -355,7 +413,56 @@ export function JobSeekerApp() {
     }
   }, [logError]);
 
+  const loadWorkspaceHistory = useCallback(async () => {
+    setWorkspaceHistoryState("loading");
+    try {
+      const response = await fetch("/api/workspace?history=1", { cache: "no-store" });
+      const data = await readJsonResponse<{ ok?: boolean; message?: string; revisions?: WorkspaceRevision[] }>(response, "Private version history could not be read.");
+      if (!response.ok || !data.ok || !Array.isArray(data.revisions)) throw new Error(data.message || "Private version history could not be read.");
+      setWorkspaceRevisions(data.revisions);
+      setWorkspaceHistoryState("ready");
+    } catch (cause) {
+      setWorkspaceHistoryState("error");
+      logError("app", "workspace_history_failed", cause);
+      setNotice(cause instanceof Error ? cause.message : "Private version history could not be read.");
+    }
+  }, [logError]);
+
+  async function mergeWorkspaceRevision(revisionId: string) {
+    setWorkspaceHistoryState("loading");
+    setOperationProgress({ label: "Recovering preserved data", detail: "Opening the selected private revision and merging its records into your current workspace. Existing records remain unchanged." });
+    try {
+      const response = await fetch(`/api/workspace?revision=${encodeURIComponent(revisionId)}`, { cache: "no-store" });
+      const data = await readJsonResponse<WorkspacePayload>(response, "The selected private revision could not be read.");
+      if (!response.ok || !data.ok || !isWorkspaceSnapshot(data.snapshot)) throw new Error(data.message || "The selected private revision could not be read.");
+      const saved = data.snapshot;
+      setProfile((current) => preferLocalObject(saved.profile, current));
+      setWritingStyle((current) => preferLocalObject(saved.writingStyle, current));
+      setResumeTracks((current) => mergeById(saved.resumeTracks, current));
+      setApplications((current) => mergeById(saved.applications, current));
+      setJobSnapshots((current) => mergeById(saved.jobSnapshots, current));
+      setGeneratedDrafts((current) => mergeById(saved.generatedDrafts, current));
+      setDocuments((current) => mergeById(saved.documents, current));
+      setCompanies((current) => mergeById(saved.companies, current));
+      setNotice("Preserved records from that version were merged into the current workspace. Nothing was deleted or replaced.");
+      setWorkspaceHistoryState("ready");
+      window.setTimeout(() => void loadWorkspaceHistory(), 1_500);
+    } catch (cause) {
+      setWorkspaceHistoryState("error");
+      logError("app", "workspace_revision_merge_failed", cause);
+      setNotice(cause instanceof Error ? cause.message : "That private revision could not be recovered.");
+    } finally {
+      setOperationProgress(null);
+    }
+  }
+
   useEffect(() => {
+    const timer = window.setTimeout(() => setBrowserStateReady(true), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!browserStateReady) return;
     let active = true;
     fetch("/api/workspace", { cache: "no-store" })
       .then(async (response) => ({ response, data: await readJsonResponse<WorkspacePayload>(response, "The durable private backup could not be read.") }))
@@ -394,13 +501,26 @@ export function JobSeekerApp() {
         logError("app", "workspace_restore_failed", cause);
       });
     return () => { active = false; };
-  }, [logError, setActiveTrackId, setAiPreference, setApplications, setCompanies, setDocuments, setGeneratedDrafts, setJobSnapshots, setJobText, setPlaybookSettings, setProfile, setResumeTracks, setRole, setRoleUrl, setWritingStyle, setCompany]);
+  }, [browserStateReady, logError, setActiveTrackId, setAiPreference, setApplications, setCompanies, setDocuments, setGeneratedDrafts, setJobSnapshots, setJobText, setPlaybookSettings, setProfile, setResumeTracks, setRole, setRoleUrl, setWritingStyle, setCompany]);
 
   useEffect(() => {
     if (!workspaceLoaded) return;
     const timer = window.setTimeout(() => { void saveWorkspaceBackup(workspaceSnapshot); }, 8_000);
     return () => window.clearTimeout(timer);
   }, [saveWorkspaceBackup, workspaceLoaded, workspaceSnapshot]);
+
+  useEffect(() => {
+    if (!workspaceLoaded) return;
+    setDocuments((current) => {
+      let changed = false;
+      const next = current.map((document) => {
+        if (sourceScope(document) !== "guidance" || document.status !== "ready" || !document.candidates.length || document.approved.length) return document;
+        changed = true;
+        return { ...document, approved: [...document.candidates] };
+      });
+      return changed ? next : current;
+    });
+  }, [setDocuments, workspaceLoaded]);
 
   useEffect(() => () => workspaceAbort.current?.abort(), []);
 
@@ -466,7 +586,10 @@ export function JobSeekerApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobText, company, role, roleUrl, selectedTrack.id]);
 
-  const resume = `${profile.name}\n${effectiveProfile.headline}\n${profile.location} | ${profile.email} | ${profile.phone} | ${profile.linkedin}\n\nTARGET\n${role || "Target role"}${company ? ` — ${company}` : ""}\nRésumé track: ${selectedTrack.name}${trackSelection.automatic ? " (selected automatically)" : ""}\n\nSUMMARY\n${effectiveProfile.summary} For this opportunity, the strongest verified themes are ${roleKeywords.slice(0, 5).join(", ") || "project leadership, creative operations, and delivery"}.\n\nSELECTED RELEVANT EXPERIENCE\n${matchedFacts.map((fact) => `• ${fact}`).join("\n")}\n\nCORE CAPABILITIES\n${roleKeywords.slice(0, 10).join(" • ") || "Add a job description to prioritize capabilities."}\n\nREVIEW REQUIRED\nThis draft reorganizes approved facts only. Confirm wording and add verified outcomes before applying.`;
+  const resumeRequestKey = `${jobText}\u0000${facts.join("\u0000")}\u0000${userPlaybookRules.join("\u0000")}\u0000${curatedPlaybookRules.join("\u0000")}\u0000${selectedTrack.id}\u0000${aiPreference.provider}\u0000${selectedModel?.key || aiPreference.modelKey}`;
+  const currentResumeGeneration = resumeGeneration?.key === resumeRequestKey ? resumeGeneration : null;
+  const fallbackResume = `${profile.name || "Candidate name"}\n${effectiveProfile.headline || "Project and Operations Manager"}\n${[profile.location, profile.email, profile.phone, profile.linkedin].filter(Boolean).join(" | ")}\n\nPROFESSIONAL SUMMARY\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}\n\nPROFESSIONAL EXPERIENCE\n${matchedFacts.length ? matchedFacts.map((fact) => `• ${fact}`).join("\n") : "• Generate with a connected AI provider after approving career evidence."}\n\nCORE SKILLS\n${roleKeywords.slice(0, 10).join(" • ") || "Add a complete job description to prioritize verified capabilities."}`;
+  const resume = currentResumeGeneration ? renderStructuredResume(currentResumeGeneration.result, profile) : fallbackResume;
 
   const cover = `Dear ${company ? `${company} Hiring Team` : "Hiring Team"},\n\nI’m interested in the ${role || "position"} because it connects closely with the work reflected in my verified experience.\n\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}${matchedFacts.length ? ` For this role, the most relevant evidence includes ${matchedFacts.slice(0, 3).join("; ")}.` : " Add approved career facts before using this draft."}\n\nWhat draws me to ${company || "your team"} is the opportunity to contribute with clarity, care, and reliable execution. I would welcome the chance to discuss how my experience could support the team.\n\nThank you for your consideration.\n\nBest,\n${profile.name || "Your name"}\n\nVOICE NOTES USED\nLearned from: ${knowledgeStats.voice} uploaded source${knowledgeStats.voice === 1 ? "" : "s"}\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}`;
 
@@ -481,6 +604,86 @@ export function JobSeekerApp() {
     answers: { headline: profile.headline, summary: profile.summary, interest: `I’m interested in ${role || "this role"} because it combines ${roleKeywords.slice(0, 3).join(", ") || "project leadership, creative operations, and cross-functional delivery"}.` },
     safety: { neverSubmit: true, sensitiveFieldsRequireUser: true },
   }, null, 2);
+
+  async function requestResumeAi(action: "generate" | "review") {
+    if (jobText.trim().length < 80) throw new Error("Paste the complete job description before using cloud résumé tools.");
+    if (facts.length < 3) throw new Error("Approve at least three career facts before using cloud résumé tools.");
+    if (!aiReady || !selectedProvider || !selectedModel) throw new Error(aiConnectionMessage);
+    if (action === "review" && resume.trim().length < 120) throw new Error("Generate or write a complete résumé draft before review.");
+    const response = await fetch("/api/ai/resume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        provider: selectedProvider.id,
+        modelKey: selectedModel.key,
+        company,
+        role,
+        jobText,
+        approvedFacts: facts,
+        userRules: userPlaybookRules,
+        curatedRules: curatedPlaybookRules,
+        track: { name: selectedTrack.name, headline: selectedTrack.headline || profile.headline, summary: selectedTrack.summary || profile.summary },
+        draft: action === "review" ? activeText : undefined,
+      }),
+    });
+    const data = await readJsonResponse<ResumeAiResponse>(response, `${selectedProvider.name} did not return readable résumé data.`);
+    if (!response.ok || !data.ok || !data.result) {
+      logError("ai", data.code || "resume_ai_failed", data.message || `Résumé AI returned status ${response.status}`, {
+        status: response.status,
+        provider: data.provider || selectedProvider.id,
+        model: data.model || selectedModel.id,
+        diagnosticCode: data.diagnosticCode || "not-provided",
+      });
+      throw new Error(data.message || `${selectedProvider.name} could not complete this résumé request.`);
+    }
+    return { data, provider: selectedProvider, model: selectedModel };
+  }
+
+  async function generateResumeWithAi() {
+    setOutput("resume");
+    setResumeAiRunning("generate");
+    setResumeReview(null);
+    setOperationProgress({ label: `Creating résumé with ${selectedProvider?.name || "cloud AI"}`, detail: "Applying your uploaded playbook first, then curated guidance, while validating every candidate claim against approved evidence." });
+    try {
+      const { data, provider, model } = await requestResumeAi("generate");
+      const result = data.result as ResumeAiResult;
+      const generation: ResumeGeneration = {
+        key: resumeRequestKey,
+        provider: data.provider || provider.id,
+        providerName: data.providerName || provider.name,
+        model: data.model || model.id,
+        modelLabel: data.modelLabel || model.label,
+        result,
+        usage: data.usage,
+      };
+      setResumeGeneration(generation);
+      setDraftEditor(renderStructuredResume(result, profile));
+      setDraftEditorKey("resume");
+      setNotice(`${generation.modelLabel} created a fact-checked résumé using ${userPlaybookRules.length} uploaded rules first and ${curatedPlaybookRules.length} secondary rules.`);
+    } catch (cause) {
+      setNotice(cause instanceof Error ? cause.message : "The résumé could not be generated.");
+    } finally {
+      setResumeAiRunning(null);
+      setOperationProgress(null);
+    }
+  }
+
+  async function reviewResumeWithAi() {
+    setOutput("resume");
+    setResumeAiRunning("review");
+    setOperationProgress({ label: `Reviewing résumé with ${selectedProvider?.name || "cloud AI"}`, detail: "Checking factual support, playbook compliance, relevance, clarity, and unsupported claims without rewriting your saved version." });
+    try {
+      const { data, provider, model } = await requestResumeAi("review");
+      setResumeReview({ providerName: data.providerName || provider.name, modelLabel: data.modelLabel || model.label, result: data.result as ResumeAiReview, usage: data.usage });
+      setNotice(`${data.modelLabel || model.label} review completed. The résumé draft itself was not changed.`);
+    } catch (cause) {
+      setNotice(cause instanceof Error ? cause.message : "The résumé review could not be completed.");
+    } finally {
+      setResumeAiRunning(null);
+      setOperationProgress(null);
+    }
+  }
 
   async function runCloudRecommendation() {
     setOutput("analysis");
@@ -508,9 +711,9 @@ export function JobSeekerApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ provider: provider.id, modelKey: model.key, company, role, jobText, approvedFacts: facts, localAnalysis: { decision: recommendation.label, evidenceCoverage, strong: evidenceCounts.strong, partial: evidenceCounts.partial, gaps: evidenceCounts.gaps } }),
     });
-    const data = await readJsonResponse<{ ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; requestId?: string | null; recommendation?: CloudRecommendation; usage?: CloudUsage }>(response, `${provider.name} did not return readable app data.`);
+    const data = await readJsonResponse<{ ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; requestId?: string | null; recommendation?: CloudRecommendation; usage?: CloudUsage; diagnosticCode?: string }>(response, `${provider.name} did not return readable app data.`);
     if (!response.ok || !data.ok || !data.recommendation) {
-      logError("ai", data.code || "cloud_review_failed", data.message || `Cloud review returned status ${response.status}`, { status: response.status, provider: data.provider || provider.id, model: data.model || model.id, requestId: data.requestId || "not-provided" });
+      logError("ai", data.code || "cloud_review_failed", data.message || `Cloud review returned status ${response.status}`, { status: response.status, provider: data.provider || provider.id, model: data.model || model.id, requestId: data.requestId || "not-provided", diagnosticCode: data.diagnosticCode || "not-provided" });
       throw new Error(data.message || `${provider.name} could not complete the review. The verified local recommendation remains active.`);
     }
     const key = `${jobText}\u0000${facts.join("\u0000")}\u0000${provider.id}\u0000${model.key}`;
@@ -525,9 +728,9 @@ export function JobSeekerApp() {
     setComparisonResults([]);
     const completed: CloudReview[] = [];
     try {
-      for (let index = 0; index < selectedProvider.models.slice(0, 3).length; index += 1) {
+      for (let index = 0; index < selectedProvider.models.slice(0, comparisonCount).length; index += 1) {
         const model = selectedProvider.models[index];
-        setOperationProgress({ label: `Comparing ${selectedProvider.name} models · ${index + 1}/3`, detail: `Waiting for ${model.label}. Each model receives the same role and approved facts so the comparison is fair.` });
+        setOperationProgress({ label: `Comparing ${selectedProvider.name} models · ${index + 1}/${comparisonCount}`, detail: `Waiting for ${model.label}. Each model receives the same role and approved facts so the comparison is fair.` });
         try {
           completed.push(await requestModelReview(selectedProvider, model));
           setComparisonResults([...completed]);
@@ -576,7 +779,23 @@ export function JobSeekerApp() {
     const jobSnapshotId = saveMarketSnapshot("pasted") || undefined;
     const id = createId();
     const title = `${company || "Untitled company"} — ${role || (kind === "resume" ? "Tailored resume" : "Cover letter")} · ${dateToday()}`;
-    setGeneratedDrafts((current) => [{ id, type: kind, title, content, createdAt: dateToday(), updatedAt: dateToday(), company: company || "Unknown company", role: role || "Untitled role", trackId: selectedTrack.id, jobSnapshotId, origin: draftEditorKey === kind && draftEditor !== (kind === "resume" ? resume : cover) ? "edited" : "generated" }, ...current]);
+    setGeneratedDrafts((current) => [{
+      id,
+      type: kind,
+      title,
+      content,
+      createdAt: dateToday(),
+      updatedAt: dateToday(),
+      company: company || "Unknown company",
+      role: role || "Untitled role",
+      trackId: selectedTrack.id,
+      jobSnapshotId,
+      origin: draftEditorKey === kind && draftEditor !== (kind === "resume" ? resume : cover) ? "edited" : "generated",
+      provider: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.provider : "local",
+      model: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.model : undefined,
+      playbookRuleCount: kind === "resume" ? approvedPlaybookRules.length : undefined,
+      approvedFactCount: kind === "resume" ? facts.length : undefined,
+    }, ...current]);
     setNotice(`${kind === "resume" ? "Résumé" : "Cover letter"} version saved for reuse and application tracking.`);
   }
 
@@ -618,13 +837,13 @@ export function JobSeekerApp() {
   async function pasteVisibleRoleCapture() {
     try {
       const clipboard = await navigator.clipboard.readText();
-      const parsed = JSON.parse(clipboard) as { schema?: unknown; sourceUrl?: unknown; title?: unknown; text?: unknown };
+      const parsed = JSON.parse(clipboard) as { schema?: unknown; sourceUrl?: unknown; title?: unknown; role?: unknown; company?: unknown; text?: unknown };
       if (parsed.schema !== "v-jobs-role-capture-v1" || typeof parsed.text !== "string" || parsed.text.trim().length < 80) throw new Error("not a V’s visible-page capture");
       const capturedTitle = typeof parsed.title === "string" ? parsed.title.trim() : "";
       const capturedUrl = typeof parsed.sourceUrl === "string" ? parsed.sourceUrl.trim() : "";
       const titleParts = capturedTitle.split(/\s+(?:at|@|\||—|–)\s+/i).map((item) => item.trim()).filter(Boolean);
-      const capturedRole = titleParts[0] || role;
-      const capturedCompany = titleParts.length > 1 ? titleParts[1] : company;
+      const capturedRole = typeof parsed.role === "string" && parsed.role.trim() ? parsed.role.trim() : titleParts[0] || role;
+      const capturedCompany = typeof parsed.company === "string" && parsed.company.trim() ? parsed.company.trim() : titleParts.length > 1 ? titleParts[1] : company;
       if (capturedRole) setRole(capturedRole);
       if (capturedCompany) setCompany(capturedCompany);
       if (capturedUrl) setRoleUrl(capturedUrl);
@@ -652,7 +871,8 @@ export function JobSeekerApp() {
     const trimmedText = rawText.trim();
     const text = trimmedText.slice(0, MAX_SOURCE_TEXT);
     const truncated = trimmedText.length > MAX_SOURCE_TEXT;
-    const document: SourceDocument = { id: createId(), title, type, category: sourceCategory, scope, trackId: sourceTrackId, sourceUrl: originalUrl || undefined, importedAt: dateToday(), text, candidates: scope === "evidence" || scope === "guidance" ? factCandidates(text) : [], approved: [], status: "ready", truncated };
+    const candidates = scope === "evidence" || scope === "guidance" ? factCandidates(text) : [];
+    const document: SourceDocument = { id: createId(), title, type, category: sourceCategory, scope, trackId: sourceTrackId, sourceUrl: originalUrl || undefined, importedAt: dateToday(), text, candidates, approved: scope === "guidance" ? candidates : [], status: "ready", truncated };
     setDocuments((current) => [document, ...current]);
     if (scope === "voice") addWritingSample(title, text);
     return scope;
@@ -718,7 +938,7 @@ export function JobSeekerApp() {
       const source = await readLink(sourceUrl.trim(), "knowledge");
       const scope = storeImportedSource(source.title, source.sourceType === "youtube-transcript" ? "YouTube transcript" : "Public article", source.text, source.finalUrl);
       setSourceUrl("");
-      setNotice(scope === "guidance" ? "Public source imported into the résumé playbook. Review and activate the rules you trust." : scope === "voice" ? "Public text added to Writing voice only." : scope === "evidence" ? "Public source imported as candidate evidence. Approve each fact before use." : "Public research source saved separately from your career facts.");
+      setNotice(scope === "guidance" ? "Public source imported into the résumé playbook. Detected rules are active and outrank built-in guidance." : scope === "voice" ? "Public text added to Writing voice only." : scope === "evidence" ? "Public source imported as candidate evidence. Approve each fact before use." : "Public research source saved separately from your career facts.");
     } catch (cause) {
       logError("links", "knowledge_link_read_failed", cause, { category: sourceCategory });
       setNotice(cause instanceof Error ? cause.message : "The public source could not be read. Paste its text instead.");
@@ -742,7 +962,7 @@ export function JobSeekerApp() {
     const title = documentTitle.trim() || `Imported document — ${dateToday()}`;
     const scope = storeImportedSource(title, "Pasted text", documentText, sourceUrl.trim() || undefined);
     setDocumentTitle(""); setDocumentText(""); setSourceUrl("");
-    setNotice(scope === "evidence" ? "Career source imported. Review each candidate fact before it becomes evidence." : scope === "voice" ? "Writing sample added to your voice bank. It cannot create career facts." : scope === "guidance" ? "Résumé playbook imported. Review the detected tips and activate the rules you trust." : "Research source saved as context. It cannot create career facts.");
+    setNotice(scope === "evidence" ? "Career source imported. Review candidates individually or use Approve all." : scope === "voice" ? "Writing sample added to your voice bank. It cannot create career facts." : scope === "guidance" ? "Résumé playbook imported and activated automatically. Uploaded rules outrank built-in guidance." : "Research source saved as context. It cannot create career facts.");
   }
 
   async function uploadDocuments(files: File[]) {
@@ -799,7 +1019,8 @@ export function JobSeekerApp() {
         const text = extractedText.slice(0, MAX_SOURCE_TEXT);
         const truncated = extractedText.length > MAX_SOURCE_TEXT;
         const sourceType = /\.json$/i.test(file.name) ? "JSON / GPT export" : /\.pdf$/i.test(file.name) ? "PDF" : /\.docx$/i.test(file.name) ? "Word document" : file.type || "Text document";
-        setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, type: sourceType, text, candidates: scope === "evidence" || scope === "guidance" ? factCandidates(text) : [], status: "ready", truncated } : item));
+        const candidates = scope === "evidence" || scope === "guidance" ? factCandidates(text) : [];
+        setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, type: sourceType, text, candidates, approved: scope === "guidance" ? candidates : item.approved, status: "ready", truncated } : item));
         if (scope === "voice") addWritingSample(document.title, text);
       } catch (cause) {
         logError("documents", "document_read_failed", cause, { extension: file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() || "unknown" : "none", mime: file.type || "unknown", size: file.size });
@@ -807,7 +1028,7 @@ export function JobSeekerApp() {
       }
     }));
     setOperationProgress(null);
-    setNotice(scope === "evidence" ? "Import finished. Review each candidate before it becomes reusable evidence." : scope === "voice" ? "Writing samples are now in your voice bank and cannot create career facts." : scope === "guidance" ? "Résumé playbook sources are ready. Review the detected tips and activate the rules you trust." : "Research sources are saved as context and cannot create career facts.");
+    setNotice(scope === "evidence" ? "Import finished. Review candidates individually or use Approve all." : scope === "voice" ? "Writing samples are now in your voice bank and cannot create career facts." : scope === "guidance" ? "Résumé playbook imported and activated automatically. Your uploaded rules now outrank the built-in guidance." : "Research sources are saved as context and cannot create career facts.");
   }
 
   function approveCandidate(documentId: string, candidate: string) {
@@ -896,15 +1117,15 @@ export function JobSeekerApp() {
       <aside className="nav-panel">
         <button className="wordmark" onClick={() => setView("workspace")}><span>V&apos;S</span><small>JOB SEEKER</small></button>
         <nav>
-          {([['workspace','Role workspace'],['radar','Job radar'],['profile','Career profile'],['documents','Knowledge sources'],['voice','Writing voice'],['connections','Connections'],['applications','Applications'],['autofill','Autofill assistant'],['ai','AI & reliability']] as [View,string][]).map(([id,label]) =>
-            <button key={id} className={view === id ? "nav-item active" : "nav-item"} onClick={() => setView(id)}>{label}</button>
+          {([['workspace','Role workspace'],['radar','Job radar'],['profile','Career profile'],['documents','Knowledge sources'],['voice','Writing voice'],['connections','Connections'],['applications','Applications'],['autofill','Autofill assistant'],['ai','AI & reliability'],['data','Data & versions']] as [View,string][]).map(([id,label]) =>
+            <button key={id} className={view === id ? "nav-item active" : "nav-item"} onClick={() => { setView(id); if (id === "data" && workspaceHistoryState === "idle") window.setTimeout(() => void loadWorkspaceHistory(), 0); }}>{label}</button>
           )}
         </nav>
         <div className="nav-note"><strong>Private workspace</strong><span>Your browser keeps a fast local copy. Signed-in durable backups preserve every revision across devices.</span></div>
       </aside>
 
       <section className="main-stage">
-        <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your daily radar." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : "Choose and understand your AI."}</h1></div><button className={`status-pill workspace-sync ${workspaceSync.state}`} onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"} title={workspaceSync.message}><i /> {workspaceSync.state === "saving" ? "Saving private revision…" : workspaceSync.state === "error" ? "Browser saved · retry backup" : workspaceSync.lastSavedAt ? "Private backup current" : "Private backup ready"}</button></header>
+        <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your daily radar." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : view === "data" ? "Recover and preserve every version." : "Choose and understand your AI."}</h1></div><button className={`status-pill workspace-sync ${workspaceSync.state}`} onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"} title={workspaceSync.message}><i /> {workspaceSync.state === "saving" ? "Saving private revision…" : workspaceSync.state === "error" ? "Browser saved · retry backup" : workspaceSync.lastSavedAt ? "Private backup current" : "Private backup ready"}</button></header>
         {notice && <button className="notice" onClick={() => setNotice("")}>{notice} ×</button>}
         {operationProgress && <div className="operation-status global-operation" role="status" aria-live="polite"><i /><div><strong>{operationProgress.label}</strong><span>{operationProgress.detail}</span></div></div>}
 
@@ -944,10 +1165,19 @@ export function JobSeekerApp() {
               <div className="evidence-map"><div className="evidence-head"><h2>Requirement → evidence map</h2><span>{evidenceMap.filter((item) => item.strength !== "Gap").length}/{evidenceMap.length || 0} supported</span></div>{evidenceMap.length ? evidenceMap.map((item) => <article key={item.requirement}><div><span className={`strength ${item.strength.toLowerCase()}`}>{item.strength}</span><p>{item.requirement}</p></div>{item.evidence.length ? <ul>{item.evidence.map((match) => <li key={match.fact}><strong>{match.fact}</strong><small>Source: {match.source}</small></li>)}</ul> : <p className="gap-copy">No approved evidence found. Ask for clarification or leave this claim out.</p>}</article>) : <p className="gap-copy">Paste a complete posting to map its requirements to approved facts.</p>}</div>
               <div className="truth-check"><strong>Truth check</strong><p>The score measures approved evidence coverage and profile readiness—not your chance of being hired. Unknown metrics and experience must be reviewed by you.</p><ul><li>{matchedFacts.length} approved facts are currently relevant to this role.</li><li>{firstGap ? `First unsupported requirement: ${firstGap}` : roleKeywords.length ? "Every detected requirement has at least partial evidence; review quality before using it." : "Paste a complete role description to produce a better check."}</li><li>Final application decisions and all sensitive answers remain yours.</li></ul></div>
             </div> : <div className="document-view">
-              <div className="document-actions"><span>{output === "resume" || output === "cover" ? "Editable working draft — based on approved facts" : "Generated from approved facts"}</span>{(output === "resume" || output === "cover") && <button onClick={() => openDraftEditor(output)}>Edit draft</button>}{(output === "resume" || output === "cover") && <button onClick={() => saveDraftVersion(output)}>Save version</button>}<button onClick={() => copyText(activeText, setNotice)}>Copy</button><button onClick={() => download(`tailored-${output}.txt`, activeText)}>Text</button><button onClick={() => downloadWordDocument(`tailored-${output}.doc`, `${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Word</button><button className="primary" onClick={() => printDocument(`${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Save as PDF</button></div>
-              {output === "resume" && <div className={`playbook-banner ${approvedPlaybookRules.length ? "active" : "empty"}`}><div><span>RÉSUMÉ PLAYBOOK</span><strong>{approvedPlaybookRules.length ? `${approvedPlaybookRules.length} active do/don’t rules` : "No résumé rules active yet"}</strong><small>{approvedPlaybookRules.length ? "These rules stay visible as an editorial checklist and never become career claims." : "Upload a Résumé playbook source, then approve the tips you trust."}</small></div><button onClick={() => setView("documents")}>{approvedPlaybookRules.length ? "Review rules" : "Add playbook"}</button>{approvedPlaybookRules.length > 0 && <ul>{approvedPlaybookRules.slice(0, 3).map((rule) => <li key={rule}>{rule}</li>)}</ul>}</div>}
+              <div className="document-actions"><span>{output === "resume" ? currentResumeGeneration ? `AI résumé · ${currentResumeGeneration.modelLabel} · evidence validated` : "Local résumé scaffold · generate with a connected model for full tailoring" : output === "cover" ? "Editable working draft — based on approved facts" : "Generated from approved facts"}</span>{(output === "resume" || output === "cover") && <button onClick={() => openDraftEditor(output)}>Edit draft</button>}{(output === "resume" || output === "cover") && <button onClick={() => saveDraftVersion(output)}>Save version</button>}<button onClick={() => copyText(activeText, setNotice)}>Copy</button><button onClick={() => download(`tailored-${output}.txt`, activeText)}>Text</button><button onClick={() => downloadWordDocument(`tailored-${output}.doc`, `${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Word</button><button className="primary" onClick={() => printDocument(`${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Save as PDF</button></div>
+              {output === "resume" && <div className="resume-ai-toolbar">
+                <div><span>RÉSUMÉ ENGINE</span><strong>{selectedProvider?.name || "Choose a provider"} · {selectedModel?.label || "Choose a model"}</strong><small>Generation writes the résumé. Review audits the current draft without changing it.</small></div>
+                <label>Provider<select value={aiPreference.provider} onChange={(event) => { const next = aiConnection.providers.find((item) => item.id === event.target.value); if (next) setAiPreference({ provider: next.id, modelKey: next.defaultModelKey }); }}>{aiConnection.providers.map((provider) => <option key={provider.id} value={provider.id} disabled={!provider.configured}>{provider.name}{provider.configured ? "" : " · not connected"}</option>)}</select></label>
+                <label>Model<select value={selectedModel?.key || aiPreference.modelKey} onChange={(event) => selectedProvider && setAiPreference({ provider: selectedProvider.id, modelKey: event.target.value as AiModelKey })}>{selectedProvider?.models.map((model) => <option key={model.key} value={model.key}>{model.label}</option>)}</select></label>
+                <button className="primary" onClick={generateResumeWithAi} disabled={Boolean(resumeAiRunning)}>{resumeAiRunning === "generate" ? "Creating résumé…" : `Generate with ${selectedProvider?.name || "AI"}`}</button>
+                <button onClick={reviewResumeWithAi} disabled={Boolean(resumeAiRunning)}>{resumeAiRunning === "review" ? "Reviewing résumé…" : `Review with ${selectedProvider?.name || "AI"}`}</button>
+              </div>}
+              {output === "resume" && <div className={`playbook-banner ${approvedPlaybookRules.length ? "active" : "empty"}`}><div><span>RÉSUMÉ PLAYBOOK</span><strong>{userPlaybookRules.length} uploaded rules first · {curatedPlaybookRules.length} curated rules second</strong><small>{approvedPlaybookRules.length ? "Generation receives your uploaded rules as the highest-priority editorial instructions. Every candidate claim still requires approved evidence." : "Upload a Résumé playbook source. Detected guidance is activated automatically."}</small></div><button onClick={() => setView("documents")}>{approvedPlaybookRules.length ? "Review rules" : "Add playbook"}</button>{approvedPlaybookRules.length > 0 && <ul>{approvedPlaybookRules.slice(0, 3).map((rule) => <li key={rule}>{rule}</li>)}</ul>}</div>}
               {output === "cover" && knowledgeStats.voice > 0 && <div className="playbook-banner active"><div><span>WRITING VOICE</span><strong>{knowledgeStats.voice} uploaded voice {knowledgeStats.voice === 1 ? "source" : "sources"}</strong><small>Voice affects phrasing only; approved career facts remain the truth boundary.</small></div><button onClick={() => setView("voice")}>Review voice</button></div>}
-              {(output === "resume" || output === "cover") && draftEditorKey === output ? <textarea className="draft-editor" aria-label={`Editable ${output} draft`} value={draftEditor} onChange={(event) => setDraftEditor(event.target.value)} /> : <pre>{activeText}</pre>}
+              {(output === "resume" || output === "cover") && draftEditorKey === output ? <textarea className="draft-editor" aria-label={`Editable ${output} draft`} value={draftEditor} onChange={(event) => setDraftEditor(event.target.value)} /> : output === "resume" ? <div className="resume-paper"><pre>{activeText}</pre></div> : <pre>{activeText}</pre>}
+              {output === "resume" && currentResumeGeneration && <div className="resume-provenance"><strong>Generated by {currentResumeGeneration.modelLabel}</strong><span>{facts.length} approved facts · {userPlaybookRules.length} uploaded rules · {curatedPlaybookRules.length} secondary rules · {currentResumeGeneration.usage?.totalTokens ? `${currentResumeGeneration.usage.totalTokens.toLocaleString()} tokens` : "usage unavailable"}</span><small>{currentResumeGeneration.result.omissions.length ? `Omitted as unsupported: ${currentResumeGeneration.result.omissions.join("; ")}` : "No unsupported requirement was inserted into the draft."}</small></div>}
+              {output === "resume" && resumeReview && <div className={`resume-review-card ${resumeReview.result.verdict}`}><div><span>{resumeReview.providerName.toUpperCase()} REVIEW · {resumeReview.modelLabel}</span><strong>{resumeReview.result.score}/100 · {resumeReview.result.verdict.replaceAll("_", " ")}</strong></div>{resumeReview.result.unsupported_claims.length > 0 && <section><b>Unsupported or overstated claims</b><ul>{resumeReview.result.unsupported_claims.map((item) => <li key={item}>{item}</li>)}</ul></section>}<section><b>Recommended improvements</b><ul>{resumeReview.result.improvements.map((item) => <li key={item}>{item}</li>)}</ul></section><small>This review did not edit the résumé. Apply only the changes you approve.</small></div>}
             </div>}
           </section>
         </div>}
@@ -968,8 +1198,9 @@ export function JobSeekerApp() {
             {selectedProvider?.configured && !aiReady && <div className="setup-note"><strong>Access protection is working</strong><p>{aiConnection.authenticated ? "Add this account to the optional AI_ALLOWED_EMAILS deployment allowlist, or remove the allowlist restriction." : "Open V’s through your signed-in ChatGPT account. Protected provider keys are never exposed to anonymous visitors."}</p></div>}
             {aiReady && <div className="ready-note"><strong>{selectedModel?.label} is ready</strong><span>V’s sends one protected request only when you click a cloud-review button. Switching the selector changes the next review, not the local engine.</span></div>}
             <div className="model-comparison">
-              <div><span>OPTIONAL MODEL LAB</span><strong>Compare all three {selectedProvider?.name || "provider"} models</strong><p>Each model receives the same current role and approved facts. This uses three paid API requests and runs only after your click.</p></div>
-              <button className="primary" onClick={compareSelectedModels} disabled={!aiReady || comparisonRunning}>{comparisonRunning ? "Comparing models…" : "Run 3-model comparison"}</button>
+              <div><span>OPTIONAL MODEL LAB</span><strong>Compare one, two, or three {selectedProvider?.name || "provider"} models</strong><p>Each model receives the same current role and approved facts. Every selected model uses one API request and runs only after your click.</p></div>
+              <label>Number of models<select value={comparisonCount} onChange={(event) => setComparisonCount(Number(event.target.value) as 1 | 2 | 3)}><option value={1}>1 model</option><option value={2}>2 models</option><option value={3}>3 models</option></select></label>
+              <button className="primary" onClick={compareSelectedModels} disabled={!aiReady || comparisonRunning}>{comparisonRunning ? "Comparing models…" : `Run ${comparisonCount}-model comparison`}</button>
               {comparisonResults.length > 0 && <div className="comparison-results">{comparisonResults.map((review) => <article key={`${review.provider}-${review.model}`}><div><span>{review.modelLabel}</span><code>{review.model}</code></div><strong>{review.recommendation.decision.replaceAll("_", " ")}</strong><p>{review.recommendation.summary}</p><small>{review.recommendation.confidence} confidence · {review.recommendation.evidenceGaps.length} evidence gaps</small><button onClick={() => { setAiPreference({ provider: review.provider, modelKey: review.modelKey }); setCloudReview(review); setOutput("analysis"); setView("workspace"); setNotice(`${review.modelLabel} selected for the current recommendation.`); }}>Use this review</button></article>)}</div>}
             </div>
           </div>
@@ -986,8 +1217,8 @@ export function JobSeekerApp() {
           </div>
 
           <div className="guardrail-grid">
-            <article><span>DATA SENT</span><strong>Minimum necessary</strong><p>Pasted job description, company/title, approved facts, and local coverage totals—only after your click.</p></article>
-            <article><span>DATA NOT SENT TO AI</span><strong>Raw knowledge stays outside model requests</strong><p>No uploaded files, résumé playbooks, writing samples, research sources, browser history, LinkedIn credentials, demographic answers, or API keys are sent to a provider.</p></article>
+            <article><span>DATA SENT</span><strong>Minimum necessary</strong><p>Fit review sends the pasted job, company/title, approved facts, and local coverage. Résumé generation also sends the extracted rules you activated—uploaded rules first, curated rules second.</p></article>
+            <article><span>DATA NOT SENT TO AI</span><strong>Raw knowledge stays outside model requests</strong><p>No raw uploaded files, full playbook documents, writing samples, research sources, browser history, LinkedIn credentials, demographic answers, or API keys are sent to a provider.</p></article>
             <article><span>TRUTH BOUNDARY</span><strong>No invented experience</strong><p>The model cannot return a priority fact outside your approved list. Missing proof is labeled as a gap.</p></article>
             <article><span>FAILURE MODE</span><strong>Useful even offline</strong><p>Rate limits, model errors, or connection problems fall back to the tested local recommendation engine.</p></article>
           </div>
@@ -1050,7 +1281,7 @@ export function JobSeekerApp() {
             <h2>Upload evidence, voice, and the rules for a great résumé.</h2>
             <p>V’s keeps four kinds of knowledge separate so a tip, article, or writing sample can never become a claim about your experience.</p>
             <div className="learning-path"><div className="learning-path-head"><span>YOUR LEARNING PATH</span><strong>{learningSteps.filter((step) => step.complete).length}/{learningSteps.length} foundations ready</strong><small>V’s uses this sequence to learn your history, voice, résumé rules, LinkedIn context, and different career directions.</small></div><ol>{learningSteps.map((step, index) => <li key={step.label} className={step.complete ? "complete" : ""}><b>{step.complete ? "✓" : index + 1}</b><div><strong>{step.label}</strong><span>{step.detail}</span></div></li>)}</ol></div>
-            <label className="source-type">What kind of knowledge is this?<select value={sourceCategory} onChange={(event) => setSourceCategory(event.target.value as SourceCategory)}>{SOURCE_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label>
+            <label className="source-type">What kind of knowledge is this?<select value={sourceCategory} onChange={(event) => setSourceCategory(event.target.value as SourceCategory)}>{SOURCE_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select><small>{SOURCE_TYPE_DETAILS[sourceCategory]}</small></label>
             <label className="source-type">Use this source for<select value={sourceTrackId} onChange={(event) => setSourceTrackId(event.target.value)}><option value="all">All résumé tracks</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>
             <div className={`scope-preview ${scopeForCategory(sourceCategory)}`}><strong>{sourceScopeLabel(scopeForCategory(sourceCategory))}</strong><span>{sourceScopeDescription(scopeForCategory(sourceCategory))}</span></div>
             <div className="link-source-import"><label className="source-url">Public article or YouTube URL <small>V’s can read a public article or public captions. It never logs in, sends cookies, or reads private pages.</small><input type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://article… or https://youtu.be/…" /></label><div><button onClick={() => pasteFromClipboard(setSourceUrl, "source link")}>Paste link</button><button className="primary" onClick={readKnowledgeFromLink} disabled={sourceReading}>{sourceReading ? "Reading public source…" : "Read and import link"}</button></div></div>
@@ -1080,6 +1311,12 @@ export function JobSeekerApp() {
         {view === "companies" && <section className="companies-workspace"><div className="target-form"><div className="step"><b>03</b><span>ADD A TARGET</span></div><h2>Companies, brands, and agencies — in one list.</h2><p>Keep only targets you want to follow. Career links and notes are optional, so this works even before you have every detail.</p><label>Company or agency name<input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Agency, brand, or sports organization" /></label><div className="field-row"><label>Type<select value={companyKind} onChange={(event) => setCompanyKind(event.target.value as CompanyTarget["kind"])}><option>Brand</option><option>Agency</option><option>Sports</option><option>Tech</option></select></label><label>Focus<input value={companyFocus} onChange={(event) => setCompanyFocus(event.target.value)} /></label></div><label>Website<input value={companyWebsite} onChange={(event) => setCompanyWebsite(event.target.value)} placeholder="https://" /></label><label>Careers page<input value={companyCareers} onChange={(event) => setCompanyCareers(event.target.value)} placeholder="https://" /></label><button className="primary" onClick={addCompany}>Add to directory</button></div><div className="target-directory"><div className="review-heading"><div><span>TARGET DIRECTORY</span><h2>{companies.length} saved targets</h2></div><strong>Bay Area first</strong></div>{companies.length === 0 ? <div className="empty-state compact"><strong>Your target list starts here.</strong><span>Add brands, agencies, sports organizations, or tech teams. Nothing is marked as an open role until you verify it.</span></div> : <div className="company-list">{companies.map((target) => <article key={target.id}><div className="company-title"><span>{target.kind}</span><strong>{target.name}</strong><small>{target.market} · {target.focus || "No focus set"}</small></div><div className="company-links">{target.website && <a href={target.website} target="_blank" rel="noreferrer">Website</a>}{target.careers && <a href={target.careers} target="_blank" rel="noreferrer">Careers</a>}<button onClick={() => loadCompanyForRole(target)}>Use for role</button></div><div className="company-actions"><label>Status<select value={target.status} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: event.target.value as CompanyTarget["status"] } : item))}><option>Researching</option><option>Monitoring</option><option>Applied</option><option>Paused</option></select></label><label>Notes<input value={target.notes} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, notes: event.target.value } : item))} placeholder="Contact, role, or next step" /></label><button onClick={() => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: "Paused" } : item))}>Pause</button></div></article>)}</div>}</div></section>}
 
         {view === "applications" && <section className="table-card"><div className="table-head"><div><span>PIPELINE</span><h2>{applications.length} saved applications</h2></div><button onClick={() => download("v-jobs-applications.json", JSON.stringify({ applications, generatedDrafts, jobSnapshots },null,2), "application/json")}>Export</button></div>{applications.length === 0 ? <div className="empty-state"><strong>No applications saved yet.</strong><span>Prepare a role in the workspace, then choose “Save to applications.”</span><button className="primary" onClick={() => setView("workspace")}>Prepare first role</button></div> : <div className="application-list">{applications.map((app) => { const resumeDraft = generatedDrafts.find((draft) => draft.id === app.resumeVersionId); const coverDraft = generatedDrafts.find((draft) => draft.id === app.coverVersionId); return <article key={app.id}><div className="application-main"><strong>{app.role}</strong><span>{app.company}</span>{app.url && <a href={app.url} target="_blank" rel="noreferrer">Original role ↗</a>}<small>{app.note || "Saved opportunity — not submitted"}</small></div><label>Application date<input type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(app.date) ? app.date : ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,date:e.target.value}:item))} /></label><label>Status<select value={app.status} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:e.target.value as ApplicationStatus}:item))}><option>Saved opportunity</option><option>Preparing</option><option>Applied</option><option>Interview</option><option>Closed</option></select></label><label>Note<input value={app.note || ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,note:e.target.value}:item))} placeholder="Follow-up, contact, or reminder" /></label><div className="application-document-links"><span>Résumé: {resumeDraft ? resumeDraft.title : "Not linked"}</span><span>Cover letter: {coverDraft ? coverDraft.title : "Not linked"}</span></div><div className="application-actions"><button onClick={() => { setCompany(app.company); setRole(app.role); setRoleUrl(app.url || ""); setView("workspace"); setNotice("Role reopened. Its saved history remains intact."); }}>Open role</button><button onClick={() => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:"Closed"}:item))}>Archive as closed</button></div>{generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role && !draft.applicationId).length > 0 && <div className="application-draft-picker">{generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role && !draft.applicationId).map((draft) => <button key={draft.id} onClick={() => attachDraftToApplication(app.id, draft)}>Link {draft.type === "resume" ? "résumé" : "cover letter"}: {draft.updatedAt}</button>)}</div>}</article>; })}</div>}</section>}
+        {view === "applications" && <section className="resume-library"><div className="table-head"><div><span>DOCUMENT LIBRARY</span><h2>{generatedDrafts.filter((draft) => draft.type === "resume").length} saved résumé versions</h2></div><small>Every version is preserved and can be linked to an application.</small></div>{generatedDrafts.filter((draft) => draft.type === "resume").length === 0 ? <div className="empty-state compact"><strong>No résumé version saved yet.</strong><span>Generate or edit a résumé in Role workspace, then choose Save version.</span></div> : <div className="resume-version-list">{generatedDrafts.filter((draft) => draft.type === "resume").map((draft) => <article key={draft.id}><div><strong>{draft.title}</strong><span>{draft.company} · {draft.role}</span><small>{draft.updatedAt} · {draft.provider === "local" || !draft.provider ? "Local draft" : `${draft.provider} · ${draft.model || "model recorded"}`} · {draft.playbookRuleCount ?? 0} playbook rules</small></div><button onClick={() => { setCompany(draft.company); setRole(draft.role); setDraftEditor(draft.content); setDraftEditorKey("resume"); setOutput("resume"); setView("workspace"); setNotice("Saved résumé version opened for editing. The original version remains preserved."); }}>Open copy</button><button onClick={() => download(`${draft.company}-${draft.role}-resume.txt`.replace(/[^a-z0-9.-]+/gi, "-"), draft.content)}>Download</button></article>)}</div>}</section>}
+
+        {view === "data" && <section className="data-workspace">
+          <div className="data-safety-card"><span>APPEND-ONLY PRIVATE HISTORY</span><h2>Recover records without deleting the current workspace.</h2><p>Every durable save creates an immutable private revision. “Merge preserved records” adds missing applications, sources, résumé versions, job descriptions, and companies to the current workspace. Current records win when the same ID exists.</p><div><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"}>Save revision now</button><button onClick={() => void loadWorkspaceHistory()} disabled={workspaceHistoryState === "loading"}>{workspaceHistoryState === "loading" ? "Refreshing…" : "Refresh history"}</button><button onClick={exportWorkspace}>Download complete backup</button></div></div>
+          <div className="version-history-card"><div className="table-head"><div><span>PRIVATE VERSION HISTORY</span><h2>{workspaceRevisions.length} recent revisions</h2></div><strong>Nothing is deleted here</strong></div>{workspaceHistoryState === "loading" && !workspaceRevisions.length ? <div className="empty-state compact"><strong>Opening preserved versions…</strong></div> : workspaceRevisions.length ? <div className="version-history-list">{workspaceRevisions.map((revision) => <article key={revision.id} className={revision.isCurrent ? "current" : ""}><div><strong>{revision.isCurrent ? "Current private revision" : new Date(revision.createdAt).toLocaleString()}</strong><span>{revision.sourceBuild}</span><small>{Math.max(1, Math.round(revision.sizeBytes / 1024)).toLocaleString()} KB · {revision.id.slice(0, 8)}</small></div>{revision.isCurrent ? <b>ACTIVE</b> : <button onClick={() => void mergeWorkspaceRevision(revision.id)} disabled={workspaceHistoryState === "loading"}>Merge preserved records</button>}</article>)}</div> : <div className="empty-state compact"><strong>No durable revisions are visible yet.</strong><span>Your browser copy remains untouched. Choose Save revision now to create the first durable version.</span></div>}</div>
+        </section>}
 
         {view === "autofill" && <section className="autofill-grid"><div className="autofill-intro"><div className="step"><b>04</b><span>ASSISTED AUTOFILL</span></div><h2>Your data, ready for application forms.</h2><p>The browser companion scans visible fields, previews what it can map, and fills only approved profile answers after your click. Sensitive questions, dropdowns, uploads, and unknown fields remain for your review.</p><div className="safety-list"><span>✓ Preview mapped fields before filling</span><span>✓ Never presses Submit</span><span>✓ Never guesses legal or demographic answers</span><span>✓ Works from your approved profile</span></div></div><div className="autofill-package"><span>AUTOFILL PACKAGE</span><pre>{autofillData}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load this package into the Chrome companion in the GitHub project. On an application page, choose Scan page, review the field map, then choose Fill ready fields.</small></div></section>}
       </section>
