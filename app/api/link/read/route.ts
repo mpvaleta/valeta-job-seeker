@@ -14,7 +14,8 @@ type LinkPurpose = "knowledge" | "radar" | "role";
 export async function POST(request: Request) {
   const identity = request.headers.get(USER_EMAIL_HEADER)?.trim().toLowerCase();
   if (!identity) return error(401, "authentication_required", "Open V’s Job Seeker through your signed-in ChatGPT account before reading a public link.");
-  if (isRateLimited(identity)) return error(429, "rate_limited", "Too many links were requested. Wait a few minutes and try again.");
+  const retryAfterSeconds = rateLimitRetryAfter(identity);
+  if (retryAfterSeconds > 0) return error(429, "rate_limited", `Too many links were requested. Try again in about ${Math.ceil(retryAfterSeconds / 60)} minutes, or paste the text instead.`, { "Retry-After": String(retryAfterSeconds) });
 
   const contentLength = Number(request.headers.get("content-length") || "0");
   if (contentLength > MAX_BODY_BYTES) return error(413, "request_too_large", "The link request is too large.");
@@ -57,17 +58,17 @@ export async function POST(request: Request) {
   }
 }
 
-function isRateLimited(identity: string) {
+function rateLimitRetryAfter(identity: string) {
   const now = Date.now();
   const recent = (recentRequests.get(identity) || []).filter((timestamp) => now - timestamp < RATE_WINDOW_MS);
   if (recent.length >= RATE_LIMIT) {
     recentRequests.set(identity, recent);
-    return true;
+    return Math.max(1, Math.ceil((RATE_WINDOW_MS - (now - recent[0])) / 1_000));
   }
   recentRequests.set(identity, [...recent, now]);
-  return false;
+  return 0;
 }
 
-function error(status: number, code: string, message: string) {
-  return NextResponse.json({ ok: false, code, message }, { status });
+function error(status: number, code: string, message: string, headers?: HeadersInit) {
+  return NextResponse.json({ ok: false, code, message }, { status, headers });
 }
