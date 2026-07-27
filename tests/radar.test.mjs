@@ -304,3 +304,30 @@ test("career link ranking prefers official ATS and careers links over generic na
   assert.equal(ranked[0].href, "https://boards.greenhouse.io/example");
   assert.equal(ranked.length, 2);
 });
+
+test("radar accepts real Meta, Google, and Apple job detail pages", () => {
+  assert.equal(isPlausibleRadarJob({ title: "Brand Project Manager", sourceUrl: "https://www.metacareers.com/jobs/1234567890", sourceType: "public-careers-page" }), true);
+  assert.equal(isPlausibleRadarJob({ title: "Program Manager, Creative Operations", sourceUrl: "https://www.google.com/about/careers/applications/jobs/results/12345-program-manager", sourceType: "public-careers-page" }), true);
+  assert.equal(isPlausibleRadarJob({ title: "Producer, Marcom", sourceUrl: "https://jobs.apple.com/en-us/details/200554321/producer-marcom", sourceType: "public-careers-page" }), true);
+  assert.equal(isPlausibleRadarJob({ title: "Untitled listing with details", sourceUrl: "https://example.com/careers/openings/abc-12345", sourceType: "public-careers-page", description: "Lead integrated campaign delivery across brand, production, and vendor workstreams for national programs." }), true);
+});
+
+test("radar rejects marketing cards even when their URLs look like job details", () => {
+  const cards = [
+    { title: "Impact stories", sourceUrl: "https://example.com/careers/impact-stories-2026" },
+    { title: "Benefits and perks", sourceUrl: "https://example.com/careers/benefits-and-perks" },
+    { title: "Life at Example", sourceUrl: "https://example.com/careers/life-at-example" },
+    { title: "Engineering", sourceUrl: "https://example.com/careers/engineering-teams" },
+    { title: "Why work here", sourceUrl: "https://example.com/careers/why-work-here" },
+    { title: "Meet the team", sourceUrl: "https://example.com/careers/meet-the-team" },
+    { title: "Our hiring process", sourceUrl: "https://example.com/careers/hiring-process-2026" },
+    { title: "Early careers", sourceUrl: "https://example.com/careers/early-careers" },
+  ];
+  for (const card of cards) {
+    assert.equal(isPlausibleRadarJob({ ...card, sourceType: "public-careers-page" }), false, `accepted: ${card.title}`);
+  }
+});
+
+test("radar still trusts ATS feeds without a role-shaped title", () => {
+  assert.equal(isPlausibleRadarJob({ title: "Growth Marketing", sourceUrl: "https://boards.greenhouse.io/example/jobs/7654321", sourceType: "greenhouse" }), true);
+});
