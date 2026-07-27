@@ -16,6 +16,13 @@ import { getRuntimeDatabase } from "@/lib/runtime-bindings";
 
 export const dynamic = "force-dynamic";
 
+function automationState() {
+  return {
+    dailyCatchUp: true,
+    backgroundScheduler: process.env.RADAR_CRON_SECRET?.trim() ? "enabled" : "prepared",
+  };
+}
+
 const USER_EMAIL_HEADER = "oai-authenticated-user-email";
 const USER_NAME_HEADER = "oai-authenticated-user-full-name";
 const USER_NAME_ENCODING_HEADER = "oai-authenticated-user-full-name-encoding";
@@ -30,7 +37,7 @@ export async function GET(request: Request) {
     const db = getRuntimeDatabase();
     const user = await ensureRadarUser(db, identity.email, identity.name);
     const dashboard = await readRadarDashboard(db, user.id);
-    return NextResponse.json({ ok: true, ...dashboard, automation: { dailyCatchUp: true, backgroundScheduler: "prepared" } });
+    return NextResponse.json({ ok: true, ...dashboard, automation: automationState() });
   } catch (cause) {
     return routeError(cause);
   }
@@ -93,6 +100,8 @@ export async function POST(request: Request) {
       const scan = await scanRadar(db, user.id, {
         monitorId: typeof input.monitorId === "string" ? input.monitorId.slice(0, 100) : undefined,
         dueOnly: Boolean(input.dueOnly),
+        // "background" is reserved for the secret-protected cron route.
+        trigger: input.trigger === "catch_up" ? "catch_up" : "manual",
       });
       result = { ...scan, watchBatch };
     } else if (action === "import_watch_batch") {
@@ -102,7 +111,7 @@ export async function POST(request: Request) {
     }
 
     const dashboard = await readRadarDashboard(db, user.id);
-    return NextResponse.json({ ok: true, action, result, ...dashboard, automation: { dailyCatchUp: true, backgroundScheduler: "prepared" } });
+    return NextResponse.json({ ok: true, action, result, ...dashboard, automation: automationState() });
   } catch (cause) {
     return routeError(cause);
   }

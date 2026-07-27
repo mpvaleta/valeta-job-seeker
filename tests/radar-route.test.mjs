@@ -122,8 +122,20 @@ test("private radar persists goals, targets, discoveries, and approval state", a
     assert.equal(scannedData.profile.minScore, 55);
     assert.equal(scannedData.monitors[0].lastRunStatus, "completed");
     assert.equal(scannedData.monitors[0].lastRunFoundCount, 1);
+    assert.match(scannedData.monitors[0].lastRunSummary, /^Manual scan · /);
     assert.match(scannedData.monitors[0].lastRunSummary, /saved below threshold/);
     assert.equal(scannedData.monitors[0].careersUrl, "https://boards.greenhouse.io/example");
+    assert.ok(Number.isFinite(new Date(scannedData.monitors[0].nextDueAt).getTime()), `nextDueAt missing: ${scannedData.monitors[0].nextDueAt}`);
+    assert.equal(scannedData.monitors[0].due, false);
+    assert.equal(scannedData.automation.backgroundScheduler, "prepared");
+
+    const catchUp = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "scan", trigger: "catch_up" }),
+    }), env, context);
+    const catchUpData = await catchUp.json();
+    assert.equal(catchUp.status, 200);
+    assert.match(catchUpData.monitors[0].lastRunSummary, /^App-open catch-up scan · /);
     const below = scannedData.opportunities.find((item) => item.title === "Accounting Analyst");
     assert.ok(below);
     assert.equal(below.alignmentPasses, false);
@@ -234,6 +246,65 @@ test("Meta monitoring retains a direct secondary job lead when the official sear
   } finally {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = originalKey;
+    await mf.dispose();
+  }
+});
+
+test("background cron route requires the scheduler secret and labels runs as background scans", async () => {
+  const originalSecret = process.env.RADAR_CRON_SECRET;
+  const originalFetch = globalThis.fetch;
+  delete process.env.RADAR_CRON_SECRET;
+  const { mf, db } = await createDatabase();
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+
+    const unconfigured = await worker.fetch(new Request("http://localhost/api/radar/cron"), env, context);
+    assert.equal(unconfigured.status, 503);
+    assert.equal((await unconfigured.json()).code, "scheduler_not_configured");
+
+    process.env.RADAR_CRON_SECRET = "test-cron-secret-0123456789abcdef";
+
+    const wrong = await worker.fetch(new Request("http://localhost/api/radar/cron", {
+      headers: { authorization: "Bearer wrong-secret" },
+    }), env, context);
+    assert.equal(wrong.status, 401);
+    assert.equal((await wrong.json()).code, "scheduler_unauthorized");
+
+    const added = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: {
+        company: "Quiet Studio",
+        kind: "Technology",
+        careersUrl: "https://quiet.example/careers",
+        cadence: "twice_daily",
+      } }),
+    }), env, context);
+    assert.equal(added.status, 200);
+
+    globalThis.fetch = async () => new Response("gone", { status: 404 });
+    const scheduled = await worker.fetch(new Request("http://localhost/api/radar/cron", {
+      method: "POST",
+      headers: { "x-radar-cron-secret": "test-cron-secret-0123456789abcdef" },
+    }), env, context);
+    const scheduledData = await scheduled.json();
+    assert.equal(scheduled.status, 200);
+    assert.equal(scheduledData.ok, true);
+    assert.equal(scheduledData.trigger, "background");
+    assert.equal(scheduledData.totals.users, 1);
+    assert.equal(scheduledData.totals.checked, 1);
+
+    const dashboard = await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
+    const dashboardData = await dashboard.json();
+    assert.equal(dashboardData.automation.backgroundScheduler, "enabled");
+    assert.equal(dashboardData.monitors[0].lastRunStatus, "completed");
+    assert.match(dashboardData.monitors[0].lastRunSummary, /^Background scheduled scan · /);
+    assert.match(dashboardData.monitors[0].lastRunSummary, /Zero-result reason: no public source responded/);
+    assert.ok(Number.isFinite(new Date(dashboardData.monitors[0].nextDueAt).getTime()));
+    assert.equal(dashboardData.monitors[0].due, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalSecret === undefined) delete process.env.RADAR_CRON_SECRET; else process.env.RADAR_CRON_SECRET = originalSecret;
     await mf.dispose();
   }
 });

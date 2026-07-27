@@ -43,6 +43,8 @@ type RadarMonitor = {
   cadence: "twice_daily" | "daily" | "manual";
   active: boolean;
   lastCheckedAt: string | null;
+  nextDueAt: string | null;
+  due: boolean;
   createdAt: string;
   lastRunStatus: string | null;
   lastRunFoundCount: number | null;
@@ -118,6 +120,7 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
   const [dueCount, setDueCount] = useState(0);
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);
   const [excludedNavigationCount, setExcludedNavigationCount] = useState(0);
+  const [schedulerEnabled, setSchedulerEnabled] = useState(false);
   const [connection, setConnection] = useState<"loading" | "ready" | "error">("loading");
   const [connectionMessage, setConnectionMessage] = useState("Opening your private radar…");
   const [busy, setBusy] = useState("");
@@ -208,6 +211,7 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
     setDueCount(data.dueCount || 0);
     setLastRunAt(data.lastRunAt || null);
     setExcludedNavigationCount(data.excludedNavigationCount || 0);
+    if (data.automation) setSchedulerEnabled(data.automation.backgroundScheduler === "enabled");
   }
 
   async function mutate(body: Record<string, unknown>, label: string, feedback: string) {
@@ -265,7 +269,7 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
   }
 
   async function runScan(options: { monitorId?: string; dueOnly?: boolean; automatic?: boolean } = {}) {
-    const data = await mutate({ action: "scan", monitorId: options.monitorId, dueOnly: Boolean(options.dueOnly), profile: draftToProfile(profileDraft) }, "scan", "Checking saved sources, repairing stale careers links, following official ATS boards, and retaining every role with its alignment score…");
+    const data = await mutate({ action: "scan", monitorId: options.monitorId, dueOnly: Boolean(options.dueOnly), trigger: options.automatic ? "catch_up" : "manual", profile: draftToProfile(profileDraft) }, "scan", "Checking saved sources, repairing stale careers links, following official ATS boards, and retaining every role with its alignment score…");
     if (!data) return;
     const result = data.result || {};
     const failures = result.failures?.length || 0;
@@ -304,7 +308,7 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
       <div><span>Active targets</span><strong>{monitors.filter((item) => item.active).length}</strong><small>{dueCount} due for their next check</small></div>
       <div><span>New discoveries</span><strong>{newCount}</strong><small>{matchingCount} match · {belowThresholdCount} below threshold{excludedNavigationCount ? ` · ${excludedNavigationCount} non-job ${excludedNavigationCount === 1 ? "label" : "labels"} hidden` : ""}</small></div>
       <div><span>Approved to prepare</span><strong>{shortlistedCount}</strong><small>No automatic applications</small></div>
-      <div><span>Last radar run</span><strong>{lastRunAt ? compactDate(lastRunAt) : "Not yet"}</strong><small>Daily catch-up when V’s opens</small></div>
+      <div><span>Last radar run</span><strong>{lastRunAt ? compactDate(lastRunAt) : "Not yet"}</strong><small>{schedulerEnabled ? "Background scans on · catch-up when V’s opens" : "Catch-up when V’s opens · background scans prepared"}</small></div>
     </div>
 
     <div className="radar-config-grid">
@@ -348,7 +352,8 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
           <div className="radar-target-status">
             <strong>{coverage.label}</strong>
             <span>{monitor.lastRunFoundCount == null ? "No scan result yet" : `${monitor.lastRunFoundCount} matching ${monitor.lastRunFoundCount === 1 ? "role" : "roles"} in last check`}</span>
-            <span>{monitor.active ? monitor.cadence === "twice_daily" ? "Twice daily" : monitor.cadence === "daily" ? "Daily" : "Manual" : "Archived"} · {monitor.lastCheckedAt ? compactDate(monitor.lastCheckedAt) : "never checked"}</span>
+            <span>{monitor.active ? monitor.cadence === "twice_daily" ? "Twice daily" : monitor.cadence === "daily" ? "Daily" : "Manual" : "Archived"} · {monitor.lastCheckedAt ? `last checked ${compactDate(monitor.lastCheckedAt)}` : "never checked"}</span>
+            {monitor.active && monitor.cadence !== "manual" && <span>{monitor.due ? "Next check: due now" : monitor.nextDueAt ? `Next check ${compactDateTime(monitor.nextDueAt)}` : "Next check: on first scan"}</span>}
             <select aria-label={`Target position for ${monitor.company}`} value={monitor.targetPosition} onChange={(event) => updateMonitor(monitor.id, { targetPosition: event.target.value })} disabled={Boolean(busy)}>
               <option value="">All saved positions</option>
               {savedTargetPositions.map((title) => <option key={title} value={title}>{title}</option>)}
@@ -357,7 +362,9 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
           <div className="radar-target-actions"><button onClick={() => runScan({ monitorId: monitor.id })} disabled={Boolean(busy) || !monitor.active}>Check now</button><button onClick={() => updateMonitor(monitor.id, { active: !monitor.active })}>{monitor.active ? "Pause" : "Resume"}</button>{monitor.active && <button onClick={() => removeMonitor(monitor.id)}>Archive</button>}</div>
         </article>;
       })}</div>}
-      <p className="scheduler-note"><strong>Twice-daily behavior:</strong> V’s treats recommended targets as due every 12 hours and catches them up when you open the private app. Exact early-morning and mid-afternoon runs while the app is closed still require the hosting scheduler trigger to be enabled.</p>
+      <p className="scheduler-note"><strong>Twice-daily behavior:</strong> V’s treats recommended targets as due every 12 hours and catches them up when you open the private app. {schedulerEnabled
+        ? "The background scheduler is connected, so due targets are also scanned while the app is closed; each run summary says whether it came from the background scheduler, an app-open catch-up, or a manual scan."
+        : "Runs while the app is closed are prepared but not yet active: set RADAR_CRON_SECRET on the server and point the hosting scheduler at /api/radar/cron twice daily to enable them."}</p>
     </section>
 
     <section className="radar-inbox">
@@ -417,10 +424,22 @@ function list(value: string) {
   return [...new Set(value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean))];
 }
 
+// SQLite CURRENT_TIMESTAMP values are UTC without a zone marker; pin them to
+// UTC before formatting in the visitor's local zone.
+function parseTimestamp(value: string) {
+  return new Date(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value) ? `${value.replace(" ", "T")}Z` : value);
+}
+
 function compactDate(value: string) {
-  const date = new Date(value);
+  const date = parseTimestamp(value);
   if (!Number.isFinite(date.getTime())) return "unknown";
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: date.getFullYear() === new Date().getFullYear() ? undefined : "numeric" }).format(date);
+}
+
+function compactDateTime(value: string) {
+  const date = parseTimestamp(value);
+  if (!Number.isFinite(date.getTime())) return "unknown";
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
 function monitorCoverage(monitor: RadarMonitor) {

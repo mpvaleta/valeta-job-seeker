@@ -225,7 +225,16 @@ export async function importJobWatchBatch(db: D1Database, userId: string) {
   return { batchId: JOB_WATCH_BATCH_ID, checked: JOB_WATCH_ROLES.length, added, updated };
 }
 
-export async function scanRadar(db: D1Database, userId: string, options: { monitorId?: string; dueOnly?: boolean } = {}) {
+export type RadarScanTrigger = "manual" | "catch_up" | "background";
+
+const SCAN_TRIGGER_LABELS: Record<RadarScanTrigger, string> = {
+  manual: "Manual scan",
+  catch_up: "App-open catch-up scan",
+  background: "Background scheduled scan",
+};
+
+export async function scanRadar(db: D1Database, userId: string, options: { monitorId?: string; dueOnly?: boolean; trigger?: RadarScanTrigger } = {}) {
+  const triggerLabel = SCAN_TRIGGER_LABELS[options.trigger || "manual"];
   const dashboard = await readRadarDashboard(db, userId);
   const selected = dashboard.monitors
     .filter((monitor) => monitor.active)
@@ -399,10 +408,15 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       const sourceCoverage = completedSources.length
         ? `Working source${completedSources.length === 1 ? "" : "s"}: ${[...new Set(completedSources)].join(", ")}.${secondaryLeadCount ? ` ${secondaryLeadCount} direct public job ${secondaryLeadCount === 1 ? "lead was" : "leads were"} retained from a secondary board because the official search blocked indexing.` : ""}`
         : "No working public source was identified.";
+      const zeroReason = scored.length
+        ? ""
+        : completedSources.length
+          ? " Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+          : " Zero-result reason: no public source responded on this run.";
       const statements = [
         db.prepare("UPDATE company_monitors SET last_checked_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?").bind(monitor.id, userId),
         db.prepare("INSERT INTO monitor_runs (id, monitor_id, run_status, found_count, change_summary) VALUES (?, ?, ?, ?, ?)")
-          .bind(runId, monitor.id, "completed", matches.length, `${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${jobs.length - matches.length} saved below threshold · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}`),
+          .bind(runId, monitor.id, "completed", matches.length, `${triggerLabel} · ${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${jobs.length - matches.length} saved below threshold · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}${zeroReason}`),
       ];
       if (repairStatement) statements.unshift(repairStatement);
       await db.batch(statements);
@@ -419,8 +433,8 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
             limited ? "limited" : "failed",
             0,
             limited
-              ? "Meta search does not permit automatic collection. Direct public Meta job pages and verified V’s suggestions still appear in the inbox; the monitored search URL remains saved as a reference."
-              : `Source check failed after automatic careers-page recovery: ${message}`,
+              ? `${triggerLabel} · Meta search does not permit automatic collection. Direct public Meta job pages and verified V’s suggestions still appear in the inbox; the monitored search URL remains saved as a reference.`
+              : `${triggerLabel} · Source check failed after automatic careers-page recovery: ${message}`,
           ),
       ]);
     }
@@ -432,7 +446,7 @@ export async function scanAllDueRadars(db: D1Database) {
   const result = await db.prepare("SELECT DISTINCT user_id FROM company_monitors WHERE is_active = 1 AND cadence IN ('twice_daily', 'daily', 'weekly')").all<{ user_id: string }>();
   const summaries = [];
   for (const row of (result.results || []).slice(0, 500)) {
-    summaries.push({ userId: row.user_id, ...(await scanRadar(db, row.user_id, { dueOnly: true })) });
+    summaries.push({ userId: row.user_id, ...(await scanRadar(db, row.user_id, { dueOnly: true, trigger: "background" })) });
   }
   return summaries;
 }
@@ -453,6 +467,7 @@ function profileFromRow(row: ProfileRow | null): RadarProfile {
 
 function monitorFromRow(row: MonitorRow) {
   const query = parseObject(row.query);
+  const cadence = row.cadence === "manual" ? "manual" : row.cadence === "daily" || row.cadence === "weekly" ? "daily" : "twice_daily";
   return {
     id: row.monitor_id,
     companyId: row.company_id,
@@ -466,9 +481,11 @@ function monitorFromRow(row: MonitorRow) {
     targetPosition: typeof query.targetPosition === "string" ? query.targetPosition : "",
     referenceUrl: typeof query.referenceUrl === "string" ? query.referenceUrl : "",
     sourceKind: typeof query.sourceKind === "string" ? query.sourceKind : "",
-    cadence: row.cadence === "manual" ? "manual" : row.cadence === "daily" || row.cadence === "weekly" ? "daily" : "twice_daily",
+    cadence,
     active: Boolean(row.is_active),
     lastCheckedAt: row.last_checked_at,
+    nextDueAt: monitorNextDueAt({ cadence, lastCheckedAt: row.last_checked_at }),
+    due: Boolean(row.is_active) && isMonitorDue({ cadence, lastCheckedAt: row.last_checked_at }),
     createdAt: row.created_at,
     lastRunStatus: row.last_run_status || null,
     lastRunFoundCount: typeof row.last_run_found_count === "number" ? row.last_run_found_count : null,
@@ -486,11 +503,29 @@ function isManualCoverageLimitation(message: string, careersUrl: string) {
   }
 }
 
+// SQLite CURRENT_TIMESTAMP is UTC but has no zone marker, so Date would parse
+// it in the runtime's local zone; pin it to UTC explicitly.
+function utcTimestampMs(value: string) {
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value) ? `${value.replace(" ", "T")}Z` : value;
+  return new Date(normalized).getTime();
+}
+
+// Null means "no schedule" (manual) or "due immediately" (never checked); the
+// dashboard's `due` flag distinguishes the two.
+export function monitorNextDueAt(monitor: { cadence: string; lastCheckedAt: string | null }) {
+  if (monitor.cadence !== "twice_daily" && monitor.cadence !== "daily" && monitor.cadence !== "weekly") return null;
+  if (!monitor.lastCheckedAt) return null;
+  const checked = utcTimestampMs(monitor.lastCheckedAt);
+  if (!Number.isFinite(checked)) return null;
+  const interval = monitor.cadence === "twice_daily" ? 12 * 60 * 60 * 1_000 : 24 * 60 * 60 * 1_000;
+  return new Date(checked + interval).toISOString();
+}
+
 export function isMonitorDue(monitor: { cadence: string; lastCheckedAt: string | null }) {
   if (monitor.cadence === "manual") return false;
   if (monitor.cadence !== "twice_daily" && monitor.cadence !== "daily" && monitor.cadence !== "weekly") return false;
   if (!monitor.lastCheckedAt) return true;
-  const checked = new Date(monitor.lastCheckedAt).getTime();
+  const checked = utcTimestampMs(monitor.lastCheckedAt);
   const interval = monitor.cadence === "twice_daily" ? 12 * 60 * 60 * 1_000 : 24 * 60 * 60 * 1_000;
   return !Number.isFinite(checked) || Date.now() - checked >= interval;
 }
