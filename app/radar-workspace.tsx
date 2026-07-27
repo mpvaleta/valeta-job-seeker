@@ -129,6 +129,7 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
   const [companyFilter, setCompanyFilter] = useState("all");
   const [originFilter, setOriginFilter] = useState<"all" | "monitored" | "v-watch">("all");
   const [targetFilter, setTargetFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
   const [company, setCompany] = useState("");
   const [kind, setKind] = useState(TARGET_TYPES[0]);
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -145,6 +146,8 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
     ...monitors.map((monitor) => monitor.company),
     ...opportunities.map((opportunity) => opportunity.company),
   ])].sort((left, right) => left.localeCompare(right)), [monitors, opportunities]);
+  const locationOptions = useMemo(() => [...new Set(opportunities.map((opportunity) => opportunity.location).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right)), [opportunities]);
   const targetOptions = useMemo(() => [...new Set([
     ...savedTargetPositions,
     ...monitors.map((monitor) => monitor.targetPosition).filter(Boolean),
@@ -158,7 +161,8 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
     .filter((item) => companyFilter === "all" || item.company === companyFilter)
     .filter((item) => originFilter === "all" || item.origin === originFilter)
     .filter((item) => targetFilter === "all" || item.targetPosition === targetFilter || item.trackLabel === targetFilter)
-    .sort((left, right) => right.fitScore - left.fitScore || right.discoveredAt.localeCompare(left.discoveredAt)), [alignmentFilter, categoryFilter, companyFilter, filter, opportunities, originFilter, targetFilter, trackFilter]);
+    .filter((item) => locationFilter === "all" || item.location === locationFilter)
+    .sort((left, right) => right.fitScore - left.fitScore || right.discoveredAt.localeCompare(left.discoveredAt)), [alignmentFilter, categoryFilter, companyFilter, filter, locationFilter, opportunities, originFilter, targetFilter, trackFilter]);
   const newCount = opportunities.filter((item) => item.status === "new").length;
   const shortlistedCount = opportunities.filter((item) => item.status === "shortlisted").length;
   const matchingCount = opportunities.filter((item) => item.alignmentPasses).length;
@@ -280,6 +284,7 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
   async function updateOpportunity(opportunity: RadarOpportunity, status: RadarOpportunity["status"]) {
     const data = await mutate({ action: "set_opportunity_status", opportunityId: opportunity.id, status }, `opportunity-${opportunity.id}`, "Updating this opportunity…");
     if (data && status === "shortlisted") onNotice("Role approved for preparation. V’s will not submit anything without you.");
+    if (data && status === "reviewing" && (opportunity.status === "dismissed" || opportunity.status === "archived")) onNotice("Role restored to the active inbox. Its discovery history was never deleted.");
   }
 
   async function prepare(opportunity: RadarOpportunity) {
@@ -362,10 +367,11 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
         <label>Company<select value={companyFilter} onChange={(event) => setCompanyFilter(event.target.value)}><option value="all">All companies</option>{companyOptions.map((companyName) => <option key={companyName} value={companyName}>{companyName}</option>)}</select></label>
         <label>Found by<select value={originFilter} onChange={(event) => setOriginFilter(event.target.value as "all" | "monitored" | "v-watch")}><option value="all">All discovery sources</option><option value="monitored">Companies I monitor</option><option value="v-watch">Suggested by V’s</option></select></label>
         <label>Target position<select value={targetFilter} onChange={(event) => setTargetFilter(event.target.value)}><option value="all">All target positions</option>{targetOptions.map((target) => <option key={target} value={target}>{target}</option>)}</select></label>
+        <label>Location<select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}><option value="all">All locations</option>{locationOptions.map((location) => <option key={location} value={location}>{location}</option>)}</select></label>
         <label>Career trail<select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}><option value="all">All trails</option>{RADAR_TRACKS.map((track) => <option key={track.id} value={track.id}>{track.label}</option>)}</select></label>
         <label>Company type<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All company types</option>{RADAR_COMPANY_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
       </div>
-      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : "monitored"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : "Company you monitor"}</em>{!opportunity.alignmentPasses && <em className="below">Below {profileDraft.minScore}% threshold</em>}</div><p>{opportunity.fitSummary}</p><small>{opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : "Found from a monitored company"} · found {compactDate(opportunity.discoveredAt)} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button onClick={() => updateOpportunity(opportunity, "dismissed")}>Dismiss</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}</div></article>)}</div>}
+      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : "monitored"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : "Company you monitor"}</em>{!opportunity.alignmentPasses && <em className="below">Below {profileDraft.minScore}% threshold</em>}</div><p>{opportunity.fitSummary}</p><small>{opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : "Found from a monitored company"} · found {compactDate(opportunity.discoveredAt)} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button onClick={() => updateOpportunity(opportunity, "dismissed")}>Dismiss</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}{(opportunity.status === "dismissed" || opportunity.status === "archived") && <button onClick={() => updateOpportunity(opportunity, "reviewing")}>Restore</button>}</div></article>)}</div>}
     </section>
   </section>;
 }
