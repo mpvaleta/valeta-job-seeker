@@ -7,6 +7,7 @@ import { CURATED_RESUME_PLAYBOOK } from "@/lib/resume-playbook.mjs";
 import { readJsonResponse } from "@/lib/http-json.mjs";
 import { extractLinkedInArchive } from "@/lib/linkedin-archive.mjs";
 import { cleanWritingSamples, deriveWritingVoice } from "@/lib/writing-voice.mjs";
+import { buildLocalResume } from "@/lib/local-resume.mjs";
 import { DEFAULT_RESUME_TRACKS, normalizeResumeTracks, selectResumeTrack } from "@/lib/resume-tracks.mjs";
 import { PLAYBOOK_GENERATION_RULE_LIMIT, prioritizeResumePlaybookRules } from "@/lib/playbook-priority.mjs";
 import { preparePlaybookLibrary, prepareResumeEvidence } from "@/lib/career-evidence.mjs";
@@ -686,7 +687,15 @@ export function JobSeekerApp() {
 
   const resumeRequestKey = `${jobText}\u0000${facts.join("\u0000")}\u0000${userPlaybookRules.join("\u0000")}\u0000${curatedPlaybookRules.join("\u0000")}\u0000${selectedTrack.id}\u0000${aiPreference.provider}\u0000${selectedModel?.key || aiPreference.modelKey}`;
   const currentResumeGeneration = resumeGeneration?.key === resumeRequestKey ? resumeGeneration : null;
-  const fallbackResume = `${profile.name || "Candidate name"}\n${effectiveProfile.headline || "Project and Operations Manager"}\n${[profile.location, profile.email, profile.phone, profile.linkedin].filter(Boolean).join(" | ")}\n\nPROFESSIONAL SUMMARY\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}\n\nPROFESSIONAL EXPERIENCE\n${matchedFacts.length ? matchedFacts.map((fact) => `• ${fact}`).join("\n") : "• Generate with a connected AI provider after approving career evidence."}\n\nCORE SKILLS\n${roleKeywords.slice(0, 10).join(" • ") || "Add a complete job description to prioritize verified capabilities."}`;
+  const localResumeDocument = useMemo(() => buildLocalResume({
+    facts,
+    roleText: `${role}\n${jobText}`,
+    headline: effectiveProfile.headline || selectedTrack.headline || "Project and Operations Manager",
+    summary: effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track.",
+  }), [effectiveProfile.headline, effectiveProfile.summary, facts, jobText, role, selectedTrack.headline]);
+  const fallbackResume = localResumeDocument
+    ? renderStructuredResume(localResumeDocument, profile)
+    : `${profile.name || "Candidate name"}\n${effectiveProfile.headline || "Project and Operations Manager"}\n${[profile.location, profile.email, profile.phone, profile.linkedin].filter(Boolean).join(" | ")}\n\nPROFESSIONAL SUMMARY\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}\n\nPROFESSIONAL EXPERIENCE\n${matchedFacts.length ? matchedFacts.map((fact) => `• ${fact}`).join("\n") : "• Generate with a connected AI provider after approving career evidence."}\n\nCORE SKILLS\n${roleKeywords.slice(0, 10).join(" • ") || "Add a complete job description to prioritize verified capabilities."}`;
   const resume = currentResumeGeneration ? renderStructuredResume(currentResumeGeneration.result, profile) : fallbackResume;
 
   const cover = `Dear ${company ? `${company} Hiring Team` : "Hiring Team"},\n\nI’m interested in the ${role || "position"} because it connects closely with the work reflected in my verified experience.\n\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}${matchedFacts.length ? ` For this role, the most relevant evidence includes ${matchedFacts.slice(0, 3).join("; ")}.` : " Add approved career facts before using this draft."}\n\nWhat draws me to ${company || "your team"} is the opportunity to contribute with clarity, care, and reliable execution. I would welcome the chance to discuss how my experience could support the team.\n\nThank you for your consideration.\n\nBest,\n${profile.name || "Your name"}\n\nVOICE NOTES USED\nLearned from: ${knowledgeStats.voice} uploaded source${knowledgeStats.voice === 1 ? "" : "s"}\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}`;
