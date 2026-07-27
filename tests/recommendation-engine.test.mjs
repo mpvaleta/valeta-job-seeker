@@ -61,7 +61,11 @@ Maintain FAA certification evidence and DO-178C compliance documentation.
   const analysis = analyzeRole({ jobText: gapJob, facts: alignedFacts, profile: readyProfile });
 
   assert.equal(analysis.recommendation.label, "Hold and investigate");
-  assert.ok(analysis.counts.gaps >= 3);
+  // Correct tokenization lets generic words like "systems" register as weak
+  // single-word partials, so an unrelated role shows gaps plus weak partials
+  // and never a strong match.
+  assert.ok(analysis.counts.gaps >= 2);
+  assert.equal(analysis.counts.strong, 0);
 });
 
 test("never places evidence outside the supplied approved fact list", () => {
@@ -89,4 +93,32 @@ test("requirement extraction deduplicates lines and overlap is explicit", () => 
   assert.equal(requirements.filter((item) => item === "Lead cross-functional marketing programs from creative brief through launch.").length, 1);
   assert.ok(overlapScore(alignedJob, alignedFacts[0]).shared > 0);
   assert.deepEqual(overlapScore("aerospace avionics certification", alignedFacts[0]), { shared: 0, score: 0 });
+});
+
+test("hiring signals display whole words, never stems or punctuation", () => {
+  const { roleKeywords } = analyzeRole({
+    jobText: "Marketing communications manager leading marketing campaigns, stakeholder communication, sports partnerships, and sports sponsorships. Sports experience is a plus. Strong communication required for marketing.",
+    facts: [],
+    profile: {},
+  });
+  assert.ok(roleKeywords.includes("marketing"), `expected full word, got: ${roleKeywords.join(", ")}`);
+  assert.ok(roleKeywords.includes("sports"));
+  for (const keyword of roleKeywords) {
+    assert.doesNotMatch(keyword, /^(communic|market|sport)$/, `stem leaked: ${keyword}`);
+    assert.doesNotMatch(keyword, /[.]$/, `punctuation leaked: ${keyword}`);
+    assert.notEqual(keyword, "plus.");
+  }
+});
+
+test("requirement extraction keeps leading experience numbers and skips intro boilerplate", () => {
+  const requirements = extractRequirements(`
+Acme Corp is hiring a Brand Project Manager to lead campaign delivery.
+- 5+ years of project management experience in an agency environment.
+- Manage campaign budgets and schedules; keep stakeholders informed with clear reporting.
+1. Coordinate designers, copywriters, and vendors across workstreams.
+`);
+  assert.ok(requirements.some((item) => item.startsWith("5+ years")), `lost the 5+: ${JSON.stringify(requirements)}`);
+  assert.ok(requirements.some((item) => item.startsWith("Coordinate designers")));
+  assert.ok(!requirements.some((item) => /is hiring/.test(item)), "intro sentence counted as requirement");
+  assert.ok(requirements.some((item) => /budgets and schedules; keep stakeholders/.test(item)), "semicolon split a requirement in half");
 });

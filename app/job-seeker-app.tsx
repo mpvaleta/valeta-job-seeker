@@ -887,6 +887,8 @@ export function JobSeekerApp() {
     const jobSnapshotId = saveMarketSnapshot("pasted") || undefined;
     const id = createId();
     const title = `${company || "Untitled company"} — ${role || (kind === "resume" ? "Tailored resume" : "Cover letter")} · ${dateToday()}`;
+    const draftCompany = company || "Unknown company";
+    const draftRole = role || "Untitled role";
     setGeneratedDrafts((current) => [{
       id,
       type: kind,
@@ -894,13 +896,15 @@ export function JobSeekerApp() {
       content,
       createdAt: dateToday(),
       updatedAt: dateToday(),
-      company: company || "Unknown company",
-      role: role || "Untitled role",
+      company: draftCompany,
+      role: draftRole,
       trackId: selectedTrack.id,
       jobSnapshotId,
       origin: draftEditorKey === kind && draftEditor !== (kind === "resume" ? resume : cover) ? "edited" : "generated",
       provider: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.provider : "local",
       model: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.model : undefined,
+      modelLabel: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.modelLabel : undefined,
+      versionNumber: Math.max(0, ...current.filter((item) => item.type === kind && item.company === draftCompany && item.role === draftRole).map((item) => item.versionNumber || 0)) + 1,
       playbookRuleCount: kind === "resume" ? approvedPlaybookRules.length : undefined,
       approvedFactCount: kind === "resume" ? facts.length : undefined,
     }, ...current]);
