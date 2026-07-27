@@ -4,6 +4,7 @@ import {
   addRadarMonitor,
   deleteRadarMonitor,
   ensureRadarUser,
+  importJobWatchBatch,
   readRadarDashboard,
   saveRadarProfile,
   scanRadar,
@@ -56,7 +57,9 @@ export async function POST(request: Request) {
       const monitor = object(input.monitor);
       const careersUrl = monitor.careersUrl ? publicScanUrl(optionalText(monitor.careersUrl, 4_000)) : "";
       const websiteUrl = monitor.websiteUrl ? publicScanUrl(optionalText(monitor.websiteUrl, 4_000)) : "";
-      if (!careersUrl && !websiteUrl) throw new RadarHttpError(400, "scan_source_required", "Add either the company website or its public careers page.");
+      if (!careersUrl && !websiteUrl && !process.env.OPENAI_API_KEY?.trim() && !process.env.GEMINI_API_KEY?.trim()) {
+        throw new RadarHttpError(400, "scan_source_required", "Add the company website or careers page, or connect OpenAI/Gemini for company-name public-web discovery.");
+      }
       const referenceUrl = monitor.referenceUrl ? validatePublicUrl(optionalText(monitor.referenceUrl, 4_000)).href : "";
       result = await addRadarMonitor(db, user.id, {
         company: text(monitor.company, 180),
@@ -66,6 +69,7 @@ export async function POST(request: Request) {
         referenceUrl,
         sourceKind: optionalText(monitor.sourceKind, 80),
         focus: optionalText(monitor.focus, 1_000),
+        targetPosition: optionalText(monitor.targetPosition, 180),
         market: optionalText(monitor.market, 180),
         cadence: monitor.cadence === "manual" ? "manual" : monitor.cadence === "daily" ? "daily" : "twice_daily",
       });
@@ -76,6 +80,7 @@ export async function POST(request: Request) {
         active: typeof patch.active === "boolean" ? patch.active : undefined,
         cadence: patch.cadence === "manual" || patch.cadence === "twice_daily" || patch.cadence === "daily" || patch.cadence === "weekly" ? String(patch.cadence) : undefined,
         focus: typeof patch.focus === "string" ? patch.focus : undefined,
+        targetPosition: typeof patch.targetPosition === "string" ? patch.targetPosition : undefined,
       });
     } else if (action === "delete_monitor") {
       await deleteRadarMonitor(db, user.id, text(input.monitorId, 100));
@@ -83,10 +88,15 @@ export async function POST(request: Request) {
       result = await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40));
     } else if (action === "scan") {
       if (isScanRateLimited(identity.email)) return error(429, "scan_rate_limited", "The radar has run several times recently. Wait a little before scanning again.");
-      result = await scanRadar(db, user.id, {
+      if (input.profile) await saveRadarProfile(db, user.id, object(input.profile));
+      const watchBatch = await importJobWatchBatch(db, user.id);
+      const scan = await scanRadar(db, user.id, {
         monitorId: typeof input.monitorId === "string" ? input.monitorId.slice(0, 100) : undefined,
         dueOnly: Boolean(input.dueOnly),
       });
+      result = { ...scan, watchBatch };
+    } else if (action === "import_watch_batch") {
+      result = await importJobWatchBatch(db, user.id);
     } else {
       return error(400, "invalid_action", "Choose a valid radar action.");
     }

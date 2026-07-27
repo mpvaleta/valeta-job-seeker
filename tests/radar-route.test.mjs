@@ -59,9 +59,11 @@ test("private radar persists goals, targets, discoveries, and approval state", a
       method: "POST", headers,
       body: JSON.stringify({ action: "add_monitor", monitor: {
         company: "Example Studio",
-        kind: "Agency",
-        careersUrl: "https://boards.greenhouse.io/example",
+        kind: "Creative / Advertising Agency",
+        websiteUrl: "https://example.com",
+        careersUrl: "https://broken.example/old-careers",
         focus: "creative operations, integrated production",
+        targetPosition: "Creative Operations Manager",
         cadence: "daily",
       } }),
     }), env, context);
@@ -69,9 +71,14 @@ test("private radar persists goals, targets, discoveries, and approval state", a
     assert.equal(added.status, 200);
     assert.equal(addedData.monitors.length, 1);
     assert.equal(addedData.monitors[0].cadence, "daily");
+    assert.equal(addedData.monitors[0].targetPosition, "Creative Operations Manager");
     assert.equal(addedData.dueCount, 1);
 
     globalThis.fetch = async (url) => {
+      if (String(url).includes("broken.example")) return new Response("gone", { status: 404 });
+      if (String(url) === "https://example.com/") {
+        return new Response('<html><body><a href="https://boards.greenhouse.io/example">Open jobs</a></body></html>', { headers: { "content-type": "text/html" } });
+      }
       assert.match(String(url), /boards-api\.greenhouse\.io/);
       return Response.json({ jobs: [{
         title: "Creative Operations Manager",
@@ -79,29 +86,190 @@ test("private radar persists goals, targets, discoveries, and approval state", a
         content: "<p>Lead integrated production and brand programs across cross-functional teams.</p>",
         absolute_url: "https://boards.greenhouse.io/example/jobs/100",
         updated_at: "2026-07-18T00:00:00Z",
+      }, {
+        title: "Accounting Analyst",
+        location: { name: "Austin, TX" },
+        content: "<p>Prepare monthly statements and reconciliations.</p>",
+        absolute_url: "https://boards.greenhouse.io/example/jobs/101",
+        updated_at: "2026-07-18T00:00:00Z",
       }] });
     };
     const scanned = await worker.fetch(new Request("http://localhost/api/radar", {
       method: "POST", headers,
-      body: JSON.stringify({ action: "scan" }),
+      body: JSON.stringify({ action: "scan", profile: {
+        titles: ["Creative Operations Manager"],
+        skills: ["integrated production", "brand programs"],
+        locations: ["San Francisco Bay Area"],
+        workModes: ["Hybrid"],
+        goals: "Lead creative and brand delivery.",
+        exclusions: [],
+        minScore: 55,
+      } }),
     }), env, context);
     const scannedData = await scanned.json();
     assert.equal(scanned.status, 200);
     assert.equal(scannedData.result.checked, 1);
-    assert.equal(scannedData.result.added, 1);
-    assert.equal(scannedData.opportunities.length, 1);
-    assert.equal(scannedData.opportunities[0].status, "new");
-    assert.ok(scannedData.opportunities[0].fitScore >= 40);
+    assert.equal(scannedData.result.discovered, 2);
+    assert.equal(scannedData.result.found, 1);
+    assert.equal(scannedData.result.added, 2);
+    assert.equal(scannedData.result.matchedAdded, 1);
+    assert.equal(scannedData.result.belowThreshold, 1);
+    assert.equal(scannedData.result.repairedSources, 1);
+    const discovered = scannedData.opportunities.find((item) => item.sourceType === "greenhouse");
+    assert.ok(discovered);
+    assert.equal(discovered.status, "new");
+    assert.ok(discovered.fitScore >= 55);
+    assert.equal(scannedData.profile.minScore, 55);
+    assert.equal(scannedData.monitors[0].lastRunStatus, "completed");
+    assert.equal(scannedData.monitors[0].lastRunFoundCount, 1);
+    assert.match(scannedData.monitors[0].lastRunSummary, /saved below threshold/);
+    assert.equal(scannedData.monitors[0].careersUrl, "https://boards.greenhouse.io/example");
+    const below = scannedData.opportunities.find((item) => item.title === "Accounting Analyst");
+    assert.ok(below);
+    assert.equal(below.alignmentPasses, false);
+    assert.equal(below.companyCategory, "Creative / Advertising Agency");
+    assert.equal(below.origin, "monitored");
+    assert.equal(below.targetPosition, "Creative Operations Manager");
+
+    const owner = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind("owner@example.com").first();
+    const companyRow = await db.prepare("SELECT id FROM companies WHERE name = ? LIMIT 1").bind("Example Studio").first();
+    await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(crypto.randomUUID(), owner.id, companyRow.id, "Search roles", "https://example.com/careers/search-roles", "public-careers-page", 48, "Navigation label captured by an earlier build.", "new").run();
+    const cleanedDashboard = await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
+    const cleanedDashboardData = await cleanedDashboard.json();
+    assert.equal(cleanedDashboardData.excludedNavigationCount, 1);
+    assert.equal(cleanedDashboardData.opportunities.some((item) => item.title === "Search roles"), false);
 
     const shortlisted = await worker.fetch(new Request("http://localhost/api/radar", {
       method: "POST", headers,
-      body: JSON.stringify({ action: "set_opportunity_status", opportunityId: scannedData.opportunities[0].id, status: "shortlisted" }),
+      body: JSON.stringify({ action: "set_opportunity_status", opportunityId: discovered.id, status: "shortlisted" }),
     }), env, context);
     const shortlistedData = await shortlisted.json();
     assert.equal(shortlisted.status, 200);
-    assert.equal(shortlistedData.opportunities[0].status, "shortlisted");
+    assert.equal(shortlistedData.opportunities.find((item) => item.id === discovered.id).status, "shortlisted");
   } finally {
     globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
+test("Meta search remains saved with an explicit reference-only coverage state", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  try {
+    const added = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: {
+        company: "Meta",
+        kind: "Technology",
+        careersUrl: "https://www.metacareers.com/jobsearch/",
+        targetPosition: "Creative Operations Manager",
+        cadence: "twice_daily",
+      } }),
+    }), env, context);
+    assert.equal(added.status, 200);
+
+    const scanned = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const data = await scanned.json();
+    assert.equal(scanned.status, 200);
+    assert.equal(data.result.checked, 1);
+    assert.equal(data.result.failures.length, 0);
+    assert.equal(data.monitors[0].lastRunStatus, "limited");
+    assert.match(data.monitors[0].lastRunSummary, /Direct public Meta job pages/i);
+  } finally {
+    await mf.dispose();
+  }
+});
+
+test("Meta monitoring retains a direct secondary job lead when the official search blocks indexing", async () => {
+  const originalKey = process.env.OPENAI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "test-openai-key";
+  globalThis.fetch = async (url) => {
+    if (String(url) === "https://api.openai.com/v1/responses") {
+      return Response.json({ output: [{
+        type: "web_search_call",
+        action: { sources: [{
+          url: "https://www.linkedin.com/jobs/view/creative-operations-manager-at-meta-1234567890",
+          title: "Meta hiring Creative Operations Manager in Menlo Park, CA | LinkedIn",
+        }] },
+      }] });
+    }
+    throw new Error(`Unexpected URL ${url}`);
+  };
+  const { mf, db } = await createDatabase();
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    const added = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: {
+        company: "Meta",
+        kind: "Technology",
+        careersUrl: "https://www.metacareers.com/jobsearch/",
+        targetPosition: "Creative Operations Manager",
+        cadence: "twice_daily",
+      } }),
+    }), env, context);
+    assert.equal(added.status, 200);
+
+    const scanned = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const data = await scanned.json();
+    const metaRole = data.opportunities.find((item) => item.company === "Meta" && item.title === "Creative Operations Manager");
+    assert.equal(scanned.status, 200);
+    assert.equal(data.result.checked, 1);
+    assert.equal(data.result.failures.length, 0);
+    assert.equal(data.monitors[0].lastRunStatus, "completed");
+    assert.match(data.monitors[0].lastRunSummary, /direct public job lead/i);
+    assert.ok(metaRole);
+    assert.equal(metaRole.sourceType, "openai-web-search");
+    assert.equal(metaRole.origin, "monitored");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = originalKey;
+    await mf.dispose();
+  }
+});
+
+test("V’s Job Watch import is idempotent and preserves the user’s opportunity decision", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  try {
+    const first = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_watch_batch" }),
+    }), env, context);
+    const firstData = await first.json();
+    assert.equal(first.status, 200);
+    assert.equal(firstData.result.added, 21);
+    assert.equal(firstData.opportunities.length, 21);
+    assert.ok(firstData.opportunities.every((role) => role.sourceType === "v-watch"));
+
+    const chosen = firstData.opportunities[0];
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "set_opportunity_status", opportunityId: chosen.id, status: "shortlisted" }),
+    }), env, context);
+
+    const second = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_watch_batch" }),
+    }), env, context);
+    const secondData = await second.json();
+    assert.equal(second.status, 200);
+    assert.equal(secondData.result.added, 0);
+    assert.equal(secondData.result.updated, 21);
+    assert.equal(secondData.opportunities.length, 21);
+    assert.equal(secondData.opportunities.find((role) => role.id === chosen.id).status, "shortlisted");
+  } finally {
     await mf.dispose();
   }
 });

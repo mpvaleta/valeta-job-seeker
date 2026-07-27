@@ -11,6 +11,7 @@ export type LinkedInConfig = {
   redirectUri: string;
   sessionSecret: string;
   configured: boolean;
+  missing: string[];
 };
 
 export type LinkedInIdentity = {
@@ -27,7 +28,13 @@ export function getLinkedInConfig(): LinkedInConfig {
   const clientSecret = process.env.LINKEDIN_CLIENT_SECRET?.trim() || "";
   const redirectUri = process.env.LINKEDIN_REDIRECT_URI?.trim() || "";
   const sessionSecret = process.env.LINKEDIN_SESSION_SECRET?.trim() || "";
-  return { clientId, clientSecret, redirectUri, sessionSecret, configured: Boolean(clientId && clientSecret && redirectUri && sessionSecret.length >= 32) };
+  const missing = [
+    !clientId ? "LINKEDIN_CLIENT_ID" : "",
+    !clientSecret ? "LINKEDIN_CLIENT_SECRET" : "",
+    !redirectUri || !/^https:\/\/.+\/api\/linkedin\/callback$/i.test(redirectUri) ? "LINKEDIN_REDIRECT_URI" : "",
+    sessionSecret.length < 32 ? "LINKEDIN_SESSION_SECRET" : "",
+  ].filter(Boolean);
+  return { clientId, clientSecret, redirectUri, sessionSecret, configured: missing.length === 0, missing };
 }
 
 export function authenticatedEmail(request: Request) {

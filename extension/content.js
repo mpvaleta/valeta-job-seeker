@@ -6,7 +6,7 @@ const rules = [
   { key: "fullName", match: /full.?name|your.?name|candidate.?name/i, get: (data) => data.profile.fullName },
   { key: "email", match: /e.?mail/i, get: (data) => data.profile.email },
   { key: "phone", match: /phone|mobile|telephone/i, get: (data) => data.profile.phone },
-  { key: "location", match: /city|location|street.?address|address.?line/i, get: (data) => data.profile.location },
+  { key: "location", match: /(?:city|current.?location|your.?location|where.*located)/i, get: (data) => data.profile.location },
   { key: "linkedin", match: /linkedin/i, get: (data) => data.profile.linkedin },
   { key: "headline", match: /headline|professional.?title/i, get: (data) => data.answers.headline },
   { key: "summary", match: /about.?you|summary|background|tell.?us.?about|professional.?profile/i, get: (data) => data.answers.summary },
@@ -44,7 +44,8 @@ function shortLabel(value, fallback) {
 }
 
 function candidateFields() {
-  return [...document.querySelectorAll("input:not([type=hidden]):not([type=submit]):not([type=button]), textarea, select")];
+  return [...document.querySelectorAll("input:not([type=hidden]):not([type=submit]):not([type=button]), textarea, select")]
+    .filter((field) => !field.disabled && !field.readOnly);
 }
 
 function clearMarks() {
@@ -71,12 +72,15 @@ function scan(data, mark = true) {
     let reason = "No approved mapping";
     let ruleKey = null;
 
-    if (type === "file") {
+    if (field.value) {
+      status = "existing";
+      reason = "Already has a value";
+    } else if (type === "file") {
       status = "review";
-      reason = "Upload résumé manually";
-    } else if (type === "number") {
+      reason = data.resume?.title ? `Upload selected résumé manually: ${data.resume.title}` : "Upload résumé manually";
+    } else if (["number", "range", "date", "time", "month", "week", "checkbox", "radio", "color"].includes(type)) {
       status = "review";
-      reason = "Numeric field — confirm its meaning and value";
+      reason = "Controlled field — confirm the exact option or value";
     } else if (sensitive.test(label)) {
       status = "review";
       reason = "Sensitive answer — complete personally";
@@ -90,9 +94,6 @@ function scan(data, mark = true) {
         status = "fillable";
         reason = "Approved profile match";
         ruleKey = rule.key;
-      } else if (field.value) {
-        status = "existing";
-        reason = "Already has a value";
       }
     }
 
@@ -114,7 +115,11 @@ function scan(data, mark = true) {
 }
 
 function setFieldValue(field, value) {
-  const prototype = field instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  const prototype = field instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype
+    : field instanceof HTMLSelectElement
+      ? HTMLSelectElement.prototype
+      : HTMLInputElement.prototype;
   const setter = Object.getOwnPropertyDescriptor(prototype, "value")?.set;
   if (setter) setter.call(field, value); else field.value = value;
   field.dispatchEvent(new Event("input", { bubbles: true }));

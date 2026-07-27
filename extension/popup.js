@@ -2,10 +2,21 @@ const profile = document.querySelector("#profile");
 const status = document.querySelector("#status");
 const results = document.querySelector("#results");
 const fillButton = document.querySelector("#fill");
+const packageMeta = document.querySelector("#package-meta");
 
 chrome.storage.local.get("valetaPackage", ({ valetaPackage }) => {
-  if (valetaPackage) profile.value = JSON.stringify(valetaPackage, null, 2);
+  if (valetaPackage) {
+    profile.value = JSON.stringify(valetaPackage, null, 2);
+    showPackageMeta(valetaPackage);
+  }
 });
+
+function showPackageMeta(value) {
+  const resume = value?.resume;
+  packageMeta.textContent = resume?.title
+    ? `Selected résumé: ${resume.title}. Website file-upload fields remain manual by browser security.`
+    : "No résumé version is attached to this package. You can still scan and fill profile fields.";
+}
 
 function packageValue() {
   const value = JSON.parse(profile.value);
@@ -42,6 +53,7 @@ document.querySelector("#save").addEventListener("click", async () => {
   try {
     const value = packageValue();
     await chrome.storage.local.set({ valetaPackage: value });
+    showPackageMeta(value);
     status.textContent = "Profile saved only in this browser.";
   } catch {
     status.textContent = "The package is not valid. Download a fresh JSON package from V's Job Seeker.";
@@ -52,6 +64,7 @@ document.querySelector("#scan").addEventListener("click", async () => {
   try {
     const value = packageValue();
     await chrome.storage.local.set({ valetaPackage: value });
+    showPackageMeta(value);
     const tab = await activeTab();
     const response = await chrome.tabs.sendMessage(tab.id, { type: "VALETA_SCAN", payload: value });
     showScan(response);
@@ -65,6 +78,7 @@ fillButton.addEventListener("click", async () => {
   try {
     const value = packageValue();
     await chrome.storage.local.set({ valetaPackage: value });
+    showPackageMeta(value);
     const tab = await activeTab();
     const response = await chrome.tabs.sendMessage(tab.id, { type: "VALETA_FILL", payload: value });
     showScan({ ...response, fillable: 0 });

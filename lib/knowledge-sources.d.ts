@@ -3,7 +3,14 @@ export type SourceCategory = "Résumé" | "Custom GPT export" | "LinkedIn export
 
 export const SOURCE_CATEGORIES: SourceCategory[];
 export function scopeForCategory(category?: SourceCategory | string): SourceScope;
-export function sourceScope(source?: { scope?: SourceScope; category?: SourceCategory }): SourceScope;
+export function sourceScope(source?: { scope?: SourceScope; category?: SourceCategory; title?: string; text?: string }): SourceScope;
+export function classifyKnowledgeSource(value?: { title?: string; text?: string; selectedCategory?: SourceCategory | string }): {
+  scope: SourceScope;
+  category: SourceCategory | string;
+  confidence: "high" | "medium" | "low";
+  reasons: string[];
+  selectedScope: SourceScope;
+};
 export function sourceScopeLabel(scope: SourceScope): string;
 export function sourceScopeDescription(scope: SourceScope): string;
 export function mergeWritingSample(existing: string, title: string, text: string): string;

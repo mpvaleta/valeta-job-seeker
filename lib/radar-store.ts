@@ -1,4 +1,6 @@
-import { discoverTargetJobs, normalizeRadarProfile, scoreRadarOpportunity } from "./radar.mjs";
+import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, scoreRadarOpportunity } from "./radar.mjs";
+import { searchCompanyJobSources } from "./radar-web-search.mjs";
+import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import type { RadarProfile } from "./radar.mjs";
 
 type UserRow = { id: string; email: string; display_name: string };
@@ -24,11 +26,16 @@ type MonitorRow = {
   is_active: number;
   last_checked_at: string | null;
   created_at: string;
+  last_run_status: string | null;
+  last_run_found_count: number | null;
+  last_run_summary: string | null;
+  last_run_at: string | null;
 };
 type OpportunityRow = {
   id: string;
   company_id: string | null;
   company_name: string | null;
+  company_type: string | null;
   title: string;
   location: string | null;
   source_url: string | null;
@@ -48,6 +55,7 @@ export type RadarMonitorInput = {
   referenceUrl?: string;
   sourceKind?: string;
   focus?: string;
+  targetPosition?: string;
   market?: string;
   cadence?: "twice_daily" | "daily" | "manual";
 };
@@ -66,33 +74,66 @@ export async function ensureRadarUser(db: D1Database, email: string, displayName
 export async function readRadarDashboard(db: D1Database, userId: string) {
   const [profileRow, monitorResult, opportunityResult] = await Promise.all([
     db.prepare("SELECT id, headline, target_roles_json, target_markets_json, positioning, constraints_json FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<ProfileRow>(),
-    db.prepare(`SELECT m.id AS monitor_id, m.company_id, c.name AS company_name, c.website_url, c.careers_url, c.company_type, c.primary_market, c.notes, m.query, m.cadence, m.is_active, m.last_checked_at, m.created_at
+    db.prepare(`SELECT m.id AS monitor_id, m.company_id, c.name AS company_name, c.website_url, c.careers_url, c.company_type, c.primary_market, c.notes, m.query, m.cadence, m.is_active, m.last_checked_at, m.created_at,
+      (SELECT mr.run_status FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC LIMIT 1) AS last_run_status,
+      (SELECT mr.found_count FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC LIMIT 1) AS last_run_found_count,
+      (SELECT mr.change_summary FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC LIMIT 1) AS last_run_summary,
+      (SELECT mr.created_at FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC LIMIT 1) AS last_run_at
       FROM company_monitors m JOIN companies c ON c.id = m.company_id
       WHERE m.user_id = ? ORDER BY m.is_active DESC, c.name ASC`).bind(userId).all<MonitorRow>(),
-    db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at
+    db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, c.company_type, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at
       FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
       WHERE o.user_id = ? ORDER BY o.discovered_at DESC, o.fit_score DESC LIMIT 300`).bind(userId).all<OpportunityRow>(),
   ]);
   const profile = profileFromRow(profileRow);
   const monitors = (monitorResult.results || []).map(monitorFromRow);
-  const opportunities = (opportunityResult.results || []).map((row) => ({
-    id: row.id,
-    companyId: row.company_id,
-    company: row.company_name || "Unknown company",
+  const monitorByCompanyId = new Map(monitors.map((monitor) => [monitor.companyId, monitor]));
+  const opportunityRows = opportunityResult.results || [];
+  const visibleOpportunityRows = opportunityRows.filter((row) => isPlausibleRadarJob({
     title: row.title,
-    location: row.location || "Location not listed",
     sourceUrl: row.source_url || "",
     sourceType: row.source_type,
-    fitScore: row.fit_score ?? 0,
-    fitSummary: row.fit_summary || "No fit summary available.",
-    status: normalizeOpportunityStatus(row.status),
-    discoveredAt: row.discovered_at,
-    updatedAt: row.updated_at,
+    description: row.fit_summary || "",
   }));
+  const opportunities = visibleOpportunityRows.map((row) => {
+    const classification = classifyRadarOpportunity({
+      company: row.company_name || "",
+      title: row.title,
+      fitSummary: row.fit_summary || "",
+    }, { kind: row.company_type || "" });
+    const fitScore = row.fit_score ?? 0;
+    const exclusionHit = /review exclusion:/i.test(row.fit_summary || "");
+    const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
+    const origin = row.source_type === "v-watch" ? "v-watch" : "monitored";
+    return {
+      id: row.id,
+      companyId: row.company_id,
+      company: row.company_name || "Unknown company",
+      companyCategory: classification.companyCategory,
+      trackId: classification.trackId,
+      trackLabel: classification.trackLabel,
+      title: row.title,
+      location: row.location || "Location not listed",
+      sourceUrl: row.source_url || "",
+      sourceType: row.source_type,
+      origin,
+      targetPosition: origin === "monitored"
+        ? monitor?.targetPosition || classification.trackLabel
+        : classification.trackLabel,
+      fitScore,
+      fitSummary: row.fit_summary || "No fit summary available.",
+      alignmentPasses: fitScore >= profile.minScore && !exclusionHit,
+      exclusionHit,
+      status: normalizeOpportunityStatus(row.status),
+      discoveredAt: row.discovered_at,
+      updatedAt: row.updated_at,
+    };
+  });
   return {
     profile,
     monitors,
     opportunities,
+    excludedNavigationCount: opportunityRows.length - visibleOpportunityRows.length,
     dueCount: monitors.filter((monitor) => monitor.active && isMonitorDue(monitor)).length,
     lastRunAt: monitors.map((monitor) => monitor.lastCheckedAt).filter(Boolean).sort().reverse()[0] || null,
   };
@@ -117,11 +158,11 @@ export async function addRadarMonitor(db: D1Database, userId: string, input: Rad
   const careersUrl = clean(input.careersUrl, 4_000);
   const websiteUrl = clean(input.websiteUrl, 4_000);
   if (!company) throw new Error("Add a company, brand, or agency name.");
-  if (!careersUrl && !websiteUrl) throw new Error("Add the company website or the public careers page you want V’s to monitor.");
   const companyId = crypto.randomUUID();
   const monitorId = crypto.randomUUID();
   const query = JSON.stringify({
     focus: clean(input.focus, 1_000),
+    targetPosition: clean(input.targetPosition, 180),
     referenceUrl: clean(input.referenceUrl, 4_000),
     sourceKind: clean(input.sourceKind, 80),
   });
@@ -134,11 +175,12 @@ export async function addRadarMonitor(db: D1Database, userId: string, input: Rad
   return monitorId;
 }
 
-export async function updateRadarMonitor(db: D1Database, userId: string, monitorId: string, patch: { active?: boolean; cadence?: string; focus?: string }) {
+export async function updateRadarMonitor(db: D1Database, userId: string, monitorId: string, patch: { active?: boolean; cadence?: string; focus?: string; targetPosition?: string }) {
   const current = await ownedMonitor(db, userId, monitorId);
   if (!current) throw new Error("That radar target could not be found.");
   const query = parseObject(current.query);
   if (patch.focus != null) query.focus = clean(patch.focus, 1_000);
+  if (patch.targetPosition != null) query.targetPosition = clean(patch.targetPosition, 180);
   const cadence = patch.cadence === "manual" ? "manual" : patch.cadence === "twice_daily" ? "twice_daily" : patch.cadence === "daily" || patch.cadence === "weekly" ? "daily" : current.cadence;
   const active = patch.active == null ? Boolean(current.is_active) : Boolean(patch.active);
   await db.prepare("UPDATE company_monitors SET query = ?, cadence = ?, is_active = ? WHERE id = ? AND user_id = ?")
@@ -156,6 +198,33 @@ export async function setRadarOpportunityStatus(db: D1Database, userId: string, 
   return normalized;
 }
 
+export async function importJobWatchBatch(db: D1Database, userId: string) {
+  let added = 0;
+  let updated = 0;
+  for (const role of JOB_WATCH_ROLES) {
+    const existing = await db.prepare("SELECT id FROM job_opportunities WHERE user_id = ? AND source_url = ? LIMIT 1")
+      .bind(userId, role.sourceUrl).first<{ id: string }>();
+    if (existing) {
+      await db.prepare("UPDATE job_opportunities SET title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+        .bind(role.title, role.location, "v-watch", role.fitScore, role.fitSummary, existing.id, userId).run();
+      updated += 1;
+      continue;
+    }
+    let company = await db.prepare("SELECT id FROM companies WHERE lower(name) = lower(?) LIMIT 1")
+      .bind(role.company).first<{ id: string }>();
+    if (!company) {
+      company = { id: crypto.randomUUID() };
+      const classification = classifyRadarOpportunity(role);
+      await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
+        .bind(company.id, role.company, classification.companyCategory, "United States", `Imported from ${JOB_WATCH_BATCH_ID}`).run();
+    }
+    await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(crypto.randomUUID(), userId, company.id, role.title, role.location, role.sourceUrl, "v-watch", role.fitScore, role.fitSummary, "new").run();
+    added += 1;
+  }
+  return { batchId: JOB_WATCH_BATCH_ID, checked: JOB_WATCH_ROLES.length, added, updated };
+}
+
 export async function scanRadar(db: D1Database, userId: string, options: { monitorId?: string; dueOnly?: boolean } = {}) {
   const dashboard = await readRadarDashboard(db, userId);
   const selected = dashboard.monitors
@@ -164,22 +233,132 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
     .filter((monitor) => !options.dueOnly || isMonitorDue(monitor))
     .slice(0, 20);
   let found = 0;
+  let discovered = 0;
+  let belowThreshold = 0;
   let added = 0;
+  let matchedAdded = 0;
+  let repairedSources = 0;
   const failures: Array<{ monitorId: string; company: string; message: string }> = [];
 
   for (const monitor of selected) {
     const runId = crypto.randomUUID();
     try {
-      const jobs = await discoverTargetJobs({ company: monitor.company, careersUrl: monitor.careersUrl, websiteUrl: monitor.websiteUrl });
+      const searchFocus = [
+        monitor.targetPosition,
+        monitor.focus,
+        ...dashboard.profile.titles,
+      ].filter(Boolean).join(", ");
+      const scanTarget = {
+        company: monitor.company,
+        careersUrl: monitor.careersUrl,
+        websiteUrl: monitor.websiteUrl,
+        referenceUrl: monitor.referenceUrl,
+        focus: searchFocus,
+        locations: dashboard.profile.locations.join(", "),
+      };
+      let discovery: Awaited<ReturnType<typeof discoverTargetJobsDetailed>> = { jobs: [], attempts: [], recommendedCareersUrl: "" };
+      if (monitor.careersUrl || monitor.websiteUrl) {
+        try {
+          discovery = await discoverTargetJobsDetailed(scanTarget);
+        } catch (cause) {
+          discovery.attempts.push({
+            url: monitor.careersUrl || monitor.websiteUrl,
+            purpose: "direct-source-recovery",
+            sourceType: "public-page",
+            status: "failed",
+            found: 0,
+            message: safeMessage(cause),
+          });
+        }
+      }
+      if (!discovery.jobs.length) {
+        const webSearch = await searchCompanyJobSources(scanTarget, {
+          openAiKey: process.env.OPENAI_API_KEY,
+          geminiKey: process.env.GEMINI_API_KEY,
+        });
+        discovery.attempts.push({
+          url: "",
+          purpose: "company-name-web-search",
+          sourceType: webSearch.provider === "google" ? "gemini-google-search" : webSearch.provider === "openai" ? "openai-web-search" : "provider-web-search",
+          status: webSearch.status === "completed" ? "completed" : "failed",
+          found: webSearch.sources.length,
+          message: webSearch.message,
+        });
+        if (webSearch.sources.length) {
+          const citedDirectJobs = webSearch.sources.map((source) => ({
+            title: source.title,
+            company: monitor.company,
+            location: "",
+            description: "",
+            sourceUrl: source.url,
+            sourceType: webSearch.provider === "google" ? "gemini-google-search" : "openai-web-search",
+            datePosted: "",
+          })).filter(isPlausibleRadarJob);
+          const directlyReadableSources = webSearch.sources
+            .map((source) => source.url)
+            .filter((sourceUrl) => !/\b(?:linkedin|indeed)\.com\b/i.test(sourceUrl));
+          let webDiscovery: Awaited<ReturnType<typeof discoverTargetJobsDetailed>> = { jobs: [], attempts: [], recommendedCareersUrl: "" };
+          if (directlyReadableSources.length) {
+            try {
+              webDiscovery = await discoverTargetJobsDetailed({
+                ...scanTarget,
+                careersUrl: "",
+                websiteUrl: "",
+                referenceUrl: "",
+                searchUrls: directlyReadableSources,
+              });
+            } catch (cause) {
+              discovery.attempts.push({
+                url: "",
+                purpose: "public-web-validation",
+                sourceType: "provider-web-search",
+                status: "failed",
+                found: 0,
+                message: safeMessage(cause),
+              });
+            }
+          }
+          discovery.attempts.push({
+            url: "",
+            purpose: "secondary-job-detail-recovery",
+            sourceType: webSearch.provider === "google" ? "gemini-google-search" : "openai-web-search",
+            status: citedDirectJobs.length ? "completed" : "failed",
+            found: citedDirectJobs.length,
+            message: citedDirectJobs.length
+              ? `${citedDirectJobs.length} direct public job ${citedDirectJobs.length === 1 ? "lead was" : "leads were"} retained when the official search could not be indexed.`
+              : "The public search results did not contain a valid direct job-detail URL.",
+          });
+          const combinedJobs = [...webDiscovery.jobs, ...citedDirectJobs]
+            .filter((job, index, items) => items.findIndex((candidate) => candidate.sourceUrl === job.sourceUrl) === index);
+          if (combinedJobs.length) {
+            discovery = {
+              jobs: combinedJobs,
+              attempts: [...discovery.attempts, ...webDiscovery.attempts],
+              recommendedCareersUrl: discovery.recommendedCareersUrl || webDiscovery.recommendedCareersUrl,
+            };
+          }
+        }
+      }
+      if (!discovery.jobs.length) {
+        const metaLimitation = discovery.attempts.find((attempt) => /Meta's published robots policy|does not permit automated job collection/i.test(attempt.message || ""));
+        if (metaLimitation) throw new Error(metaLimitation.message || "Meta search does not permit automated job collection.");
+      }
+      const jobs = discovery.jobs;
       const focus = monitor.focus ? monitor.focus.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) : [];
-      const profile = normalizeRadarProfile({ ...dashboard.profile, skills: [...dashboard.profile.skills, ...focus] });
-      const matches = jobs.map((job) => ({ job, match: scoreRadarOpportunity(job, profile) }))
-        .filter(({ match }) => match.passes)
+      const titles = monitor.targetPosition
+        ? [monitor.targetPosition, ...dashboard.profile.titles.filter((title) => title !== monitor.targetPosition)]
+        : dashboard.profile.titles;
+      const profile = normalizeRadarProfile({ ...dashboard.profile, titles, skills: [...dashboard.profile.skills, ...focus] });
+      const scored = jobs.map((job) => ({ job, match: scoreRadarOpportunity(job, profile) }))
         .sort((left, right) => right.match.score - left.match.score)
-        .slice(0, 100);
+        .slice(0, 150);
+      const matches = scored.filter(({ match }) => match.passes);
       let monitorAdded = 0;
+      let monitorMatchedAdded = 0;
       found += matches.length;
-      for (const { job, match } of matches) {
+      discovered += scored.length;
+      belowThreshold += scored.length - matches.length;
+      for (const { job, match } of scored) {
         const existing = await db.prepare("SELECT id FROM job_opportunities WHERE user_id = ? AND source_url = ? LIMIT 1")
           .bind(userId, job.sourceUrl).first<{ id: string }>();
         if (existing) {
@@ -190,21 +369,63 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
             .bind(crypto.randomUUID(), userId, monitor.companyId, job.title, job.location || null, job.sourceUrl, job.sourceType || "public-careers-page", match.score, match.summary, "new").run();
           added += 1;
           monitorAdded += 1;
+          if (match.passes) {
+            matchedAdded += 1;
+            monitorMatchedAdded += 1;
+          }
         }
       }
+      const savedAttempt = discovery.attempts.find((attempt) => attempt.purpose === "saved-careers");
+      const repairedSource = clean(discovery.recommendedCareersUrl, 4_000);
+      const shouldRepairSource = Boolean(repairedSource)
+        && canonicalUrl(repairedSource) !== canonicalUrl(monitor.careersUrl)
+        && (!monitor.careersUrl || !savedAttempt || savedAttempt.status === "failed" || savedAttempt.found === 0);
+      const repairStatement = shouldRepairSource
+        ? db.prepare("UPDATE companies SET careers_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+          .bind(repairedSource, monitor.companyId)
+        : null;
+      if (shouldRepairSource) repairedSources += 1;
+      const failedAttemptCount = discovery.attempts.filter((attempt) => attempt.status === "failed").length;
+      const completedSources = discovery.attempts.filter((attempt) => attempt.status === "completed").map((attempt) => attempt.sourceType);
+      const rejectedNavigationCount = discovery.attempts.reduce((total, attempt) => total + (attempt.rejected || 0), 0);
+      const secondaryLeadCount = discovery.attempts
+        .filter((attempt) => attempt.purpose === "secondary-job-detail-recovery" && attempt.status === "completed")
+        .reduce((total, attempt) => total + attempt.found, 0);
+      const sourceNote = shouldRepairSource
+        ? "V’s repaired the saved source to a working official careers page."
+        : failedAttemptCount
+          ? `${failedAttemptCount} source fallback${failedAttemptCount === 1 ? "" : "s"} failed; another source still completed.`
+          : "All attempted sources responded.";
+      const sourceCoverage = completedSources.length
+        ? `Working source${completedSources.length === 1 ? "" : "s"}: ${[...new Set(completedSources)].join(", ")}.${secondaryLeadCount ? ` ${secondaryLeadCount} direct public job ${secondaryLeadCount === 1 ? "lead was" : "leads were"} retained from a secondary board because the official search blocked indexing.` : ""}`
+        : "No working public source was identified.";
+      const statements = [
+        db.prepare("UPDATE company_monitors SET last_checked_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?").bind(monitor.id, userId),
+        db.prepare("INSERT INTO monitor_runs (id, monitor_id, run_status, found_count, change_summary) VALUES (?, ?, ?, ?, ?)")
+          .bind(runId, monitor.id, "completed", matches.length, `${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${jobs.length - matches.length} saved below threshold · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}`),
+      ];
+      if (repairStatement) statements.unshift(repairStatement);
+      await db.batch(statements);
+    } catch (cause) {
+      const message = safeMessage(cause);
+      const limited = isManualCoverageLimitation(message, monitor.careersUrl);
+      if (!limited) failures.push({ monitorId: monitor.id, company: monitor.company, message });
       await db.batch([
         db.prepare("UPDATE company_monitors SET last_checked_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?").bind(monitor.id, userId),
         db.prepare("INSERT INTO monitor_runs (id, monitor_id, run_status, found_count, change_summary) VALUES (?, ?, ?, ?, ?)")
-          .bind(runId, monitor.id, "completed", matches.length, `${matches.length} matching roles found; ${monitorAdded} new roles added for this target.`),
+          .bind(
+            runId,
+            monitor.id,
+            limited ? "limited" : "failed",
+            0,
+            limited
+              ? "Meta search does not permit automatic collection. Direct public Meta job pages and verified V’s suggestions still appear in the inbox; the monitored search URL remains saved as a reference."
+              : `Source check failed after automatic careers-page recovery: ${message}`,
+          ),
       ]);
-    } catch (cause) {
-      const message = safeMessage(cause);
-      failures.push({ monitorId: monitor.id, company: monitor.company, message });
-      await db.prepare("INSERT INTO monitor_runs (id, monitor_id, run_status, found_count, change_summary) VALUES (?, ?, ?, ?, ?)")
-        .bind(runId, monitor.id, "failed", 0, message).run();
     }
   }
-  return { checked: selected.length, found, added, failures };
+  return { checked: selected.length, found, discovered, belowThreshold, added, matchedAdded, repairedSources, failures };
 }
 
 export async function scanAllDueRadars(db: D1Database) {
@@ -242,13 +463,27 @@ function monitorFromRow(row: MonitorRow) {
     market: row.primary_market || "Bay Area / U.S.",
     notes: row.notes || "",
     focus: typeof query.focus === "string" ? query.focus : "",
+    targetPosition: typeof query.targetPosition === "string" ? query.targetPosition : "",
     referenceUrl: typeof query.referenceUrl === "string" ? query.referenceUrl : "",
     sourceKind: typeof query.sourceKind === "string" ? query.sourceKind : "",
     cadence: row.cadence === "manual" ? "manual" : row.cadence === "daily" || row.cadence === "weekly" ? "daily" : "twice_daily",
     active: Boolean(row.is_active),
     lastCheckedAt: row.last_checked_at,
     createdAt: row.created_at,
+    lastRunStatus: row.last_run_status || null,
+    lastRunFoundCount: typeof row.last_run_found_count === "number" ? row.last_run_found_count : null,
+    lastRunSummary: row.last_run_summary || "",
+    lastRunAt: row.last_run_at || null,
   };
+}
+
+function isManualCoverageLimitation(message: string, careersUrl: string) {
+  if (/Meta's published robots policy|does not permit automated job collection/i.test(message)) return true;
+  try {
+    return detectCareerSource(careersUrl).type === "meta-search";
+  } catch {
+    return false;
+  }
 }
 
 export function isMonitorDue(monitor: { cadence: string; lastCheckedAt: string | null }) {
@@ -284,7 +519,7 @@ function parseArray(value: string | null | undefined): string[] {
 }
 
 function normalizeOpportunityStatus(value: string) {
-  return ["new", "reviewing", "shortlisted", "dismissed", "applied"].includes(value) ? value : "new";
+  return ["new", "reviewing", "shortlisted", "dismissed", "applied", "archived"].includes(value) ? value : "new";
 }
 
 function clean(value: unknown, limit: number) {
@@ -297,4 +532,14 @@ function safeMessage(value: unknown) {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 500);
+}
+
+function canonicalUrl(value: unknown) {
+  try {
+    const url = new URL(String(value || ""));
+    url.hash = "";
+    return url.href.replace(/\/$/, "").toLowerCase();
+  } catch {
+    return "";
+  }
 }
