@@ -299,3 +299,231 @@ test("Gemini unavailable models fall back once to the stable compatibility model
     if (originalKey === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = originalKey;
   }
 });
+
+test("an invented metric is rejected even when its digits appear inside a cited year", async () => {
+  const originalKey = process.env.OPENAI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "test-openai-key";
+  let calls = 0;
+  // Fact 0 contains "2024"; the bullet invents "20 fictional launches". A
+  // substring check against the joined evidence used to accept it.
+  const fabricated = {
+    ...result,
+    experience: [{
+      ...result.experience[0],
+      bullets: [{ text: "Delivered 20 fictional launches across agency partners.", fact_indexes: [0, 1] }],
+    }],
+  };
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({ output_text: JSON.stringify(fabricated), usage: { input_tokens: 10, output_tokens: 20, total_tokens: 30 } });
+  };
+  try {
+    const worker = await loadWorker();
+    const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
+      method: "POST",
+      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      body: JSON.stringify(body),
+    }), env, context);
+    assert.equal(response.status, 503);
+    const data = await response.json();
+    assert.equal(data.code, "guardrail_rejected");
+    assert.equal(data.guardrailStage, "evidence");
+    // Repaired once, then rejected: the fabricated number never reaches a draft.
+    assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = originalKey;
+  }
+});
+
+test("a metric that genuinely appears in the cited evidence is still accepted", async () => {
+  const originalKey = process.env.OPENAI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "test-openai-key";
+  const supportedFacts = [...facts, "SYNTHETIC TEST FACT: Managed fictional budgets up to $250,000 for each approved sample campaign."];
+  const supported = {
+    ...result,
+    experience: [{
+      ...result.experience[0],
+      bullets: [{ text: "Managed fictional budgets up to $250,000 per campaign.", fact_indexes: [5] }],
+    }],
+  };
+  globalThis.fetch = async () => Response.json({ output_text: JSON.stringify(supported), usage: { input_tokens: 10, output_tokens: 20, total_tokens: 30 } });
+  try {
+    const worker = await loadWorker();
+    const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
+      method: "POST",
+      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      body: JSON.stringify({ ...body, approvedFacts: supportedFacts }),
+    }), env, context);
+    const data = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(data));
+    assert.match(data.result.experience[0].bullets[0].text, /\$250,000/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = originalKey;
+  }
+});
+
+test("a reasoning item's id is never mistaken for the résumé document", async () => {
+  const originalKey = process.env.OPENAI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "test-openai-key";
+  let calls = 0;
+  // A raw Responses payload with no output_text: a reasoning item precedes the
+  // message. The walker used to return "rs_68a1f" as the document.
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({
+      status: "completed",
+      output: [
+        { id: "rs_68a1f", type: "reasoning", summary: [] },
+        { id: "msg_1", type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify(result) }] },
+      ],
+      usage: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+    });
+  };
+  try {
+    const worker = await loadWorker();
+    const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
+      method: "POST",
+      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      body: JSON.stringify(body),
+    }), env, context);
+    const data = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(data));
+    assert.equal(data.result.headline, result.headline);
+    assert.equal(calls, 1, "a well-formed response must not trigger a repair pass");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = originalKey;
+  }
+});
+
+test("a response truncated at the output limit names the real cause", async () => {
+  const originalKey = process.env.OPENAI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "test-openai-key";
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({
+      status: "incomplete",
+      incomplete_details: { reason: "max_output_tokens" },
+      output: [{ id: "msg_1", type: "message", content: [{ type: "output_text", text: '{"headline":"truncated' }] }],
+      usage: { input_tokens: 10, output_tokens: 12000, total_tokens: 12010 },
+    });
+  };
+  try {
+    const worker = await loadWorker();
+    const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
+      method: "POST",
+      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      body: JSON.stringify(body),
+    }), env, context);
+    assert.equal(response.status, 503);
+    const data = await response.json();
+    assert.equal(data.code, "output_truncated");
+    assert.match(data.message, /output limit/i);
+    // No repair pass: retrying would truncate the same way.
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = originalKey;
+  }
+});
+
+test("a transient rate limit is retried before the request is failed", async () => {
+  const originalKey = process.env.ANTHROPIC_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.ANTHROPIC_API_KEY = "test-anthropic-key";
+  const calls = [];
+  globalThis.fetch = async () => {
+    calls.push(Date.now());
+    if (calls.length === 1) return Response.json({ error: { type: "rate_limit_error" } }, { status: 429, headers: { "retry-after": "1" } });
+    return Response.json({ content: [{ type: "text", text: JSON.stringify(result) }], usage: { input_tokens: 10, output_tokens: 20 } });
+  };
+  try {
+    const worker = await loadWorker();
+    const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
+      method: "POST",
+      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      body: JSON.stringify({ ...body, provider: "anthropic", modelKey: "balanced" }),
+    }), env, context);
+    const data = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(data));
+    assert.equal(data.retries, 1);
+    assert.equal(calls.length, 2);
+    assert.ok(calls[1] - calls[0] >= 900, `the retry must honor Retry-After, waited ${calls[1] - calls[0]}ms`);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = originalKey;
+  }
+});
+
+test("JSON wrapped in prose is recovered instead of failing the request", async () => {
+  const originalKey = process.env.GEMINI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.GEMINI_API_KEY = "test-gemini-key";
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({
+      candidates: [{ content: { parts: [{ text: `Here is the résumé you asked for:\n${JSON.stringify(result)}\nLet me know if you need changes.` }] } }],
+      usageMetadata: { promptTokenCount: 90, candidatesTokenCount: 150, totalTokenCount: 240 },
+    });
+  };
+  try {
+    const worker = await loadWorker();
+    const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
+      method: "POST",
+      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      body: JSON.stringify({ ...body, provider: "google", modelKey: "balanced" }),
+    }), env, context);
+    const data = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(data));
+    assert.equal(data.result.headline, result.headline);
+    assert.equal(calls, 1, "recovering the JSON must not cost a repair request");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = originalKey;
+  }
+});
+
+test("the draft report scores a thin résumé low and names what to review", async () => {
+  const originalKey = process.env.OPENAI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "test-openai-key";
+  // A minimal but valid document: cites two of five facts, one bullet, two skills.
+  // Twice the approved evidence, but the draft cites only the original five.
+  const spareFacts = [
+    ...facts,
+    "SYNTHETIC TEST FACT: Ran fictional vendor negotiations for approved sample campaigns.",
+    "SYNTHETIC TEST FACT: Built a fictional status reporting cadence for approved sample stakeholders.",
+    "SYNTHETIC TEST FACT: Mentored fictional coordinators through an approved sample onboarding plan.",
+    "SYNTHETIC TEST FACT: Introduced a fictional creative review workflow for approved sample teams.",
+    "SYNTHETIC TEST FACT: Tracked fictional production schedules for approved sample shoots.",
+  ];
+  const thin = { ...result, omissions: [] };
+  globalThis.fetch = async () => Response.json({ output_text: JSON.stringify(thin), usage: { input_tokens: 10, output_tokens: 20, total_tokens: 30 } });
+  try {
+    const worker = await loadWorker();
+    const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
+      method: "POST",
+      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      body: JSON.stringify({ ...body, approvedFacts: spareFacts }),
+    }), env, context);
+    const data = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(data));
+    // The old scorer started at 62 and only added, so a thin draft still read as solid.
+    assert.ok(data.quality.score < 62, `a thin résumé must be able to score low, got ${data.quality.score}`);
+    assert.ok(data.quality.evidenceUsed < data.quality.evidenceAvailable);
+    assert.ok(data.quality.checks.some((note) => /approved facts were not cited/i.test(note)), JSON.stringify(data.quality.checks));
+    assert.ok(data.quality.checks.some((note) => /core capabilit/i.test(note)));
+    assert.equal(data.quality.playbookEvaluated, body.userRules.length);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = originalKey;
+  }
+});
