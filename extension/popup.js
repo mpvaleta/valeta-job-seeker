@@ -34,18 +34,33 @@ function showScan(response) {
   results.innerHTML = "";
   const summary = document.createElement("div");
   summary.className = "summary";
-  summary.innerHTML = `<strong>${response.platform}</strong><span>${response.fillable} ready · ${response.review} review · ${response.unknown} unmapped</span>`;
+  const strong = document.createElement("strong");
+  strong.textContent = response.platform;
+  const span = document.createElement("span");
+  span.textContent = `${response.fillable} ready · ${response.review} review · ${response.unknown} unmapped`;
+  summary.append(strong, span);
   results.append(summary);
-  response.fields.slice(0, 12).forEach((field) => {
+
+  // Every field the user still has to handle is listed. Truncating silently
+  // made a partial list read as the whole form.
+  response.fields.forEach((field) => {
     const row = document.createElement("div");
     row.className = `field ${field.status}`;
     const label = document.createElement("span");
     label.textContent = field.label;
+    label.title = field.reason || "";
     const badge = document.createElement("b");
     badge.textContent = field.status === "fillable" ? "Ready" : field.status === "review" ? "Review" : "Unmapped";
     row.append(label, badge);
     results.append(row);
   });
+
+  if (response.hiddenFieldCount > 0) {
+    const note = document.createElement("div");
+    note.className = "field unknown";
+    note.textContent = `${response.hiddenFieldCount} more field${response.hiddenFieldCount === 1 ? "" : "s"} on this page are not listed here — review the page itself before submitting.`;
+    results.append(note);
+  }
   fillButton.disabled = response.fillable === 0;
 }
 
@@ -81,8 +96,8 @@ fillButton.addEventListener("click", async () => {
     showPackageMeta(value);
     const tab = await activeTab();
     const response = await chrome.tabs.sendMessage(tab.id, { type: "VALETA_FILL", payload: value });
-    showScan({ ...response, fillable: 0 });
-    status.textContent = `${response.filled} approved fields filled. ${response.review} fields still need review. Nothing submitted.`;
+    showScan(response);
+    status.textContent = `${response.filled} approved ${response.filled === 1 ? "field" : "fields"} filled. ${response.review} still need your review and ${response.unknown} were not recognized. Nothing was submitted.`;
     fillButton.disabled = true;
   } catch {
     status.textContent = "Could not fill this page. Refresh it, scan again, and review the highlighted fields.";

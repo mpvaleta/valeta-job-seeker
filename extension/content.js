@@ -1,17 +1,4 @@
-const sensitive = /salary|compensation|pay expectation|authorization|sponsor|visa|gender|pronoun|race|ethnicity|veteran|disability|criminal|legal|ssn|social security|birth|age|marital|citizen/i;
-
-const rules = [
-  { key: "firstName", match: /first.?name|given.?name/i, get: (data) => data.profile.fullName?.trim().split(/\s+/)[0] },
-  { key: "lastName", match: /last.?name|family.?name|surname/i, get: (data) => data.profile.fullName?.trim().split(/\s+/).slice(1).join(" ") },
-  { key: "fullName", match: /full.?name|your.?name|candidate.?name/i, get: (data) => data.profile.fullName },
-  { key: "email", match: /e.?mail/i, get: (data) => data.profile.email },
-  { key: "phone", match: /phone|mobile|telephone/i, get: (data) => data.profile.phone },
-  { key: "location", match: /(?:city|current.?location|your.?location|where.*located)/i, get: (data) => data.profile.location },
-  { key: "linkedin", match: /linkedin/i, get: (data) => data.profile.linkedin },
-  { key: "headline", match: /headline|professional.?title/i, get: (data) => data.answers.headline },
-  { key: "summary", match: /about.?you|summary|background|tell.?us.?about|professional.?profile/i, get: (data) => data.answers.summary },
-  { key: "interest", match: /why.*(role|position|company)|interest.*(role|position|company)/i, get: (data) => data.answers.interest },
-];
+const { SENSITIVE: sensitive, RULES: rules, decideField } = globalThis.VJobsAutofill;
 
 function platformName() {
   const host = location.hostname.toLowerCase();
@@ -24,18 +11,49 @@ function platformName() {
   return "Application page";
 }
 
-function descriptor(field) {
-  const labels = field.labels ? [...field.labels].map((label) => label.innerText) : [];
-  const directLabel = field.closest("label")?.innerText?.slice(0, 180) || "";
+// The field's own labelling. Only this may trigger a fill.
+function strongLabel(field) {
+  const ownLabels = field.labels ? [...field.labels].map((label) => label.innerText) : [];
+  return [field.name, field.id, field.placeholder, field.getAttribute("aria-label"), ...ownLabels]
+    .filter(Boolean).join(" ").replace(/\s+/g, " ").trim().slice(0, 300);
+}
+
+// Ambient context: a section heading referenced by aria-labelledby, or an
+// enclosing label block. On ATS forms one of these routinely covers several
+// inputs, so it informs review but never a fill.
+function weakLabel(field) {
   const labelledBy = (field.getAttribute("aria-labelledby") || "")
-    .split(/\s+/)
-    .map((id) => document.getElementById(id)?.innerText || "")
-    .filter(Boolean);
-  return [field.name, field.id, field.placeholder, field.getAttribute("aria-label"), ...labels, ...labelledBy, directLabel]
-    .filter(Boolean)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
+    .split(/\s+/).map((id) => document.getElementById(id)?.innerText || "").filter(Boolean);
+  const enclosing = field.closest("label")?.innerText?.slice(0, 180) || "";
+  const fieldset = field.closest("fieldset")?.querySelector("legend")?.innerText || "";
+  return [...labelledBy, enclosing, fieldset].filter(Boolean).join(" ").replace(/\s+/g, " ").trim().slice(0, 300);
+}
+
+function descriptor(field) {
+  return `${strongLabel(field)} ${weakLabel(field)}`.replace(/\s+/g, " ").trim();
+}
+
+/*
+ * Whether the page already carries an answer.
+ *
+ * Reading `field.value` for this was wrong for two whole control families: an
+ * unchecked checkbox still reports "on", and an untouched dropdown reports its
+ * placeholder option. Both were therefore classified as already answered and
+ * dropped from the preview, so the fields most likely to need attention were
+ * the ones the user never saw.
+ */
+function isAnswered(field) {
+  const type = (field.getAttribute("type") || "").toLowerCase();
+  if (type === "checkbox" || type === "radio") return field.checked;
+  if (field.tagName === "SELECT") {
+    const option = field.selectedOptions?.[0];
+    if (!option) return false;
+    const text = `${option.value} ${option.textContent || ""}`.trim();
+    // Placeholder rows carry no answer: "", "Select...", "-- Choose --".
+    return Boolean(text) && !/^[\s-]*$/.test(text) && !/^(?:--|\u2014)?\s*(?:please\s+)?(?:select|choose|pick|none)\b/i.test(text.trim());
+  }
+  if (type === "file") return Boolean(field.files?.length);
+  return Boolean(field.value);
 }
 
 function shortLabel(value, fallback) {
@@ -54,64 +72,56 @@ function clearMarks() {
     delete field.dataset.valetaState;
     delete field.dataset.valetaReview;
     delete field.dataset.valetaFilled;
+    delete field.dataset.valetaRule;
+    delete field.dataset.valetaIndex;
   });
 }
 
 function scan(data, mark = true) {
   clearMarks();
   const fields = [];
-  let fillable = 0;
-  let review = 0;
-  let unknown = 0;
+  const counts = { fillable: 0, review: 0, unknown: 0, existing: 0 };
 
   candidateFields().forEach((field, index) => {
-    const label = descriptor(field);
+    const strong = strongLabel(field);
+    const weak = weakLabel(field);
     const fallback = field.name || field.id || `${field.tagName.toLowerCase()} ${index + 1}`;
-    const type = (field.getAttribute("type") || field.tagName).toLowerCase();
-    let status = "unknown";
-    let reason = "No approved mapping";
-    let ruleKey = null;
+    const decision = decideField({
+      strong,
+      weak,
+      type: (field.getAttribute("type") || field.tagName).toLowerCase(),
+      tag: field.tagName,
+      answered: isAnswered(field),
+    }, data);
 
-    if (field.value) {
-      status = "existing";
-      reason = "Already has a value";
-    } else if (type === "file") {
-      status = "review";
-      reason = data.resume?.title ? `Upload selected résumé manually: ${data.resume.title}` : "Upload résumé manually";
-    } else if (["number", "range", "date", "time", "month", "week", "checkbox", "radio", "color"].includes(type)) {
-      status = "review";
-      reason = "Controlled field — confirm the exact option or value";
-    } else if (sensitive.test(label)) {
-      status = "review";
-      reason = "Sensitive answer — complete personally";
-    } else if (field.tagName === "SELECT") {
-      status = "review";
-      reason = "Dropdown — confirm the exact option";
-    } else {
-      const rule = rules.find((item) => item.match.test(label));
-      const value = rule?.get(data);
-      if (rule && value && !field.value) {
-        status = "fillable";
-        reason = "Approved profile match";
-        ruleKey = rule.key;
-      }
-    }
-
-    if (status === "fillable") fillable += 1;
-    else if (status === "review") review += 1;
-    else if (status === "unknown") unknown += 1;
-
+    counts[decision.status] = (counts[decision.status] || 0) + 1;
     field.dataset.valetaIndex = String(index);
-    field.dataset.valetaState = status;
-    if (mark && status === "fillable") field.style.outline = "3px dashed #3155ff";
-    if (mark && status === "review") {
+    field.dataset.valetaState = decision.status;
+    if (decision.ruleKey) field.dataset.valetaRule = decision.ruleKey;
+    if (mark && decision.status === "fillable") field.style.outline = "3px dashed #3155ff";
+    if (mark && decision.status === "review") {
       field.style.outline = "3px solid #ff9e36";
-      field.dataset.valetaReview = reason;
+      field.dataset.valetaReview = decision.reason;
     }
-    if (status !== "existing") fields.push({ index, label: shortLabel(label, fallback), status, reason, ruleKey });
+    // Everything the user still has to deal with is reported, including the
+    // dropdowns and checkboxes an earlier build hid as "already answered".
+    if (decision.status !== "existing") {
+      fields.push({ index, label: shortLabel(strong || weak, fallback), status: decision.status, reason: decision.reason, ruleKey: decision.ruleKey, confidence: decision.confidence });
+    }
   });
 
-  return { platform: platformName(), title: document.title, fillable, review, unknown, fields: fields.slice(0, 30) };
+  const reported = fields.slice(0, 60);
+  return {
+    platform: platformName(),
+    title: document.title,
+    fillable: counts.fillable,
+    review: counts.review,
+    unknown: counts.unknown,
+    existing: counts.existing,
+    fields: reported,
+    // Say so rather than letting a truncated list read as the whole form.
+    hiddenFieldCount: fields.length - reported.length,
+  };
 }
 
 function setFieldValue(field, value) {
@@ -132,9 +142,10 @@ function fill(data) {
   let filled = 0;
   candidateFields().forEach((field) => {
     if (field.dataset.valetaState !== "fillable") return;
-    const label = descriptor(field);
-    const rule = rules.find((item) => item.match.test(label));
-    const value = rule?.get(data);
+    // Reuse the rule the scan settled on, so the preview the user approved and
+    // the value actually written can never come from different rules.
+    const rule = rules.find((item) => item.key === field.dataset.valetaRule);
+    const value = rule?.read(data);
     if (!value) return;
     setFieldValue(field, value);
     field.style.outline = "3px solid #3155ff";
@@ -142,7 +153,7 @@ function fill(data) {
     field.dataset.valetaState = "filled";
     filled += 1;
   });
-  return { ...before, filled };
+  return { ...before, filled, fillable: 0 };
 }
 
 function captureVisibleRole() {

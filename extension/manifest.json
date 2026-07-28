@@ -1,9 +1,27 @@
 {
   "manifest_version": 3,
   "name": "V's Application Autofill",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Capture visible job pages and preview approved job-application fields. Never submits forms.",
-  "permissions": ["activeTab", "storage", "scripting"],
-  "action": { "default_popup": "popup.html", "default_title": "V's Autofill" },
-  "content_scripts": [{ "matches": ["https://*/*"], "js": ["content.js"], "run_at": "document_idle" }]
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "V's Autofill"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*"
+      ],
+      "js": [
+        "autofill-mapping.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
 }
