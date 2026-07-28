@@ -16,7 +16,7 @@ export type RadarOpportunity = {
   location: string;
   sourceUrl: string;
   sourceType: string;
-  origin: "monitored" | "v-watch" | "imported";
+  origin: "monitored" | "v-watch" | "imported" | "linkedin-saved";
   importedByUser?: boolean;
   targetPosition: string;
   fitScore: number;
@@ -83,7 +83,10 @@ type RadarLinkPayload = {
   source?: { finalUrl: string; title: string; links?: Array<{ href: string; label: string }> };
 };
 
+type SavedLinkedInJob = { title: string; company: string; url: string; savedAt: string };
+
 type Props = {
+  savedLinkedInJobs?: SavedLinkedInJob[];
   onPrepare: (opportunity: RadarOpportunity) => void | Promise<void>;
   onNotice: (message: string) => void;
   onError: (code: string, message: unknown, context?: Record<string, string | number | boolean>) => void;
@@ -115,7 +118,7 @@ const TARGET_TYPES = [
 const REFERENCE_SOURCES = ["None", "LinkedIn", "Indeed", "Glassdoor", "Other job board"];
 const initialDraft = profileToDraft(DEFAULT_RADAR_PROFILE);
 
-export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
+export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, onError }: Props) {
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(initialDraft);
   const [monitors, setMonitors] = useState<RadarMonitor[]>([]);
   const [opportunities, setOpportunities] = useState<RadarOpportunity[]>([]);
@@ -132,7 +135,7 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
   const [trackFilter, setTrackFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
-  const [originFilter, setOriginFilter] = useState<"all" | "monitored" | "v-watch" | "imported">("all");
+  const [originFilter, setOriginFilter] = useState<"all" | "monitored" | "v-watch" | "imported" | "linkedin-saved">("all");
   const [importLinks, setImportLinks] = useState("");
   const [targetFilter, setTargetFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
@@ -293,6 +296,14 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
       : `No role could be read from ${failed === 1 ? "that link" : "those links"}. ${result.failures?.[0]?.message || ""}`);
   }
 
+  async function importSavedLinkedInJobs() {
+    if (!savedLinkedInJobs.length) { onNotice("No saved jobs were found in your LinkedIn export. Import the official ZIP in Knowledge sources first."); return; }
+    const data = await mutate({ action: "import_linkedin_saved_jobs", rows: savedLinkedInJobs }, "import-linkedin", `Filing ${savedLinkedInJobs.length} saved LinkedIn ${savedLinkedInJobs.length === 1 ? "role" : "roles"} from your official export. No LinkedIn page is opened…`);
+    if (!data) return;
+    const result = data.result || {};
+    onNotice(`${result.added || 0} saved LinkedIn ${result.added === 1 ? "role" : "roles"} added${result.updated ? ` · ${result.updated} refreshed` : ""}. Each is scored from the exported title and company only — open the role to read the full description.`);
+  }
+
   async function updateMonitor(monitorId: string, patch: Record<string, unknown>) {
     await mutate({ action: "update_monitor", monitorId, patch }, `monitor-${monitorId}`, "Updating this radar target…");
   }
@@ -392,6 +403,10 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
           <button className="primary" onClick={importJobLinks} disabled={Boolean(busy) || !importLinks.trim()}>{busy === "import-links" ? "Reading job pages…" : "Import these roles"}</button>
           <small>Works for any public job-details page. A LinkedIn link cannot be read — open it, copy the description, and use Role workspace instead.</small>
         </div>
+        <div className="radar-linkedin-bridge">
+          <div><strong>{savedLinkedInJobs.length ? `${savedLinkedInJobs.length} saved ${savedLinkedInJobs.length === 1 ? "job" : "jobs"} found in your LinkedIn export` : "Bring in your saved LinkedIn jobs"}</strong><span>{savedLinkedInJobs.length ? "These come from the official archive you already imported. V\u2019s files them here using only the title, company, and link LinkedIn exported \u2014 it never opens a LinkedIn page." : "LinkedIn does not allow automated reading, and its sign-in grants no job access. Request your official data export, import the ZIP in Knowledge sources, and your saved jobs appear here."}</span></div>
+          <button onClick={importSavedLinkedInJobs} disabled={Boolean(busy) || !savedLinkedInJobs.length}>{busy === "import-linkedin" ? "Filing saved roles\u2026" : "Add saved LinkedIn roles"}</button>
+        </div>
       </div>
     </section>
 
@@ -400,13 +415,13 @@ export function RadarWorkspace({ onPrepare, onNotice, onError }: Props) {
       <div className="radar-inbox-controls">
         <div className="radar-filters" aria-label="Alignment filter">{([["all",`All alignment (${opportunities.length})`],["matching",`Matching (${matchingCount})`],["below",`Below threshold (${belowThresholdCount})`]] as const).map(([id, label]) => <button key={id} className={alignmentFilter === id ? "selected" : ""} onClick={() => setAlignmentFilter(id)}>{label}</button>)}</div>
         <label>Company<select value={companyFilter} onChange={(event) => setCompanyFilter(event.target.value)}><option value="all">All companies</option>{companyOptions.map((companyName) => <option key={companyName} value={companyName}>{companyName}</option>)}</select></label>
-        <label>Found by<select value={originFilter} onChange={(event) => setOriginFilter(event.target.value as "all" | "monitored" | "v-watch" | "imported")}><option value="all">All discovery sources</option><option value="monitored">Companies I monitor</option><option value="v-watch">Suggested by V’s</option><option value="imported">Imported by me</option></select></label>
+        <label>Found by<select value={originFilter} onChange={(event) => setOriginFilter(event.target.value as "all" | "monitored" | "v-watch" | "imported" | "linkedin-saved")}><option value="all">All discovery sources</option><option value="monitored">Companies I monitor</option><option value="v-watch">Suggested by V’s</option><option value="imported">Imported by me</option><option value="linkedin-saved">Saved on LinkedIn</option></select></label>
         <label>Target position<select value={targetFilter} onChange={(event) => setTargetFilter(event.target.value)}><option value="all">All target positions</option>{targetOptions.map((target) => <option key={target} value={target}>{target}</option>)}</select></label>
         <label>Location<select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}><option value="all">All locations</option>{locationOptions.map((location) => <option key={location} value={location}>{location}</option>)}</select></label>
         <label>Career trail<select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}><option value="all">All trails</option>{RADAR_TRACKS.map((track) => <option key={track.id} value={track.id}>{track.label}</option>)}</select></label>
         <label>Company type<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All company types</option>{RADAR_COMPANY_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
       </div>
-      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : opportunity.origin === "imported" ? "imported" : "monitored"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : opportunity.origin === "imported" ? "Imported by you" : "Company you monitor"}</em>{!opportunity.alignmentPasses && <em className="below">Below {profileDraft.minScore}% threshold</em>}</div><p>{opportunity.fitSummary}</p><small>{opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : opportunity.origin === "imported" ? "Imported from a link you provided" : "Found from a monitored company"} · found {compactDate(opportunity.discoveredAt)} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button onClick={() => updateOpportunity(opportunity, "dismissed")}>Dismiss</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}{(opportunity.status === "dismissed" || opportunity.status === "archived") && <button onClick={() => updateOpportunity(opportunity, "reviewing")}>Restore</button>}</div></article>)}</div>}
+      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : opportunity.origin === "monitored" ? "monitored" : "imported"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : opportunity.origin === "imported" ? "Imported by you" : opportunity.origin === "linkedin-saved" ? "Saved on LinkedIn" : "Company you monitor"}</em>{!opportunity.alignmentPasses && <em className="below">Below {profileDraft.minScore}% threshold</em>}</div><p>{opportunity.fitSummary}</p><small>{opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : opportunity.origin === "imported" ? "Imported from a link you provided" : opportunity.origin === "linkedin-saved" ? "From your official LinkedIn saved-jobs export" : "Found from a monitored company"} · found {compactDate(opportunity.discoveredAt)} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button onClick={() => updateOpportunity(opportunity, "dismissed")}>Dismiss</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}{(opportunity.status === "dismissed" || opportunity.status === "archived") && <button onClick={() => updateOpportunity(opportunity, "reviewing")}>Restore</button>}</div></article>)}</div>}
     </section>
   </section>;
 }

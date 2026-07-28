@@ -107,7 +107,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     const fitScore = row.fit_score ?? 0;
     const exclusionHit = /review exclusion:/i.test(row.fit_summary || "");
     const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
-    const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : "monitored";
+    const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : row.source_type === "linkedin-saved" ? "linkedin-saved" : "monitored";
     return {
       id: row.id,
       companyId: row.company_id,
@@ -125,7 +125,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
         : classification.trackLabel,
       // An imported role came from a page the user opened themselves, so its
       // employer may never have been reachable by an automated scan.
-      importedByUser: origin === "imported",
+      importedByUser: origin === "imported" || origin === "linkedin-saved",
       fitScore,
       fitSummary: row.fit_summary || "No fit summary available.",
       alignmentPasses: fitScore >= profile.minScore && !exclusionHit,
@@ -287,6 +287,55 @@ export async function importRadarOpportunities(db: D1Database, userId: string, u
   }
 
   return { checked: unique.length, imported, failures };
+}
+
+/*
+ * File saved jobs from the user's own official LinkedIn export.
+ *
+ * No page is fetched: LinkedIn forbids automated reading of job pages, and the
+ * archive already carries the title, company, and link. The row is therefore
+ * treated as the user's own record of a role, scored on the text they exported.
+ */
+export async function importLinkedInSavedJobs(
+  db: D1Database,
+  userId: string,
+  rows: Array<{ title: string; company: string; url: string; savedAt?: string }>,
+) {
+  const dashboard = await readRadarDashboard(db, userId);
+  let added = 0;
+  let updated = 0;
+  const skipped: string[] = [];
+
+  for (const row of rows.slice(0, 200)) {
+    const title = clean(row?.title, 240);
+    const url = clean(row?.url, 4_000);
+    if (!title || !/^https?:\/\//i.test(url)) { skipped.push(title || url || "unnamed row"); continue; }
+    const companyName = clean(row?.company, 180) || "Saved on LinkedIn";
+    let company = await db.prepare("SELECT id FROM companies WHERE lower(name) = lower(?) LIMIT 1").bind(companyName).first<{ id: string }>();
+    if (!company) {
+      company = { id: crypto.randomUUID() };
+      const classification = classifyRadarOpportunity({ company: companyName, title });
+      await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
+        .bind(company.id, companyName, classification.companyCategory, "United States", "Added from your LinkedIn saved jobs export").run();
+    }
+    // Only the exported title and company are available, so the score reflects
+    // that limited text rather than a full description.
+    const match = scoreRadarOpportunity({ title, company: companyName, location: "", description: "" }, dashboard.profile);
+    const summary = `${match.summary} · Scored from your LinkedIn export's title and company only — open the role to review the full description.`;
+    const existing = await db.prepare("SELECT id FROM job_opportunities WHERE user_id = ? AND source_url = ? LIMIT 1")
+      .bind(userId, url).first<{ id: string }>();
+    if (existing) {
+      await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+        .bind(company.id, title, "linkedin-saved", match.score, summary, existing.id, userId).run();
+      updated += 1;
+      continue;
+    }
+    await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(crypto.randomUUID(), userId, company.id, title, null, url, "linkedin-saved", match.score, summary, "new").run();
+    added += 1;
+  }
+
+  return { checked: rows.length, added, updated, skipped: skipped.slice(0, 10) };
 }
 
 function companyFromUrl(value: string) {

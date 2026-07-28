@@ -5,6 +5,7 @@ import {
   deleteRadarMonitor,
   ensureRadarUser,
   importJobWatchBatch,
+  importLinkedInSavedJobs,
   importRadarOpportunities,
   readRadarDashboard,
   saveRadarProfile,
@@ -120,6 +121,20 @@ export async function POST(request: Request) {
       }
       if (!urls.length) return error(400, "invalid_request", "None of those links could be read as a public job page.");
       result = await importRadarOpportunities(db, user.id, urls);
+    } else if (action === "import_linkedin_saved_jobs") {
+      // Rows come from the user's own official LinkedIn export and are used as
+      // exported; no LinkedIn page is fetched, so no scan budget is consumed.
+      const rows = Array.isArray(input.rows) ? input.rows : [];
+      if (!rows.length) return error(400, "invalid_request", "No saved jobs were found in that LinkedIn export.");
+      result = await importLinkedInSavedJobs(db, user.id, rows.slice(0, 200).map((row) => {
+        const entry = object(row);
+        return {
+          title: optionalText(entry.title, 240),
+          company: optionalText(entry.company, 180),
+          url: optionalText(entry.url, 4_000),
+          savedAt: optionalText(entry.savedAt, 40),
+        };
+      }));
     } else {
       return error(400, "invalid_action", "Choose a valid radar action.");
     }

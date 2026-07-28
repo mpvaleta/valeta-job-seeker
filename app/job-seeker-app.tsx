@@ -5,7 +5,7 @@ import { analyzeRole } from "@/lib/recommendation-engine.mjs";
 import { classifyKnowledgeSource, mergeWritingSample, scopeForCategory, sourceScope, sourceScopeDescription, sourceScopeLabel, SOURCE_CATEGORIES } from "@/lib/knowledge-sources.mjs";
 import { CURATED_RESUME_PLAYBOOK } from "@/lib/resume-playbook.mjs";
 import { readJsonResponse } from "@/lib/http-json.mjs";
-import { extractLinkedInArchive } from "@/lib/linkedin-archive.mjs";
+import { extractLinkedInArchive, extractLinkedInSavedJobs } from "@/lib/linkedin-archive.mjs";
 import { parseResumeText, proseToHtml, resumeToHtml } from "@/lib/resume-document.mjs";
 import { cleanWritingSamples, deriveWritingVoice } from "@/lib/writing-voice.mjs";
 import { buildLocalResume } from "@/lib/local-resume.mjs";
@@ -458,6 +458,15 @@ export function JobSeekerApp() {
     guidance: documents.filter((document) => sourceScope(document) === "guidance").length,
     research: documents.filter((document) => sourceScope(document) === "research").length,
   }), [documents]);
+  // LinkedIn blocks automated job-page reading and OpenID grants no job access,
+  // so the user's own official export is the only compliant source for their
+  // saved LinkedIn roles.
+  const linkedInSavedJobs = useMemo(
+    () => documents
+      .filter((document) => document.type === "Official LinkedIn ZIP export" && sourceScope(document) === "research")
+      .flatMap((document) => extractLinkedInSavedJobs(document.text)),
+    [documents],
+  );
   const learnedVoice = useMemo(() => deriveWritingVoice(writingStyle.samples), [writingStyle.samples]);
   const cleanedVoice = useMemo(() => cleanWritingSamples(writingStyle.samples), [writingStyle.samples]);
   const rawUserPlaybookRules = useMemo(() => documents.filter((document) => sourceScope(document) === "guidance").flatMap((document) => document.approved), [documents]);
@@ -1343,7 +1352,7 @@ export function JobSeekerApp() {
           </section>
         </div>}
 
-        {view === "radar" && <RadarWorkspace onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
+        {view === "radar" && <RadarWorkspace savedLinkedInJobs={linkedInSavedJobs} onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
 
         {view === "ai" && <section className="ai-reliability">
           <div className="ai-status-card">

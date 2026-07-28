@@ -404,6 +404,50 @@ test("importing rejects a LinkedIn link and a Meta search URL with actionable gu
   }
 });
 
+test("saved LinkedIn jobs enter the inbox from the official export without fetching LinkedIn", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  let fetched = 0;
+  globalThis.fetch = async (url) => { fetched += 1; throw new Error(`No page should be fetched, but got ${url}`); };
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+
+    const imported = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_linkedin_saved_jobs", rows: [
+        { title: "Creative Operations Manager", company: "Meta", url: "https://www.linkedin.com/jobs/view/222", savedAt: "2026-07-19" },
+        { title: "Producer, Brand Studio", company: "Northwind Agency", url: "https://www.linkedin.com/jobs/view/111", savedAt: "2026-07-18" },
+      ] }),
+    }), env, context);
+    const data = await imported.json();
+    assert.equal(imported.status, 200);
+    assert.equal(data.result.added, 2);
+    assert.equal(fetched, 0, "importing an official export must not open any LinkedIn page");
+
+    const role = data.opportunities.find((item) => item.title === "Creative Operations Manager");
+    assert.ok(role, "saved LinkedIn roles must be visible in the inbox");
+    assert.equal(role.origin, "linkedin-saved");
+    assert.equal(role.company, "Meta");
+    // The score is honest about resting on title and company alone.
+    assert.match(role.fitSummary, /title and company only/i);
+
+    const again = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_linkedin_saved_jobs", rows: [
+        { title: "Creative Operations Manager", company: "Meta", url: "https://www.linkedin.com/jobs/view/222", savedAt: "2026-07-19" },
+      ] }),
+    }), env, context);
+    const againData = await again.json();
+    assert.equal(againData.result.added, 0);
+    assert.equal(againData.result.updated, 1);
+    assert.equal(againData.opportunities.filter((item) => item.title === "Creative Operations Manager").length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
 test("V’s Job Watch import is idempotent and preserves the user’s opportunity decision", async () => {
   const { mf, db } = await createDatabase();
   const worker = await loadWorker();
