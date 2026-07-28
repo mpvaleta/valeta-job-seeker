@@ -309,6 +309,101 @@ test("background cron route requires the scheduler secret and labels runs as bac
   }
 });
 
+// Meta's robots policy forbids collecting its job search, but a person may
+// open a role and hand V's the job-details link. That user-directed import is
+// the supported path for every employer an automated scan cannot reach.
+test("a blocked employer's role enters the inbox through a user-supplied job link", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+
+    globalThis.fetch = async (url) => {
+      if (String(url).includes("metacareers.com/profile/job_details/")) {
+        return new Response(`<html><head><title>Creative Operations Manager | Meta Careers</title>
+          <script type="application/ld+json">${JSON.stringify({
+            "@type": "JobPosting",
+            title: "Creative Operations Manager",
+            hiringOrganization: { name: "Meta" },
+            jobLocation: { address: { addressLocality: "Menlo Park", addressRegion: "CA" } },
+            description: "<p>Lead integrated production and brand programs across cross-functional teams, managing budgets, vendors, and campaign delivery.</p>",
+            url: "https://www.metacareers.com/profile/job_details/1234567890/",
+            datePosted: "2026-07-20",
+          })}</script></head><body>Role details</body></html>`, { headers: { "content-type": "text/html" } });
+      }
+      throw new Error(`Unexpected URL ${url}`);
+    };
+
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "save_profile", profile: {
+        titles: ["Creative Operations Manager"],
+        skills: ["integrated production", "brand programs"],
+        locations: ["Menlo Park"],
+        workModes: ["Hybrid"],
+        goals: "Lead creative delivery.",
+        exclusions: [],
+        minScore: 40,
+      } }),
+    }), env, context);
+
+    const imported = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_job_links", links: ["https://www.metacareers.com/profile/job_details/1234567890/"] }),
+    }), env, context);
+    const data = await imported.json();
+    assert.equal(imported.status, 200);
+    assert.equal(data.result.imported.length, 1, JSON.stringify(data.result));
+    assert.equal(data.result.imported[0].title, "Creative Operations Manager");
+    assert.equal(data.result.imported[0].company, "Meta");
+
+    const role = data.opportunities.find((item) => item.title === "Creative Operations Manager");
+    assert.ok(role, "the imported role must appear in the discovery inbox");
+    assert.equal(role.origin, "imported");
+    assert.equal(role.company, "Meta");
+    assert.ok(role.fitScore > 0, "an imported role is scored like a discovered one");
+
+    // Re-importing the same link updates rather than duplicating.
+    const again = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_job_links", links: ["https://www.metacareers.com/profile/job_details/1234567890/"] }),
+    }), env, context);
+    const againData = await again.json();
+    assert.equal(againData.result.imported[0].status, "updated");
+    assert.equal(againData.opportunities.filter((item) => item.title === "Creative Operations Manager").length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
+test("importing rejects a LinkedIn link and a Meta search URL with actionable guidance", async () => {
+  const { mf, db } = await createDatabase();
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+
+    const linkedin = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_job_links", links: ["https://www.linkedin.com/jobs/view/1234567890"] }),
+    }), env, context);
+    assert.equal(linkedin.status, 422);
+    assert.match((await linkedin.json()).message, /LinkedIn/i);
+
+    const search = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_job_links", links: ["https://www.metacareers.com/jobsearch/"] }),
+    }), env, context);
+    const searchData = await search.json();
+    assert.equal(search.status, 200);
+    assert.equal(searchData.result.imported.length, 0);
+    assert.match(searchData.result.failures[0].message, /job-details link/i);
+  } finally {
+    await mf.dispose();
+  }
+});
+
 test("V’s Job Watch import is idempotent and preserves the user’s opportunity decision", async () => {
   const { mf, db } = await createDatabase();
   const worker = await loadWorker();

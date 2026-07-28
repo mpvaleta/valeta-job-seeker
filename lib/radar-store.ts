@@ -1,4 +1,4 @@
-import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, scoreRadarOpportunity } from "./radar.mjs";
+import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import type { RadarProfile } from "./radar.mjs";
@@ -107,7 +107,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     const fitScore = row.fit_score ?? 0;
     const exclusionHit = /review exclusion:/i.test(row.fit_summary || "");
     const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
-    const origin = row.source_type === "v-watch" ? "v-watch" : "monitored";
+    const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : "monitored";
     return {
       id: row.id,
       companyId: row.company_id,
@@ -123,6 +123,9 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
       targetPosition: origin === "monitored"
         ? monitor?.targetPosition || classification.trackLabel
         : classification.trackLabel,
+      // An imported role came from a page the user opened themselves, so its
+      // employer may never have been reachable by an automated scan.
+      importedByUser: origin === "imported",
       fitScore,
       fitSummary: row.fit_summary || "No fit summary available.",
       alignmentPasses: fitScore >= profile.minScore && !exclusionHit,
@@ -235,6 +238,66 @@ const SCAN_TRIGGER_LABELS: Record<RadarScanTrigger, string> = {
   catch_up: "App-open catch-up scan",
   background: "Background scheduled scan",
 };
+
+/*
+ * Import specific public job pages the user pointed V's at.
+ *
+ * This is the supported path for employers whose robots policy blocks
+ * automated collection: the user opens the role themselves and hands V's the
+ * job-details URL. Each URL is read once, on its own, with no crawling. The
+ * result is scored against the saved radar profile exactly like a discovered
+ * role and lands in the same inbox, tagged as imported.
+ */
+export async function importRadarOpportunities(db: D1Database, userId: string, urls: string[]) {
+  const dashboard = await readRadarDashboard(db, userId);
+  const unique = [...new Set(urls.map((url) => clean(url, 4_000)).filter(Boolean))].slice(0, 25);
+  const imported: Array<{ url: string; title: string; company: string; score: number; status: "added" | "updated" }> = [];
+  const failures: Array<{ url: string; message: string }> = [];
+
+  for (const url of unique) {
+    try {
+      const job = await readSingleJobPosting(url);
+      if (!isPlausibleRadarJob(job)) {
+        failures.push({ url, message: "That page does not look like a single job posting. Open the specific role and copy its job-details link." });
+        continue;
+      }
+      const companyName = job.company || companyFromUrl(url);
+      let company = await db.prepare("SELECT id FROM companies WHERE lower(name) = lower(?) LIMIT 1").bind(companyName).first<{ id: string }>();
+      if (!company) {
+        company = { id: crypto.randomUUID() };
+        const classification = classifyRadarOpportunity({ company: companyName, title: job.title, fitSummary: job.description });
+        await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
+          .bind(company.id, companyName, classification.companyCategory, "United States", "Added from an imported job link").run();
+      }
+      const match = scoreRadarOpportunity(job, dashboard.profile);
+      const existing = await db.prepare("SELECT id FROM job_opportunities WHERE user_id = ? AND source_url = ? LIMIT 1")
+        .bind(userId, job.sourceUrl).first<{ id: string }>();
+      if (existing) {
+        await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+          .bind(company.id, job.title, job.location || null, "imported", match.score, match.summary, existing.id, userId).run();
+        imported.push({ url, title: job.title, company: companyName, score: match.score, status: "updated" });
+        continue;
+      }
+      await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(crypto.randomUUID(), userId, company.id, job.title, job.location || null, job.sourceUrl, "imported", match.score, match.summary, "new").run();
+      imported.push({ url, title: job.title, company: companyName, score: match.score, status: "added" });
+    } catch (cause) {
+      failures.push({ url, message: safeMessage(cause) });
+    }
+  }
+
+  return { checked: unique.length, imported, failures };
+}
+
+function companyFromUrl(value: string) {
+  try {
+    const host = new URL(value).hostname.toLowerCase().replace(/^www\./, "").replace(/^(?:jobs|boards|job-boards|careers|apply)\./, "");
+    const label = host.split(".")[0] || host;
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  } catch {
+    return "Imported role";
+  }
+}
 
 export async function scanRadar(db: D1Database, userId: string, options: { monitorId?: string; dueOnly?: boolean; trigger?: RadarScanTrigger } = {}) {
   const triggerLabel = SCAN_TRIGGER_LABELS[options.trigger || "manual"];

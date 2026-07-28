@@ -5,6 +5,7 @@ import {
   deleteRadarMonitor,
   ensureRadarUser,
   importJobWatchBatch,
+  importRadarOpportunities,
   readRadarDashboard,
   saveRadarProfile,
   scanRadar,
@@ -106,6 +107,19 @@ export async function POST(request: Request) {
       result = { ...scan, watchBatch };
     } else if (action === "import_watch_batch") {
       result = await importJobWatchBatch(db, user.id);
+    } else if (action === "import_job_links") {
+      if (isScanRateLimited(identity.email)) return error(429, "scan_rate_limited", "Several radar reads have run recently. Wait a little before importing more links.");
+      const links = Array.isArray(input.links) ? input.links : [];
+      if (!links.length) return error(400, "invalid_request", "Paste at least one public job link.");
+      // Each link is validated the same way a saved scan source is, so a
+      // private-network address or a LinkedIn URL is rejected before any fetch.
+      const urls: string[] = [];
+      for (const link of links.slice(0, 25)) {
+        if (typeof link !== "string" || !link.trim()) continue;
+        urls.push(publicScanUrl(link.trim().slice(0, 4_000)));
+      }
+      if (!urls.length) return error(400, "invalid_request", "None of those links could be read as a public job page.");
+      result = await importRadarOpportunities(db, user.id, urls);
     } else {
       return error(400, "invalid_action", "Choose a valid radar action.");
     }
