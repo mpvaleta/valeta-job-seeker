@@ -712,14 +712,14 @@ export function JobSeekerApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobText, company, role, roleUrl, selectedTrack.id]);
 
-  const resumeRequestKey = `${jobText}\u0000${facts.join("\u0000")}\u0000${userPlaybookRules.join("\u0000")}\u0000${curatedPlaybookRules.join("\u0000")}\u0000${selectedTrack.id}\u0000${aiPreference.provider}\u0000${selectedModel?.key || aiPreference.modelKey}`;
+  const resumeRequestKey = `${jobText}\u0000${resumeFacts.join("\u0000")}\u0000${userPlaybookRules.join("\u0000")}\u0000${curatedPlaybookRules.join("\u0000")}\u0000${selectedTrack.id}\u0000${aiPreference.provider}\u0000${selectedModel?.key || aiPreference.modelKey}`;
   const currentResumeGeneration = resumeGeneration?.key === resumeRequestKey ? resumeGeneration : null;
   const localResumeDocument = useMemo(() => buildLocalResume({
-    facts,
+    facts: resumeFacts,
     roleText: `${role}\n${jobText}`,
     headline: effectiveProfile.headline || selectedTrack.headline || "Project and Operations Manager",
     summary: effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track.",
-  }), [effectiveProfile.headline, effectiveProfile.summary, facts, jobText, role, selectedTrack.headline]);
+  }), [effectiveProfile.headline, effectiveProfile.summary, resumeFacts, jobText, role, selectedTrack.headline]);
   const fallbackResume = localResumeDocument
     ? renderStructuredResume(localResumeDocument, profile)
     : `${profile.name || "Candidate name"}\n${effectiveProfile.headline || "Project and Operations Manager"}\n${[profile.location, profile.email, profile.phone, profile.linkedin].filter(Boolean).join(" | ")}\n\nPROFESSIONAL SUMMARY\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}\n\nPROFESSIONAL EXPERIENCE\n${matchedFacts.length ? matchedFacts.map((fact) => `• ${fact}`).join("\n") : "• Generate with a connected AI provider after approving career evidence."}\n\nCORE SKILLS\n${roleKeywords.slice(0, 10).join(" • ") || "Add a complete job description to prioritize verified capabilities."}`;
@@ -742,7 +742,14 @@ export function JobSeekerApp() {
 
   async function requestResumeAi(action: "generate" | "review") {
     if (jobText.trim().length < 80) throw new Error("Paste the complete job description before using cloud résumé tools.");
-    if (facts.length < 3) throw new Error("Approve at least three career facts before using cloud résumé tools.");
+    // Generation receives the cleaned evidence, so the gate counts that list:
+    // otherwise contact lines or duplicates could satisfy the check here and
+    // still be rejected by the server.
+    if (resumeFacts.length < 3) {
+      throw new Error(facts.length >= 3
+        ? "After removing contact lines, duplicates, and fragments, fewer than three usable career facts remain. Add more specific accomplishments in Career profile."
+        : "Approve at least three career facts before using cloud résumé tools.");
+    }
     if (!aiReady || !selectedProvider || !selectedModel) throw new Error(aiConnectionMessage);
     if (action === "review" && resume.trim().length < 120) throw new Error("Generate or write a complete résumé draft before review.");
     const response = await fetch("/api/ai/resume", {
@@ -755,8 +762,14 @@ export function JobSeekerApp() {
         company,
         role,
         jobText,
-        approvedFacts: facts,
-        userRules: userPlaybookRules,
+        approvedFacts: resumeFacts,
+        // The server expects the role-relevant subset it must check rule by
+        // rule, plus the full cleaned library as supporting guidance. Sending
+        // the whole library as userRules let the server keep whichever 24 were
+        // uploaded first instead of the ones that matter for this role.
+        userRules: prioritizedUserPlaybookRules,
+        userRuleLibrary: userPlaybookRules,
+        userRuleLibraryCount: userPlaybookRules.length,
         curatedRules: curatedPlaybookRules,
         track: { name: selectedTrack.name, headline: selectedTrack.headline || profile.headline, summary: selectedTrack.summary || profile.summary },
         draft: action === "review" ? activeText : undefined,
@@ -823,7 +836,7 @@ export function JobSeekerApp() {
   async function runCloudRecommendation() {
     setOutput("analysis");
     if (jobText.trim().length < 80) { setNotice("Paste the complete job description before running cloud AI"); return; }
-    if (facts.length < 3) { setNotice("Approve at least three career facts before running cloud AI"); return; }
+    if (resumeFacts.length < 3) { setNotice("Approve at least three usable career facts before running cloud AI"); return; }
     if (!aiReady || !selectedProvider || !selectedModel) { setView("ai"); setNotice(aiConnectionMessage); return; }
     setAiRunning(true);
     setOperationProgress({ label: `Reviewing with ${selectedProvider.name}`, detail: `${selectedModel.label} is comparing the role with approved facts only. Raw files and writing samples are not sent.` });
@@ -844,7 +857,7 @@ export function JobSeekerApp() {
     const response = await fetch("/api/ai/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: provider.id, modelKey: model.key, company, role, jobText, approvedFacts: facts, localAnalysis: { decision: recommendation.label, evidenceCoverage, strong: evidenceCounts.strong, partial: evidenceCounts.partial, gaps: evidenceCounts.gaps } }),
+      body: JSON.stringify({ provider: provider.id, modelKey: model.key, company, role, jobText, approvedFacts: resumeFacts, localAnalysis: { decision: recommendation.label, evidenceCoverage, strong: evidenceCounts.strong, partial: evidenceCounts.partial, gaps: evidenceCounts.gaps } }),
     });
     const data = await readJsonResponse<{ ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; requestId?: string | null; recommendation?: CloudRecommendation; usage?: CloudUsage; diagnosticCode?: string }>(response, `${provider.name} did not return readable app data.`);
     if (!response.ok || !data.ok || !data.recommendation) {
@@ -857,7 +870,7 @@ export function JobSeekerApp() {
 
   async function compareSelectedModels() {
     if (jobText.trim().length < 80) { setView("workspace"); setNotice("Paste the complete job description before comparing models."); return; }
-    if (facts.length < 3) { setView("documents"); setNotice("Approve at least three career facts before comparing models."); return; }
+    if (resumeFacts.length < 3) { setView("documents"); setNotice("Approve at least three usable career facts before comparing models."); return; }
     if (!selectedProvider?.configured || !aiConnection.authenticated || !aiConnection.authorized) { setNotice(aiConnectionMessage); return; }
     setComparisonRunning(true);
     setComparisonResults([]);
