@@ -6,6 +6,7 @@ import { classifyKnowledgeSource, mergeWritingSample, scopeForCategory, sourceSc
 import { CURATED_RESUME_PLAYBOOK } from "@/lib/resume-playbook.mjs";
 import { readJsonResponse } from "@/lib/http-json.mjs";
 import { extractLinkedInArchive } from "@/lib/linkedin-archive.mjs";
+import { parseResumeText, proseToHtml, resumeToHtml } from "@/lib/resume-document.mjs";
 import { cleanWritingSamples, deriveWritingVoice } from "@/lib/writing-voice.mjs";
 import { buildLocalResume } from "@/lib/local-resume.mjs";
 import { DEFAULT_RESUME_TRACKS, normalizeResumeTracks, selectResumeTrack } from "@/lib/resume-tracks.mjs";
@@ -293,6 +294,32 @@ function renderStructuredResume(result: ResumeAiResult, profile: Profile) {
   }).join("\n\n");
   const skills = result.core_skills.length ? `\n\nCORE SKILLS\n${result.core_skills.map((item) => item.label).join(" • ")}` : "";
   return `${profile.name || "Candidate name"}\n${result.headline}${contact ? `\n${contact}` : ""}\n\nPROFESSIONAL SUMMARY\n${result.summary}${skills}${experience ? `\n\nPROFESSIONAL EXPERIENCE\n${experience}` : ""}${section("Education", result.education.map((item) => item.text))}${section("Awards", result.awards.map((item) => item.text))}${section("Professional Development", result.professional_development.map((item) => item.text))}${section("Languages", result.languages.map((item) => item.text))}`;
+}
+
+// Renders the résumé exactly as the PDF/Word export will, straight from the
+// same parser, so the on-screen preview reflects manual edits and never
+// disagrees with the exported file.
+function ResumePaper({ text }: { text: string }) {
+  const parsed = useMemo(() => parseResumeText(text), [text]);
+  if (!parsed.sections.length && !parsed.name) return <div className="resume-paper"><pre>{text}</pre></div>;
+  return <div className="resume-paper"><article className="structured-resume" aria-label="Résumé preview">
+    <header>
+      {parsed.name && <h1>{parsed.name}</h1>}
+      {parsed.headline && <p>{parsed.headline}</p>}
+      {parsed.contact && <address>{parsed.contact.split("|").map((part, index) => <span key={part}>{index > 0 && <i>•</i>}{part.trim()}</span>)}</address>}
+    </header>
+    {parsed.sections.map((section) => <section key={section.title}>
+      <h2>{section.title}</h2>
+      {section.kind === "paragraph" && section.paragraphs.map((value) => <p key={value}>{value}</p>)}
+      {section.kind === "skills" && <div className="structured-skills">{section.items.map((item) => <span key={item}>{item}</span>)}</div>}
+      {section.kind === "list" && <ul>{section.items.map((item) => <li key={item}>{item}</li>)}</ul>}
+      {section.kind === "experience" && <div className="structured-experience">{section.entries.map((entry, index) => <div key={`${entry.employer}-${entry.title}-${index}`}>
+        {(entry.employer || entry.location) && <div className="experience-employer"><strong>{entry.employer}</strong><span>{entry.location}</span></div>}
+        {(entry.title || entry.dates) && <div className="experience-role"><b>{entry.title}</b><span>{entry.dates}</span></div>}
+        {entry.bullets.length > 0 && <ul>{entry.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>}
+      </div>)}</div>}
+    </section>)}
+  </article></div>;
 }
 
 function StructuredResumePreview({ result, profile }: { result: ResumeAiResult; profile: Profile }) {
@@ -922,15 +949,23 @@ export function JobSeekerApp() {
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = name; anchor.click(); URL.revokeObjectURL(url);
   }
 
-  function downloadWordDocument(name: string, title: string, content: string) {
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;max-width:8.5in;margin:.65in auto;color:#111;font-size:11pt;line-height:1.45}h1{font-size:20pt;margin:0 0 6px}pre{white-space:pre-wrap;font:inherit;margin:0}</style></head><body><h1>${escapeHtml(title)}</h1><pre>${escapeHtml(content)}</pre></body></html>`;
-    download(name, html, "application/msword");
+  // Résumés render through the document formatter so the exported file keeps
+  // real headings, entry layout, and bullet lists. Cover letters and answer
+  // kits are prose and render through the prose formatter.
+  function documentHtml(kind: "resume" | "prose", title: string, content: string, autoPrint: boolean) {
+    return kind === "resume"
+      ? resumeToHtml(content, { title, autoPrint })
+      : proseToHtml(content, { title, autoPrint });
   }
 
-  function printDocument(title: string, content: string) {
+  function downloadWordDocument(name: string, title: string, content: string, kind: "resume" | "prose" = "prose") {
+    download(name, documentHtml(kind, title, content, false), "application/msword");
+  }
+
+  function printDocument(title: string, content: string, kind: "resume" | "prose" = "prose") {
     const printWindow = window.open("", "_blank", "noopener,noreferrer");
     if (!printWindow) { setNotice("Allow pop-ups to open the print-ready document"); return; }
-    printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>@page{margin:.6in}body{font-family:Arial,sans-serif;color:#111;font-size:11pt;line-height:1.45}h1{font-size:20pt;margin:0 0 6px}pre{white-space:pre-wrap;font:inherit;margin:0}</style></head><body><h1>${escapeHtml(title)}</h1><pre>${escapeHtml(content)}</pre><script>window.onload=()=>window.print()<\/script></body></html>`);
+    printWindow.document.write(documentHtml(kind, title, content, true));
     printWindow.document.close();
   }
 
@@ -1277,7 +1312,7 @@ export function JobSeekerApp() {
               <div className="evidence-map"><div className="evidence-head"><h2>Requirement → evidence map</h2><span>{evidenceMap.filter((item) => item.strength !== "Gap").length}/{evidenceMap.length || 0} supported</span></div>{evidenceMap.length ? evidenceMap.map((item) => <article key={item.requirement}><div><span className={`strength ${item.strength.toLowerCase()}`}>{item.strength}</span><p>{item.requirement}</p></div>{item.evidence.length ? <ul>{item.evidence.map((match) => <li key={match.fact}><strong>{match.fact}</strong><small>Source: {match.source}</small></li>)}</ul> : <p className="gap-copy">No approved evidence found. Ask for clarification or leave this claim out.</p>}</article>) : <p className="gap-copy">Paste a complete posting to map its requirements to approved facts.</p>}</div>
               <div className="truth-check"><strong>Truth check</strong><p>The score measures approved evidence coverage and profile readiness—not your chance of being hired. Unknown metrics and experience must be reviewed by you.</p><ul><li>{matchedFacts.length} approved facts are currently relevant to this role.</li><li>{firstGap ? `First unsupported requirement: ${firstGap}` : roleKeywords.length ? "Every detected requirement has at least partial evidence; review quality before using it." : "Paste a complete role description to produce a better check."}</li><li>Final application decisions and all sensitive answers remain yours.</li></ul></div>
             </div> : <div className="document-view">
-              <div className="document-actions"><span>{output === "resume" ? currentResumeGeneration ? `AI résumé · ${currentResumeGeneration.modelLabel} · evidence validated` : "Local résumé scaffold · generate with a connected model for full tailoring" : output === "cover" ? "Editable working draft — based on approved facts" : "Generated from approved facts"}</span>{(output === "resume" || output === "cover") && <button onClick={() => openDraftEditor(output)}>Edit draft</button>}{(output === "resume" || output === "cover") && <button onClick={() => saveDraftVersion(output)}>Save version</button>}<button onClick={() => copyText(activeText, setNotice)}>Copy</button><button onClick={() => download(`tailored-${output}.txt`, activeText)}>Text</button><button onClick={() => downloadWordDocument(`tailored-${output}.doc`, `${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Word</button><button className="primary" onClick={() => printDocument(`${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Save as PDF</button></div>
+              <div className="document-actions"><span>{output === "resume" ? currentResumeGeneration ? `AI résumé · ${currentResumeGeneration.modelLabel} · evidence validated` : "Local résumé scaffold · generate with a connected model for full tailoring" : output === "cover" ? "Editable working draft — based on approved facts" : "Generated from approved facts"}</span>{(output === "resume" || output === "cover") && <button onClick={() => openDraftEditor(output)}>Edit draft</button>}{(output === "resume" || output === "cover") && <button onClick={() => saveDraftVersion(output)}>Save version</button>}<button onClick={() => copyText(activeText, setNotice)}>Copy</button><button onClick={() => download(`tailored-${output}.txt`, activeText)}>Text</button><button onClick={() => downloadWordDocument(`tailored-${output}.doc`, `${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText, output === "resume" ? "resume" : "prose")}>Word</button><button className="primary" onClick={() => printDocument(`${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText, output === "resume" ? "resume" : "prose")}>Save as PDF</button></div>
               {output === "resume" && <div className="resume-ai-toolbar">
                 <div><span>RÉSUMÉ ENGINE</span><strong>{selectedProvider?.name || "Choose a provider"} · {selectedModel?.label || "Choose a model"}</strong><small>Generation writes the résumé. Review audits the current draft without changing it.</small></div>
                 <label>Provider<select value={aiPreference.provider} onChange={(event) => { const next = aiConnection.providers.find((item) => item.id === event.target.value); if (next) setAiPreference({ provider: next.id, modelKey: next.defaultModelKey }); }}>{aiConnection.providers.map((provider) => <option key={provider.id} value={provider.id} disabled={!provider.configured}>{provider.name}{provider.configured ? "" : " · not connected"}</option>)}</select></label>
@@ -1287,7 +1322,8 @@ export function JobSeekerApp() {
               </div>}
               {output === "resume" && <div className={`playbook-banner ${approvedPlaybookRules.length ? "active" : "empty"}`}><div><span>RÉSUMÉ PLAYBOOK</span><strong>{userPlaybookRules.length} uploaded rules first · {curatedPlaybookRules.length} curated rules second</strong><small>{approvedPlaybookRules.length ? "Generation receives your uploaded rules as the highest-priority editorial instructions. Every candidate claim still requires approved evidence." : "Upload a Résumé playbook source. Detected guidance is activated automatically."}</small></div><button onClick={() => setView("documents")}>{approvedPlaybookRules.length ? "Review rules" : "Add playbook"}</button>{approvedPlaybookRules.length > 0 && <ul>{approvedPlaybookRules.slice(0, 3).map((rule) => <li key={rule}>{rule}</li>)}</ul>}</div>}
               {output === "cover" && knowledgeStats.voice > 0 && <div className="playbook-banner active"><div><span>WRITING VOICE</span><strong>{knowledgeStats.voice} uploaded voice {knowledgeStats.voice === 1 ? "source" : "sources"}</strong><small>Voice affects phrasing only; approved career facts remain the truth boundary.</small></div><button onClick={() => setView("voice")}>Review voice</button></div>}
-              {(output === "resume" || output === "cover") && draftEditorKey === output ? <textarea className="draft-editor" aria-label={`Editable ${output} draft`} value={draftEditor} onChange={(event) => setDraftEditor(event.target.value)} /> : output === "resume" ? <div className="resume-paper"><pre>{activeText}</pre></div> : <pre>{activeText}</pre>}
+              {(output === "resume" || output === "cover") && draftEditorKey === output ? <textarea className="draft-editor" aria-label={`Editable ${output} draft`} value={draftEditor} onChange={(event) => setDraftEditor(event.target.value)} /> : output === "resume" ? <ResumePaper text={activeText} /> : <pre>{activeText}</pre>}
+              {output === "resume" && !currentResumeGeneration && localResumeDocument && localResumeDocument.omissions.length > 0 && <div className="resume-provenance"><strong>{localResumeDocument.omissions.length} approved {localResumeDocument.omissions.length === 1 ? "fact was" : "facts were"} not placed automatically</strong><span>Nothing was deleted — these facts stay in your career profile. Edit the draft to add any that matter for this role, or connect a model for full tailoring.</span><ul className="resume-omissions">{localResumeDocument.omissions.map((omission) => <li key={omission}>{omission.replace(/^Approved fact not placed automatically: /, "")}</li>)}</ul></div>}
               {output === "resume" && currentResumeGeneration && <div className="resume-provenance"><strong>Generated by {currentResumeGeneration.modelLabel}</strong><span>{facts.length} approved facts · {userPlaybookRules.length} uploaded rules · {curatedPlaybookRules.length} secondary rules · {currentResumeGeneration.usage?.totalTokens ? `${currentResumeGeneration.usage.totalTokens.toLocaleString()} tokens` : "usage unavailable"}</span><small>{currentResumeGeneration.result.omissions.length ? `Omitted as unsupported: ${currentResumeGeneration.result.omissions.join("; ")}` : "No unsupported requirement was inserted into the draft."}</small></div>}
               {output === "resume" && resumeReview && <div className={`resume-review-card ${resumeReview.result.verdict}`}><div><span>{resumeReview.providerName.toUpperCase()} REVIEW · {resumeReview.modelLabel}</span><strong>{resumeReview.result.score}/100 · {resumeReview.result.verdict.replaceAll("_", " ")}</strong></div>{resumeReview.result.unsupported_claims.length > 0 && <section><b>Unsupported or overstated claims</b><ul>{resumeReview.result.unsupported_claims.map((item) => <li key={item}>{item}</li>)}</ul></section>}<section><b>Recommended improvements</b><ul>{resumeReview.result.improvements.map((item) => <li key={item}>{item}</li>)}</ul></section><small>This review did not edit the résumé. Apply only the changes you approve.</small></div>}
             </div>}
@@ -1441,7 +1477,7 @@ export function JobSeekerApp() {
 
         {view === "autofill" && <section className="autofill-grid">
           <div className="autofill-intro"><div className="step"><b>04</b><span>ASSISTED AUTOFILL</span></div><h2>Continue an application without starting over.</h2><p>Choose the exact résumé version you want to use, then load one reusable package into the companion. It scans the page again each time and fills only blank, approved fields after your click.</p><div className="safety-list"><span>✓ Keeps the selected résumé version visible</span><span>✓ Skips already-completed fields</span><span>✓ Never presses Submit or guesses sensitive answers</span><span>✓ File uploads stay manual because browsers protect them</span></div></div>
-          <div className="autofill-package"><span>AUTOFILL PACKAGE</span><label>Résumé for this application<select value={selectedAutofillResume?.id || ""} onChange={(event) => setAutofillResumeVersionId(event.target.value)}><option value="">Choose a preserved résumé</option>{availableResumeVersions.map((draft) => <option key={draft.id} value={draft.id}>{draft.origin === "uploaded" ? "Uploaded" : `v${draft.versionNumber || "saved"}`} · {draft.title}</option>)}</select></label>{selectedAutofillResume ? <div className="autofill-resume-choice"><strong>{selectedAutofillResume.title}</strong><span>Selected for this package. The original is preserved.</span><button onClick={() => downloadWordDocument(`${selectedAutofillResume.title.replace(/[^a-z0-9.-]+/gi, "-")}.doc`, selectedAutofillResume.title, selectedAutofillResume.content)}>Download selected résumé</button></div> : <p className="autofill-empty-choice">Choose or upload a résumé version first. The companion will identify it for the form; you manually select the file when a website requires an upload.</p>}<pre>{autofillData}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load once in the Chrome companion, then use Scan page and Fill ready fields. Reload the extension after updating it from the companion folder.</small></div>
+          <div className="autofill-package"><span>AUTOFILL PACKAGE</span><label>Résumé for this application<select value={selectedAutofillResume?.id || ""} onChange={(event) => setAutofillResumeVersionId(event.target.value)}><option value="">Choose a preserved résumé</option>{availableResumeVersions.map((draft) => <option key={draft.id} value={draft.id}>{draft.origin === "uploaded" ? "Uploaded" : `v${draft.versionNumber || "saved"}`} · {draft.title}</option>)}</select></label>{selectedAutofillResume ? <div className="autofill-resume-choice"><strong>{selectedAutofillResume.title}</strong><span>Selected for this package. The original is preserved.</span><button onClick={() => downloadWordDocument(`${selectedAutofillResume.title.replace(/[^a-z0-9.-]+/gi, "-")}.doc`, selectedAutofillResume.title, selectedAutofillResume.content, "resume")}>Download selected résumé</button></div> : <p className="autofill-empty-choice">Choose or upload a résumé version first. The companion will identify it for the form; you manually select the file when a website requires an upload.</p>}<pre>{autofillData}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load once in the Chrome companion, then use Scan page and Fill ready fields. Reload the extension after updating it from the companion folder.</small></div>
         </section>}
       </section>
     </main>

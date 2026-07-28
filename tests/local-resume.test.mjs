@@ -84,3 +84,148 @@ test("facts that cannot be placed are reported as omissions, not dropped silentl
   const resume = buildLocalResume({ facts, roleText: ROLE });
   assert.ok(resume.omissions.some((entry) => entry.includes("internal documentation")));
 });
+
+// The phrasing a real uploaded résumé produces: a standalone job header line
+// followed by its accomplishment bullets. This shape used to parse to zero
+// employers, collapsing the whole structured path to a flat fact dump.
+const HEADER_STYLE_FACTS = [
+  "Senior Project Manager, Acme Studios — Jan 2019 to Present",
+  "Led cross-functional marketing programs from creative brief through launch.",
+  "Managed integrated campaign timelines, budgets, and delivery risks.",
+  "Producer, Northwind Agency — March 2015 – December 2018",
+  "Ran production schedules, crews, and location logistics for broadcast shoots.",
+  "B.A. Communications, State University",
+  "Fluent in English and Portuguese",
+];
+
+test("standalone job headers with month-qualified dates build real experience entries", () => {
+  const resume = buildLocalResume({ facts: HEADER_STYLE_FACTS, roleText: ROLE });
+  assert.ok(resume, "header-style evidence must not collapse to the flat fallback");
+  assert.equal(resume.experience.length, 2);
+  assert.equal(resume.experience[0].company, "Acme Studios");
+  assert.equal(resume.experience[0].title, "Senior Project Manager");
+  assert.equal(resume.experience[0].dates, "2019 – Present");
+  assert.equal(resume.experience[1].company, "Northwind Agency");
+  assert.equal(resume.experience[1].dates, "2015 – 2018");
+});
+
+test("bullets after a standalone header attach to it without repeating the header", () => {
+  const resume = buildLocalResume({ facts: HEADER_STYLE_FACTS, roleText: ROLE });
+  const [current] = resume.experience;
+  assert.equal(current.bullets.length, 2);
+  for (const bullet of current.bullets) {
+    assert.doesNotMatch(bullet.text, /Acme Studios|Senior Project Manager|2019/);
+  }
+  // The header line itself is the entry, never also a bullet.
+  assert.ok(!current.bullets.some((bullet) => /^Senior Project Manager,/.test(bullet.text)));
+});
+
+test("education and languages are recognized from abbreviated evidence", () => {
+  const resume = buildLocalResume({ facts: HEADER_STYLE_FACTS, roleText: ROLE });
+  assert.equal(resume.education.length, 1);
+  assert.match(resume.education[0].text, /B\.A\. Communications/);
+  assert.equal(resume.languages.length, 1);
+});
+
+test("a short fact is stripped to its accomplishment rather than repeating the entry header", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Managed integrated campaigns at Acme Studios as a Senior Project Manager (2019-2024).",
+      "Coordinated vendors and budgets at Acme Studios as a Senior Project Manager (2019-2024).",
+      "Reduced revision cycles at Acme Studios as a Senior Project Manager (2019-2024).",
+    ],
+    roleText: ROLE,
+  });
+  for (const bullet of resume.experience[0].bullets) {
+    assert.doesNotMatch(bullet.text, /at Acme Studios|as a Senior Project Manager|2019-2024/, `bullet repeats the header: ${bullet.text}`);
+  }
+});
+
+test("a promotion at one employer keeps both roles instead of overwriting the earlier one", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Worked at Acme Studios as a Coordinator (2015-2018) supporting campaign delivery.",
+      "Worked at Acme Studios as a Senior Project Manager (2018-2024) leading campaign delivery.",
+      "Managed budgets at Acme Studios as a Senior Project Manager (2018-2024).",
+    ],
+    roleText: ROLE,
+  });
+  assert.equal(resume.experience.length, 2);
+  assert.deepEqual(resume.experience.map((entry) => entry.title), ["Senior Project Manager", "Coordinator"]);
+  assert.equal(resume.experience[1].dates, "2015 – 2018");
+});
+
+test("a client named with 'for' never becomes the employer when the fact names a real one", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Delivered a national campaign for Nike as a Producer (2019-2021) while employed at Northwind Agency.",
+      "Managed vendor contracts for Nike as a Producer (2019-2021).",
+      "Coordinated creative reviews for Nike as a Producer (2019-2021).",
+    ],
+    roleText: ROLE,
+  });
+  assert.equal(resume.experience.length, 1, "Nike must not become a second employer");
+  assert.equal(resume.experience[0].company, "Northwind Agency");
+  // The client is still legitimate evidence and stays visible in the bullets.
+  assert.match(resume.experience[0].bullets.map((bullet) => bullet.text).join(" "), /Nike/);
+});
+
+test("an employer is still recovered from 'for' when no other employer is named", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Ran production schedules for Northwind Agency as a Producer (2015-2019).",
+      "Booked crews and locations for Northwind Agency as a Producer (2015-2019).",
+      "Tracked call sheets for Northwind Agency as a Producer (2015-2019).",
+    ],
+    roleText: ROLE,
+  });
+  assert.equal(resume.experience.length, 1);
+  assert.equal(resume.experience[0].company, "Northwind Agency");
+});
+
+test("a city stated in the evidence becomes the entry location", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Managed campaigns at Acme Studios in San Francisco, CA as a Senior Project Manager (2019-2024).",
+      "Coordinated vendors at Acme Studios as a Senior Project Manager (2019-2024).",
+      "Reduced revision cycles at Acme Studios as a Senior Project Manager (2019-2024).",
+    ],
+    roleText: ROLE,
+  });
+  assert.equal(resume.experience[0].location, "San Francisco, CA");
+  assert.doesNotMatch(resume.experience[0].bullets[0].text, /San Francisco/);
+});
+
+test("achievements dropped by the per-entry bullet cap are recorded as omissions", () => {
+  const facts = ["Senior Project Manager, Acme Studios — 2019 to 2024"];
+  for (let index = 0; index < 9; index += 1) facts.push(`Delivered distinct campaign workstream number ${index} across teams.`);
+  const resume = buildLocalResume({ facts, roleText: ROLE });
+  assert.equal(resume.experience[0].bullets.length, 6);
+  assert.ok(resume.omissions.length >= 3, `dropped achievements must be reported: ${JSON.stringify(resume.omissions)}`);
+});
+
+test("capability labels never claim a domain the evidence does not support", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Senior Project Manager, Acme Studios — Jan 2019 to Present",
+      "Led cross-functional marketing programs with brand, design, and media teams.",
+      "Managed integrated campaign timelines, budgets, and delivery risks.",
+    ],
+    roleText: ROLE,
+  });
+  const labels = resume.core_skills.map((skill) => skill.label).join(" ");
+  assert.doesNotMatch(labels, /Sports/, "the bare word 'teams' must not imply sports experience");
+});
+
+test("capability vocabulary covers tracks beyond brand and creative work", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Marketing Operations Manager, Example Corp — 2020 to 2024",
+      "Built lifecycle email campaigns and CRM segmentation in Salesforce.",
+      "Reported weekly KPIs and channel dashboards to leadership.",
+    ],
+    roleText: "Marketing operations manager lifecycle CRM analytics",
+  });
+  const labels = resume.core_skills.map((skill) => skill.label).join(" ");
+  assert.match(labels, /Marketing operations and CRM|Lifecycle and email programs|Analytics and performance reporting/);
+});

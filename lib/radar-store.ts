@@ -74,11 +74,14 @@ export async function ensureRadarUser(db: D1Database, email: string, displayName
 export async function readRadarDashboard(db: D1Database, userId: string) {
   const [profileRow, monitorResult, opportunityResult] = await Promise.all([
     db.prepare("SELECT id, headline, target_roles_json, target_markets_json, positioning, constraints_json FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<ProfileRow>(),
+    // CURRENT_TIMESTAMP only resolves to whole seconds, so two runs of the same
+    // monitor inside one second tie on created_at. rowid breaks the tie in
+    // insertion order and keeps "last run" pointing at the newest row.
     db.prepare(`SELECT m.id AS monitor_id, m.company_id, c.name AS company_name, c.website_url, c.careers_url, c.company_type, c.primary_market, c.notes, m.query, m.cadence, m.is_active, m.last_checked_at, m.created_at,
-      (SELECT mr.run_status FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC LIMIT 1) AS last_run_status,
-      (SELECT mr.found_count FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC LIMIT 1) AS last_run_found_count,
-      (SELECT mr.change_summary FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC LIMIT 1) AS last_run_summary,
-      (SELECT mr.created_at FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC LIMIT 1) AS last_run_at
+      (SELECT mr.run_status FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC, mr.rowid DESC LIMIT 1) AS last_run_status,
+      (SELECT mr.found_count FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC, mr.rowid DESC LIMIT 1) AS last_run_found_count,
+      (SELECT mr.change_summary FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC, mr.rowid DESC LIMIT 1) AS last_run_summary,
+      (SELECT mr.created_at FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC, mr.rowid DESC LIMIT 1) AS last_run_at
       FROM company_monitors m JOIN companies c ON c.id = m.company_id
       WHERE m.user_id = ? ORDER BY m.is_active DESC, c.name ASC`).bind(userId).all<MonitorRow>(),
     db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, c.company_type, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at
