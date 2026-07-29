@@ -411,6 +411,13 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
           <div><strong>{savedLinkedInJobs.length ? `${savedLinkedInJobs.length} saved ${savedLinkedInJobs.length === 1 ? "job" : "jobs"} found in your LinkedIn export` : "Bring in your saved LinkedIn jobs"}</strong><span>{savedLinkedInJobs.length ? "These come from the official archive you already imported. V\u2019s files them here using only the title, company, and link LinkedIn exported \u2014 it never opens a LinkedIn page." : "LinkedIn does not allow automated reading, and its sign-in grants no job access. Request your official data export, import the ZIP in Knowledge sources, and your saved jobs appear here."}</span></div>
           <button onClick={importSavedLinkedInJobs} disabled={Boolean(busy) || !savedLinkedInJobs.length}>{busy === "import-linkedin" ? "Filing saved roles\u2026" : "Add saved LinkedIn roles"}</button>
         </div>
+        <div className="radar-startup-bridge">
+          <div>
+            <strong>Startup boards</strong>
+            <span>Enterprise ATS boards mostly miss startups. Search <a href="https://wellfound.com/jobs" target="_blank" rel="noreferrer">Wellfound</a> or <a href="https://www.workatastartup.com" target="_blank" rel="noreferrer">Y Combinator&rsquo;s Work at a Startup</a>, then paste the role&rsquo;s link above &mdash; a role from either site is filed under Startup / Early-stage automatically, no matter what the posting itself says about funding stage. <a href="https://builtin.com" target="_blank" rel="noreferrer">Built In</a> works the same paste-link way but lists companies of every size, so it is not auto-tagged as a startup.</span>
+            <small>Checked directly against each site&rsquo;s published robots policy before adding this: Wellfound and Work at a Startup allow it, but a live page fetch from Wellfound was refused by its own server during this check &mdash; if importing from Wellfound fails, that is most likely why, not a bug in the import itself.</small>
+          </div>
+        </div>
       </div>
     </section>
 

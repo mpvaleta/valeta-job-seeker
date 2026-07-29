@@ -341,7 +341,7 @@ export async function importRadarOpportunities(db: D1Database, userId: string, u
       let company = await db.prepare("SELECT id FROM companies WHERE lower(name) = lower(?) LIMIT 1").bind(companyName).first<{ id: string }>();
       if (!company) {
         company = { id: crypto.randomUUID() };
-        const classification = classifyRadarOpportunity({ company: companyName, title: job.title, fitSummary: job.description });
+        const classification = classifyRadarOpportunity({ company: companyName, title: job.title, fitSummary: job.description, sourceUrl: job.sourceUrl });
         await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
           .bind(company.id, companyName, classification.companyCategory, "United States", "Added from an imported job link").run();
       }
