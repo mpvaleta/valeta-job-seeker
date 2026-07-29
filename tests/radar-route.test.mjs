@@ -483,3 +483,103 @@ test("V’s Job Watch import is idempotent and preserves the user’s opportunit
     await mf.dispose();
   }
 });
+
+// "Radar duplicity": the same posting reached by a slightly different link used
+// to become a second inbox row, because dedup compared source_url as an exact
+// string. A role found by a scan, then by Job Watch, then imported was three rows.
+test("one posting stays one inbox row however its link is written", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+
+    const posting = (url) => `<html><head><title>Creative Operations Manager | Acme</title>
+      <script type="application/ld+json">${JSON.stringify({
+        "@type": "JobPosting",
+        title: "Creative Operations Manager",
+        hiringOrganization: { name: "Acme Studios" },
+        jobLocation: { address: { addressLocality: "Fremont", addressRegion: "CA" } },
+        description: "<p>Lead integrated campaign delivery, budgets, vendors, and cross-functional production schedules.</p>",
+        url,
+        datePosted: "2026-07-20",
+      })}</script></head><body>Role</body></html>`;
+
+    // Each variant reports its own URL, exactly as a real page would.
+    globalThis.fetch = async (url) => new Response(posting(String(url)), { headers: { "content-type": "text/html" } });
+
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "save_profile", profile: {
+        titles: ["Creative Operations Manager"], skills: ["campaign delivery"], locations: ["Fremont"],
+        workModes: ["Hybrid"], goals: "Lead creative delivery.", exclusions: [], minScore: 30,
+      } }),
+    }), env, context);
+
+    const variants = [
+      "https://boards.greenhouse.io/acme/jobs/4012",
+      "https://boards.greenhouse.io/acme/jobs/4012/",
+      "https://boards.greenhouse.io/acme/jobs/4012?gh_src=abc123",
+      "http://boards.greenhouse.io/acme/jobs/4012",
+      "https://boards.greenhouse.io/acme/jobs/4012#apply",
+      "https://boards.greenhouse.io/acme/jobs/4012?utm_source=linkedin&utm_medium=social",
+    ];
+
+    let data;
+    for (const url of variants) {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", {
+        method: "POST", headers, body: JSON.stringify({ action: "import_job_links", links: [url] }),
+      }), env, context);
+      data = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(data));
+    }
+
+    const rows = data.opportunities.filter((item) => item.title === "Creative Operations Manager");
+    assert.equal(rows.length, 1, `six links to one posting produced ${rows.length} rows: ${JSON.stringify(rows.map((r) => r.sourceUrl))}`);
+
+    // All six variants in a single request also collapse to the one row.
+    const batch = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "import_job_links", links: variants }),
+    }), env, context);
+    const batchData = await batch.json();
+    assert.equal(batchData.opportunities.filter((item) => item.title === "Creative Operations Manager").length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
+test("a distinct posting at the same employer is never merged away", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    globalThis.fetch = async (url) => {
+      const id = String(url).match(/jobs\/(\d+)/)?.[1] || "0";
+      return new Response(`<html><head><title>Role ${id}</title>
+        <script type="application/ld+json">${JSON.stringify({
+          "@type": "JobPosting",
+          title: id === "4012" ? "Creative Operations Manager" : "Integrated Producer",
+          hiringOrganization: { name: "Acme Studios" },
+          description: "<p>Deliver integrated campaigns across cross-functional teams and manage vendor schedules.</p>",
+          url: String(url),
+        })}</script></head><body>Role</body></html>`, { headers: { "content-type": "text/html" } });
+    };
+
+    const response = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_job_links", links: [
+        "https://boards.greenhouse.io/acme/jobs/4012",
+        "https://boards.greenhouse.io/acme/jobs/4013",
+      ] }),
+    }), env, context);
+    const data = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(data));
+    assert.equal(data.result.imported.length, 2);
+    assert.equal(data.opportunities.length, 2, "two different jobs must stay two rows");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});

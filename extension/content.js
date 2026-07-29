@@ -1,4 +1,4 @@
-const { SENSITIVE: sensitive, RULES: rules, decideField } = globalThis.VJobsAutofill;
+const { RULES: rules, decideField } = globalThis.VJobsAutofill;
 
 function platformName() {
   const host = location.hostname.toLowerCase();
@@ -27,10 +27,6 @@ function weakLabel(field) {
   const enclosing = field.closest("label")?.innerText?.slice(0, 180) || "";
   const fieldset = field.closest("fieldset")?.querySelector("legend")?.innerText || "";
   return [...labelledBy, enclosing, fieldset].filter(Boolean).join(" ").replace(/\s+/g, " ").trim().slice(0, 300);
-}
-
-function descriptor(field) {
-  return `${strongLabel(field)} ${weakLabel(field)}`.replace(/\s+/g, " ").trim();
 }
 
 /*

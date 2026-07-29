@@ -280,10 +280,6 @@ function copyText(value: string, setNotice: (value: string) => void) {
   navigator.clipboard.writeText(value).then(() => setNotice("Copied to clipboard"));
 }
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character] ?? character));
-}
-
 function renderStructuredResume(result: ResumeAiResult, profile: Profile) {
   const contact = [profile.location, profile.email, profile.phone, profile.linkedin].map((item) => item.trim()).filter(Boolean).join(" | ");
   const section = (name: string, items: string[]) => items.length ? `\n\n${name.toUpperCase()}\n${items.map((item) => `• ${item}`).join("\n")}` : "";
@@ -320,32 +316,6 @@ function ResumePaper({ text }: { text: string }) {
       </div>)}</div>}
     </section>)}
   </article></div>;
-}
-
-function StructuredResumePreview({ result, profile }: { result: ResumeAiResult; profile: Profile }) {
-  const contact = [profile.location, profile.email, profile.phone, profile.linkedin].map((item) => item.trim()).filter(Boolean);
-  const simpleSection = (name: string, items: string[]) => items.length ? <section><h2>{name}</h2><ul>{items.map((item) => <li key={item}>{item}</li>)}</ul></section> : null;
-  return <article className="structured-resume" aria-label="Generated résumé preview">
-    <header>
-      <h1>{profile.name || "Candidate name"}</h1>
-      <p>{result.headline}</p>
-      {contact.length > 0 && <address>{contact.map((item, index) => <span key={item}>{index > 0 && <i>•</i>}{item}</span>)}</address>}
-    </header>
-    <section><h2>Professional Summary</h2><p>{result.summary}</p></section>
-    {result.core_skills.length > 0 && <section><h2>Core Skills</h2><div className="structured-skills">{result.core_skills.map((item) => <span key={item.label}>{item.label}</span>)}</div></section>}
-    <section>
-      <h2>Professional Experience</h2>
-      <div className="structured-experience">{result.experience.map((entry, index) => <div key={`${entry.company}-${entry.title}-${entry.dates}-${index}`}>
-        <div className="experience-employer"><strong>{entry.company}</strong><span>{entry.location}</span></div>
-        <div className="experience-role"><b>{entry.title}</b><span>{entry.dates}</span></div>
-        <ul>{entry.bullets.map((bullet) => <li key={bullet.text}>{bullet.text}</li>)}</ul>
-      </div>)}</div>
-    </section>
-    {simpleSection("Education", result.education.map((item) => item.text))}
-    {simpleSection("Awards", result.awards.map((item) => item.text))}
-    {simpleSection("Professional Development", result.professional_development.map((item) => item.text))}
-    {simpleSection("Languages", result.languages.map((item) => item.text))}
-  </article>;
 }
 
 function linkKind(value: string) {

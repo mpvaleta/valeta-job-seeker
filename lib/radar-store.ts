@@ -1,4 +1,4 @@
-import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
+import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import type { RadarProfile } from "./radar.mjs";
@@ -204,12 +204,42 @@ export async function setRadarOpportunityStatus(db: D1Database, userId: string, 
   return normalized;
 }
 
+/*
+ * Index the user's existing discoveries by canonical job identity.
+ *
+ * Every dedup check used to compare the raw source_url as an exact string, so
+ * the same posting reached by a slightly different link became a second inbox
+ * row. Matching happens in application code because job_opportunities has no
+ * unique constraint to lean on and adding one would need a migration the
+ * deployment path does not control.
+ */
+async function loadOpportunityIndex(db: D1Database, userId: string) {
+  const rows = await db.prepare("SELECT id, source_url, status, discovered_at FROM job_opportunities WHERE user_id = ?")
+    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string }>();
+  const index = new Map<string, { id: string; status: string; discovered_at: string }>();
+  for (const row of rows.results || []) {
+    const key = opportunityKey(row.source_url || "");
+    if (!key) continue;
+    const current = index.get(key);
+    // Keep the earliest row so a merge preserves the original discovery date.
+    if (!current || String(row.discovered_at) < String(current.discovered_at)) {
+      index.set(key, { id: row.id, status: row.status, discovered_at: row.discovered_at });
+    }
+  }
+  return index;
+}
+
+function rememberOpportunity(index: Map<string, { id: string; status: string; discovered_at: string }>, url: string, id: string) {
+  const key = opportunityKey(url);
+  if (key && !index.has(key)) index.set(key, { id, status: "new", discovered_at: "" });
+}
+
 export async function importJobWatchBatch(db: D1Database, userId: string) {
   let added = 0;
   let updated = 0;
+  const index = await loadOpportunityIndex(db, userId);
   for (const role of JOB_WATCH_ROLES) {
-    const existing = await db.prepare("SELECT id FROM job_opportunities WHERE user_id = ? AND source_url = ? LIMIT 1")
-      .bind(userId, role.sourceUrl).first<{ id: string }>();
+    const existing = index.get(opportunityKey(role.sourceUrl));
     if (existing) {
       await db.prepare("UPDATE job_opportunities SET title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
         .bind(role.title, role.location, "v-watch", role.fitScore, role.fitSummary, existing.id, userId).run();
@@ -224,8 +254,11 @@ export async function importJobWatchBatch(db: D1Database, userId: string) {
       await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
         .bind(company.id, role.company, classification.companyCategory, "United States", `Imported from ${JOB_WATCH_BATCH_ID}`).run();
     }
+    const watchId = crypto.randomUUID();
     await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(crypto.randomUUID(), userId, company.id, role.title, role.location, role.sourceUrl, "v-watch", role.fitScore, role.fitSummary, "new").run();
+      .bind(watchId, userId, company.id, role.title, role.location, role.sourceUrl, "v-watch", role.fitScore, role.fitSummary, "new").run();
+    // Register immediately: one run can surface the same role by two links.
+    rememberOpportunity(index, role.sourceUrl, watchId);
     added += 1;
   }
   return { batchId: JOB_WATCH_BATCH_ID, checked: JOB_WATCH_ROLES.length, added, updated };
@@ -250,6 +283,7 @@ const SCAN_TRIGGER_LABELS: Record<RadarScanTrigger, string> = {
  */
 export async function importRadarOpportunities(db: D1Database, userId: string, urls: string[]) {
   const dashboard = await readRadarDashboard(db, userId);
+  const index = await loadOpportunityIndex(db, userId);
   const unique = [...new Set(urls.map((url) => clean(url, 4_000)).filter(Boolean))].slice(0, 25);
   const imported: Array<{ url: string; title: string; company: string; score: number; status: "added" | "updated" }> = [];
   const failures: Array<{ url: string; message: string }> = [];
@@ -270,16 +304,17 @@ export async function importRadarOpportunities(db: D1Database, userId: string, u
           .bind(company.id, companyName, classification.companyCategory, "United States", "Added from an imported job link").run();
       }
       const match = scoreRadarOpportunity(job, dashboard.profile);
-      const existing = await db.prepare("SELECT id FROM job_opportunities WHERE user_id = ? AND source_url = ? LIMIT 1")
-        .bind(userId, job.sourceUrl).first<{ id: string }>();
+      const existing = index.get(opportunityKey(job.sourceUrl));
       if (existing) {
         await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
           .bind(company.id, job.title, job.location || null, "imported", match.score, match.summary, existing.id, userId).run();
         imported.push({ url, title: job.title, company: companyName, score: match.score, status: "updated" });
         continue;
       }
+      const importedId = crypto.randomUUID();
       await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-        .bind(crypto.randomUUID(), userId, company.id, job.title, job.location || null, job.sourceUrl, "imported", match.score, match.summary, "new").run();
+        .bind(importedId, userId, company.id, job.title, job.location || null, job.sourceUrl, "imported", match.score, match.summary, "new").run();
+      rememberOpportunity(index, job.sourceUrl, importedId);
       imported.push({ url, title: job.title, company: companyName, score: match.score, status: "added" });
     } catch (cause) {
       failures.push({ url, message: safeMessage(cause) });
@@ -302,6 +337,7 @@ export async function importLinkedInSavedJobs(
   rows: Array<{ title: string; company: string; url: string; savedAt?: string }>,
 ) {
   const dashboard = await readRadarDashboard(db, userId);
+  const index = await loadOpportunityIndex(db, userId);
   let added = 0;
   let updated = 0;
   const skipped: string[] = [];
@@ -322,16 +358,17 @@ export async function importLinkedInSavedJobs(
     // that limited text rather than a full description.
     const match = scoreRadarOpportunity({ title, company: companyName, location: "", description: "" }, dashboard.profile);
     const summary = `${match.summary} · Scored from your LinkedIn export's title and company only — open the role to review the full description.`;
-    const existing = await db.prepare("SELECT id FROM job_opportunities WHERE user_id = ? AND source_url = ? LIMIT 1")
-      .bind(userId, url).first<{ id: string }>();
+    const existing = index.get(opportunityKey(url));
     if (existing) {
       await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
         .bind(company.id, title, "linkedin-saved", match.score, summary, existing.id, userId).run();
       updated += 1;
       continue;
     }
+    const savedId = crypto.randomUUID();
     await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(crypto.randomUUID(), userId, company.id, title, null, url, "linkedin-saved", match.score, summary, "new").run();
+      .bind(savedId, userId, company.id, title, null, url, "linkedin-saved", match.score, summary, "new").run();
+    rememberOpportunity(index, url, savedId);
     added += 1;
   }
 
@@ -351,6 +388,7 @@ function companyFromUrl(value: string) {
 export async function scanRadar(db: D1Database, userId: string, options: { monitorId?: string; dueOnly?: boolean; trigger?: RadarScanTrigger } = {}) {
   const triggerLabel = SCAN_TRIGGER_LABELS[options.trigger || "manual"];
   const dashboard = await readRadarDashboard(db, userId);
+  const index = await loadOpportunityIndex(db, userId);
   const selected = dashboard.monitors
     .filter((monitor) => monitor.active)
     .filter((monitor) => !options.monitorId || monitor.id === options.monitorId)
@@ -483,14 +521,15 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       discovered += scored.length;
       belowThreshold += scored.length - matches.length;
       for (const { job, match } of scored) {
-        const existing = await db.prepare("SELECT id FROM job_opportunities WHERE user_id = ? AND source_url = ? LIMIT 1")
-          .bind(userId, job.sourceUrl).first<{ id: string }>();
+        const existing = index.get(opportunityKey(job.sourceUrl));
         if (existing) {
           await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
             .bind(monitor.companyId, job.title, job.location || null, job.sourceType || "public-careers-page", match.score, match.summary, existing.id, userId).run();
         } else {
+          const discoveredId = crypto.randomUUID();
           await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            .bind(crypto.randomUUID(), userId, monitor.companyId, job.title, job.location || null, job.sourceUrl, job.sourceType || "public-careers-page", match.score, match.summary, "new").run();
+            .bind(discoveredId, userId, monitor.companyId, job.title, job.location || null, job.sourceUrl, job.sourceType || "public-careers-page", match.score, match.summary, "new").run();
+          rememberOpportunity(index, job.sourceUrl || "", discoveredId);
           added += 1;
           monitorAdded += 1;
           if (match.passes) {

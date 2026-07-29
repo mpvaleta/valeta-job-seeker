@@ -1,6 +1,6 @@
 # V's Job Seeker — Complete Backlog Log
 
-Updated: 2026-07-26
+Updated: 2026-07-28
 
 Priority labels reflect Marcos's stated order. P0 and P1 are the work that most directly affects getting applications out quickly.
 
@@ -34,6 +34,8 @@ Priority labels reflect Marcos's stated order. P0 and P1 are the work that most 
 - Add approve, dismiss, archive, and restore actions without deleting discovery history.
 - Support automatic scans at least twice daily when the hosting scheduler is available; clearly distinguish background scans from app-open catch-up.
 - Store last checked, next due, source response, discovered count, filtered count, and reason for zero results.
+- **Deduplicate discoveries across every origin.** The same role must occupy one inbox row no matter how it arrived. Matching on the raw `source_url` string treats trivially different URLs as different jobs — trailing slash, `http` vs `https`, `www.`, tracking parameters (`utm_*`, `gh_src`, `trk`), reordered query parameters, and `#fragment` all produce a second row, and a role found by a monitored scan, then by V's Job Watch, then imported by hand produces three. Merging must preserve the user's decision (an approved or dismissed row never reverts to `new`), keep the earliest `discovered_at`, and prefer the most direct source URL. Never silently delete history while merging.
+- **Add a startup job radar.** Marcos wants roles at startups, which mostly do not appear on the enterprise ATS boards the radar covers today. Cover compliant startup-focused sources — Wellfound/AngelList, Y Combinator's job board, Built In SF — plus startup ATS tenants (Ashby and Lever are heavily used by early-stage companies). Let a monitored target be marked as a startup so stage, funding, and company size can inform scoring, and so a startup track can be filtered separately in the inbox.
 
 ## P1 — Role Workspace and market learning
 

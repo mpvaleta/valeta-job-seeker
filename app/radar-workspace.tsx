@@ -71,6 +71,8 @@ type RadarPayload = {
     added?: number;
     matchedAdded?: number;
     repairedSources?: number;
+    updated?: number;
+    skipped?: string[];
     failures?: Array<{ company?: string; url?: string; message: string }>;
     imported?: Array<{ url: string; title: string; company: string; score: number; status: "added" | "updated" }>;
   };
