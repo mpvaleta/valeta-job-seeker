@@ -122,3 +122,36 @@ Acme Corp is hiring a Brand Project Manager to lead campaign delivery.
   assert.ok(!requirements.some((item) => /is hiring/.test(item)), "intro sentence counted as requirement");
   assert.ok(requirements.some((item) => /budgets and schedules; keep stakeholders/.test(item)), "semicolon split a requirement in half");
 });
+
+// A single shared common word is not support. Before this, "Own paid media
+// buying and channel spend optimization across programmatic platforms" matched
+// a campaign-budgets fact on one token and was reported as partially supported.
+test("a requirement sharing one common word with a fact is a gap, not partial support", () => {
+  const analysis = analyzeRole({
+    jobText: "Own paid media buying and channel spend optimization across programmatic platforms.",
+    facts: [
+      "Managed integrated campaign timelines, budgets, and delivery risks across multiple workstreams.",
+      "Led cross-functional marketing programs from creative brief through launch with brand, design, and media teams.",
+    ],
+    profile: { name: "Test", headline: "PM", summary: "Summary." },
+  });
+  const paidMedia = analysis.evidenceMap.find((item) => /paid media/i.test(item.requirement));
+  assert.ok(paidMedia, "the requirement should be extracted");
+  assert.equal(paidMedia.strength, "Gap");
+  assert.equal(paidMedia.evidence.length, 0, "a gap must not quote unrelated evidence in support");
+});
+
+test("a genuinely matching requirement is still reported as supported", () => {
+  const analysis = analyzeRole({
+    jobText: "Manage campaign budgets, timelines, and vendor relationships end to end.",
+    facts: [
+      "Managed integrated campaign timelines, budgets, and delivery risks across multiple workstreams.",
+      "Coordinated vendor relationships and contracts for national campaigns.",
+    ],
+    profile: { name: "Test", headline: "PM", summary: "Summary." },
+  });
+  const budgets = analysis.evidenceMap.find((item) => /budgets/i.test(item.requirement));
+  assert.ok(budgets);
+  assert.notEqual(budgets.strength, "Gap");
+  assert.ok(budgets.evidence.length > 0);
+});

@@ -726,7 +726,34 @@ export function JobSeekerApp() {
     : `${profile.name || "Candidate name"}\n${effectiveProfile.headline || "Project and Operations Manager"}\n${[profile.location, profile.email, profile.phone, profile.linkedin].filter(Boolean).join(" | ")}\n\nPROFESSIONAL SUMMARY\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}\n\nPROFESSIONAL EXPERIENCE\n${matchedFacts.length ? matchedFacts.map((fact) => `• ${fact}`).join("\n") : "• Generate with a connected AI provider after approving career evidence."}\n\nCORE SKILLS\n${roleKeywords.slice(0, 10).join(" • ") || "Add a complete job description to prioritize verified capabilities."}`;
   const resume = currentResumeGeneration ? renderStructuredResume(currentResumeGeneration.result, profile) : fallbackResume;
 
-  const cover = `Dear ${company ? `${company} Hiring Team` : "Hiring Team"},\n\nI’m interested in the ${role || "position"} because it connects closely with the work reflected in my verified experience.\n\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}${matchedFacts.length ? ` For this role, the most relevant evidence includes ${matchedFacts.slice(0, 3).join("; ")}.` : " Add approved career facts before using this draft."}\n\nWhat draws me to ${company || "your team"} is the opportunity to contribute with clarity, care, and reliable execution. I would welcome the chance to discuss how my experience could support the team.\n\nThank you for your consideration.\n\nBest,\n${profile.name || "Your name"}\n\nVOICE NOTES USED\nLearned from: ${knowledgeStats.voice} uploaded source${knowledgeStats.voice === 1 ? "" : "s"}\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}`;
+  /*
+   * Build the cover letter from the requirement-to-evidence map rather than a
+   * fixed template. The previous version shipped the same three sentences with
+   * every application — "contribute with clarity, care, and reliable execution"
+   * and "connects closely with the work reflected in my verified experience"
+   * said nothing a reader could check, which is exactly what the résumé
+   * standards reject. Each body line now names a requirement the posting
+   * actually stated and the approved fact that answers it.
+   */
+  const supportedRequirements = evidenceMap.filter((item) => item.strength !== "Gap" && item.evidence.length).slice(0, 3);
+  const openRequirements = evidenceMap.filter((item) => item.strength === "Gap").slice(0, 3);
+  const coverBody = supportedRequirements.length
+    ? supportedRequirements.map((item) => `${item.requirement.replace(/[.\s]+$/, "")} — ${item.evidence[0].fact}`).join("\n\n")
+    : matchedFacts.length
+      ? matchedFacts.slice(0, 3).map((fact) => `• ${fact}`).join("\n")
+      : "Approve career evidence in Career profile before using this draft — there is nothing here to support a claim yet.";
+  const cover = [
+    `Dear ${company ? `${company} Hiring Team` : "Hiring Team"},`,
+    `I am writing about the ${role || "open position"}${company ? ` at ${company}` : ""}.${effectiveProfile.summary ? ` ${effectiveProfile.summary}` : ""}`,
+    supportedRequirements.length ? "Where my background lines up with what the posting asks for:" : "",
+    coverBody,
+    "I would be glad to walk through any of this in more detail.",
+    `Best,\n${profile.name || "Your name"}`,
+    openRequirements.length
+      ? `REVIEW BEFORE SENDING\nThe posting also asks about ${openRequirements.map((item) => item.requirement.replace(/[.\s]+$/, "")).join("; ")}. No approved evidence covers ${openRequirements.length === 1 ? "it" : "these"} — address ${openRequirements.length === 1 ? "it" : "them"} honestly or leave ${openRequirements.length === 1 ? "it" : "them"} out.`
+      : "",
+    `VOICE NOTES USED\nLearned from: ${knowledgeStats.voice} uploaded source${knowledgeStats.voice === 1 ? "" : "s"}\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}`,
+  ].filter(Boolean).join("\n\n");
 
   const answers = `APPLICATION ANSWER KIT\n\nProfessional headline\n${effectiveProfile.headline || "Add an approved headline."}\n\nCurrent location\n${profile.location || "Add your location."}\n\nWhy are you interested in this role?\nI’m interested because the role emphasizes ${roleKeywords.slice(0, 3).join(", ") || "the responsibilities in the posting"}, and I can connect those needs to approved evidence in my career profile.\n\nTell us about yourself\n${effectiveProfile.summary || "Add an approved professional summary before using this answer."}\n\nWhy ${company || "this company"}?\nThe opportunity stands out because of the work described in the posting. Before submitting, add one specific, researched reason for your interest in the company.\n\nCompensation, work authorization, demographic, and legal questions\nREQUIRES USER REVIEW — never infer or autofill these sensitive answers.`;
 
@@ -1311,7 +1338,7 @@ export function JobSeekerApp() {
 
       <section className="main-stage">
         <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your daily radar." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : view === "data" ? "Recover and preserve every version." : "Choose and understand your AI."}</h1></div><button className={`status-pill workspace-sync ${workspaceSync.state}`} onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"} title={workspaceSync.message}><i /> {workspaceSync.state === "saving" ? "Saving private revision…" : workspaceSync.state === "error" ? "Browser saved · retry backup" : workspaceSync.lastSavedAt ? "Private backup current" : "Private backup ready"}</button></header>
-        {notice && <button className="notice" onClick={() => setNotice("")}>{notice} ×</button>}
+        {notice && <button className={`notice ${noticeTone(notice)}`} onClick={() => setNotice("")}>{notice} ×</button>}
         {operationProgress && <div className="operation-status global-operation" role="status" aria-live="polite"><i /><div><strong>{operationProgress.label}</strong><span>{operationProgress.detail}</span></div></div>}
 
         {view === "workspace" && <div className="workspace-grid">
