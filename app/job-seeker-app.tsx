@@ -395,8 +395,11 @@ export function JobSeekerApp() {
   const [sourceUrl, setSourceUrl] = useState("");
   const [sourceReading, setSourceReading] = useState(false);
   const [roleReading, setRoleReading] = useState(false);
-  const [draftEditor, setDraftEditor] = useState("");
-  const [draftEditorKey, setDraftEditorKey] = useState("");
+  // The one place the user repairs what generation got wrong was the only
+  // workspace state that was not persisted, so a reload discarded every manual
+  // edit. Saved like the rest of the workspace.
+  const [draftEditor, setDraftEditor] = useSavedState("v-jobs-draft-editor-v1", "");
+  const [draftEditorKey, setDraftEditorKey] = useSavedState("v-jobs-draft-editor-key-v1", "");
   const [isDragging, setIsDragging] = useState(false);
   const [companyName, setCompanyName] = useState("");
   const [companyKind, setCompanyKind] = useState<CompanyTarget["kind"]>("Brand");
@@ -420,7 +423,6 @@ export function JobSeekerApp() {
   const [workspaceHistoryState, setWorkspaceHistoryState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [resumeGeneration, setResumeGeneration] = useState<ResumeGeneration | null>(null);
   const [resumeReview, setResumeReview] = useState<{ providerName: string; modelLabel: string; result: ResumeAiReview; usage?: CloudUsage } | null>(null);
-  const [resumeComparison, setResumeComparison] = useState<Array<{ provider: AiProviderId; providerName: string; modelLabel: string; result: ResumeAiReview; usage?: CloudUsage }>>([]);
   const [resumeAiRunning, setResumeAiRunning] = useState<"generate" | "review" | "compare" | null>(null);
   const [aiDiagnostics, setAiDiagnostics] = useState<{ state: "idle" | "checking" | "ready" | "error"; checkedAt?: string; providers: AiProviderDiagnostic[]; message: string }>({ state: "idle", providers: [], message: "Run a no-generation model check to verify exact API access." });
   const workspaceAbort = useRef<AbortController | null>(null);
@@ -462,6 +464,12 @@ export function JobSeekerApp() {
   const curatedPlaybookRules = useMemo(() => playbookSettings.curatedEnabled ? CURATED_RESUME_PLAYBOOK.rules.map((rule) => rule.text) : [], [playbookSettings.curatedEnabled]);
   const availableResumeVersions = useMemo(() => generatedDrafts.filter((draft) => draft.type === "resume" && draft.content.trim()).sort((left, right) => Date.parse(right.updatedAt || right.createdAt || "") - Date.parse(left.updatedAt || left.createdAt || "")), [generatedDrafts]);
   const selectedAutofillResume = useMemo(() => availableResumeVersions.find((draft) => draft.id === autofillResumeVersionId) || null, [autofillResumeVersionId, availableResumeVersions]);
+  // Prior versions strong enough to adapt for this role. Reusing one is the
+  // lower-cost path: no provider call, and a draft already reviewed once.
+  const reusableResumes = useMemo(
+    () => findReusableResumes(generatedDrafts, { role, jobText, trackId: selectedTrack.id }),
+    [generatedDrafts, jobText, role, selectedTrack.id],
+  );
   const approvedPlaybookRules = useMemo(() => [...userPlaybookRules, ...curatedPlaybookRules], [curatedPlaybookRules, userPlaybookRules]);
   const learningSteps = useMemo(() => [
     { label: "Career foundation", detail: "Upload current and past résumés", complete: knowledgeStats.evidence > 0 },
@@ -806,6 +814,12 @@ export function JobSeekerApp() {
         quality: data.quality,
       };
       setResumeGeneration(generation);
+      // Generation replaces the draft wholesale. Preserve any manual edits as a
+      // version first — the workspace guarantee is that nothing is overwritten.
+      if (draftEditorKey === "resume" && draftEditor.trim() && draftEditor !== resume) {
+        saveDraftVersion("resume");
+        setNotice("Your edited draft was saved as a version before the new résumé replaced it.");
+      }
       setDraftEditor(renderStructuredResume(result, profile));
       setDraftEditorKey("resume");
       setNotice(`${generation.modelLabel} created a fact-checked résumé using ${userPlaybookRules.length} uploaded rules first and ${curatedPlaybookRules.length} secondary rules.`);
@@ -913,6 +927,17 @@ export function JobSeekerApp() {
     const id = createId();
     setApplications((current) => [{ id, company: company || "Unknown company", role: role || "Untitled role", status: "Preparing", date: dateInputToday(), url: roleUrl.trim() || undefined, jobSnapshotId, note: "Saved from Role workspace" }, ...current]);
     setNotice("Role saved to your application pipeline. It is not marked as submitted.");
+  }
+
+  function reusePriorResume(draftId: string) {
+    const prior = generatedDrafts.find((draft) => draft.id === draftId);
+    if (!prior) { setNotice("That saved version could not be found."); return; }
+    // Loaded into the editor, never saved over: the original version stays
+    // untouched in history and this becomes a new draft the user can adapt.
+    setDraftEditor(prior.content);
+    setDraftEditorKey("resume");
+    setOutput("resume");
+    setNotice(`Loaded ${prior.title} into the draft editor. The saved version is unchanged — edit this copy for ${role || "this role"}, then Save version.`);
   }
 
   function openDraftEditor(kind: "resume" | "cover") {
@@ -1336,6 +1361,15 @@ export function JobSeekerApp() {
               {output === "resume" && <div className={`playbook-banner ${approvedPlaybookRules.length ? "active" : "empty"}`}><div><span>RÉSUMÉ PLAYBOOK</span><strong>{userPlaybookRules.length} uploaded rules first · {curatedPlaybookRules.length} curated rules second</strong><small>{approvedPlaybookRules.length ? "Generation receives your uploaded rules as the highest-priority editorial instructions. Every candidate claim still requires approved evidence." : "Upload a Résumé playbook source. Detected guidance is activated automatically."}</small></div><button onClick={() => setView("documents")}>{approvedPlaybookRules.length ? "Review rules" : "Add playbook"}</button>{approvedPlaybookRules.length > 0 && <ul>{approvedPlaybookRules.slice(0, 3).map((rule) => <li key={rule}>{rule}</li>)}</ul>}</div>}
               {output === "cover" && knowledgeStats.voice > 0 && <div className="playbook-banner active"><div><span>WRITING VOICE</span><strong>{knowledgeStats.voice} uploaded voice {knowledgeStats.voice === 1 ? "source" : "sources"}</strong><small>Voice affects phrasing only; approved career facts remain the truth boundary.</small></div><button onClick={() => setView("voice")}>Review voice</button></div>}
               {(output === "resume" || output === "cover") && draftEditorKey === output ? <textarea className="draft-editor" aria-label={`Editable ${output} draft`} value={draftEditor} onChange={(event) => setDraftEditor(event.target.value)} /> : output === "resume" ? <ResumePaper text={activeText} /> : <pre>{activeText}</pre>}
+              {output === "resume" && reusableResumes.length > 0 && draftEditorKey !== "resume" && <div className="resume-reuse">
+                <div><span>REUSE A PRIOR VERSION</span><strong>{reusableResumes.length} saved {reusableResumes.length === 1 ? "résumé looks" : "résumés look"} close to this role</strong><small>Adapting one costs nothing and starts from a draft you have already reviewed. The saved version stays unchanged.</small></div>
+                <ul>{reusableResumes.map((item) => <li key={item.draft.id}>
+                  <div><b>{item.draft.title}</b><i>{item.score}% match</i></div>
+                  <span>{item.draft.company || "No company recorded"} · {item.draft.role || "No role recorded"}{item.draft.versionNumber ? ` · v${item.draft.versionNumber}` : ""}</span>
+                  <em>{item.reasons.length ? `Matched on ${item.reasons.join(", ")}.` : "Matched on overall similarity."}</em>
+                  <button onClick={() => reusePriorResume(item.draft.id)}>Adapt this version</button>
+                </li>)}</ul>
+              </div>}
               {output === "resume" && resumeAudit && <div className="resume-standards">
                 <div className="resume-standards-head">
                   <div><span>RÉSUMÉ STANDARDS</span><strong>{resumeAudit.score}<i>/10</i></strong><small>Your résumé-tailor rules, checked on this draft. Runs offline — no model, no API key, no cost. It reports; every wording change stays yours.</small></div>
