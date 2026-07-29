@@ -400,6 +400,13 @@ export function JobSeekerApp() {
   // edit. Saved like the rest of the workspace.
   const [draftEditor, setDraftEditor] = useSavedState("v-jobs-draft-editor-v1", "");
   const [draftEditorKey, setDraftEditorKey] = useSavedState("v-jobs-draft-editor-key-v1", "");
+  // True when the current draft came from pasting an externally drafted
+  // version (e.g. the resume-tailor Skill run in a separate Claude
+  // conversation) rather than this app's own local or cloud generator.
+  // Persisted so the provenance survives a reload, same as the draft itself.
+  const [draftIsExternal, setDraftIsExternal] = useSavedState("v-jobs-draft-external-v1", false);
+  const [pasteDraftOpen, setPasteDraftOpen] = useState(false);
+  const [pasteDraftText, setPasteDraftText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [companyName, setCompanyName] = useState("");
   const [companyKind, setCompanyKind] = useState<CompanyTarget["kind"]>("Brand");
@@ -848,6 +855,7 @@ export function JobSeekerApp() {
         setNotice("Your edited draft was saved as a version before the new résumé replaced it.");
       }
       setDraftEditor(renderStructuredResume(result, profile));
+      setDraftIsExternal(false);
       setDraftEditorKey("resume");
       setNotice(`${generation.modelLabel} created a fact-checked résumé using ${userPlaybookRules.length} uploaded rules first and ${curatedPlaybookRules.length} secondary rules.`);
     } catch (cause) {
@@ -963,6 +971,7 @@ export function JobSeekerApp() {
     // untouched in history and this becomes a new draft the user can adapt.
     setDraftEditor(prior.content);
     setDraftEditorKey("resume");
+    setDraftIsExternal(prior.origin === "uploaded");
     setOutput("resume");
     setNotice(`Loaded ${prior.title} into the draft editor. The saved version is unchanged — edit this copy for ${role || "this role"}, then Save version.`);
   }
@@ -971,6 +980,28 @@ export function JobSeekerApp() {
     const seed = kind === "resume" ? resume : cover;
     setDraftEditor(seed);
     setDraftEditorKey(kind);
+    setDraftIsExternal(false);
+  }
+
+  /*
+   * Load a résumé or cover letter drafted somewhere else -- most commonly the
+   * resume-tailor Skill run in a separate Claude conversation, for anyone
+   * using their regular Claude subscription instead of configuring a paid API
+   * key here. The pasted text becomes the working draft: it runs through the
+   * same résumé-standards audit and evidence-map cover-letter tooling as any
+   * other draft, and Save Version records it as "uploaded" so its origin
+   * stays honest in the version history.
+   */
+  function applyExternalDraft(kind: "resume" | "cover") {
+    const content = pasteDraftText.trim();
+    if (content.length < 40) { setNotice("Paste the complete drafted text first -- that looked too short to be a real draft."); return; }
+    setDraftEditor(content);
+    setDraftEditorKey(kind);
+    setDraftIsExternal(true);
+    setOutput(kind);
+    setPasteDraftOpen(false);
+    setPasteDraftText("");
+    setNotice(`Pasted ${kind === "resume" ? "résumé" : "cover letter"} loaded as your working draft. ${kind === "resume" ? "Check the standards report below, then " : ""}Save version to keep it.`);
   }
 
   function saveDraftVersion(kind: "resume" | "cover") {
@@ -992,7 +1023,7 @@ export function JobSeekerApp() {
       role: draftRole,
       trackId: selectedTrack.id,
       jobSnapshotId,
-      origin: draftEditorKey === kind && draftEditor !== (kind === "resume" ? resume : cover) ? "edited" : "generated",
+      origin: draftEditorKey === kind && draftIsExternal ? "uploaded" : draftEditorKey === kind && draftEditor !== (kind === "resume" ? resume : cover) ? "edited" : "generated",
       provider: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.provider : "local",
       model: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.model : undefined,
       modelLabel: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.modelLabel : undefined,
@@ -1350,7 +1381,7 @@ export function JobSeekerApp() {
             <div className="track-selector"><label>Résumé direction<select value={activeTrackId} onChange={(event) => setActiveTrackId(event.target.value)}><option value="auto">Auto-select from the role</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label><div><span>{trackSelection.automatic ? "AUTO MATCH" : "MANUAL"}</span><strong>{selectedTrack.name}</strong><small>{selectedTrack.headline || "Add a headline in Career profile → Résumé tracks"}</small></div></div>
             <label>Job description<textarea value={jobText} onBlur={() => { if (jobText.trim().length >= 80) { saveMarketSnapshot("pasted"); setNotice("Job description saved to private market learning."); } }} onChange={(e) => setJobText(e.target.value)} placeholder="Paste the complete job description here, or import it from the public job link above." /></label>
             {(!evidenceSources.length || facts.length < 3) && <button className="knowledge-cta" onClick={() => setView("documents")}><span>YOUR SOURCE OF TRUTH</span><strong>Upload knowledge sources</strong><small>Add your résumé, Custom GPT content, résumé rules, and writing samples. Personal claims require your approval.</small></button>}
-            <div className="input-actions"><button className="primary" onClick={() => setOutput("analysis")}>Analyze locally</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Running secure review…" : aiReady ? `Review with ${aiProviderName}` : "Cloud AI setup"}</button><button onClick={() => { saveMarketSnapshot("pasted"); setNotice("Saved to market learning. This does not create an application."); }}>Save description</button><button onClick={saveApplication}>Save to applications</button><button onClick={() => { setJobText(""); setCompany(""); setRole(""); setRoleUrl(""); setDraftEditor(""); setDraftEditorKey(""); }}>Clear</button></div>
+            <div className="input-actions"><button className="primary" onClick={() => setOutput("analysis")}>Analyze locally</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Running secure review…" : aiReady ? `Review with ${aiProviderName}` : "Cloud AI setup"}</button><button onClick={() => { saveMarketSnapshot("pasted"); setNotice("Saved to market learning. This does not create an application."); }}>Save description</button><button onClick={saveApplication}>Save to applications</button><button onClick={() => { setJobText(""); setCompany(""); setRole(""); setRoleUrl(""); setDraftEditor(""); setDraftEditorKey(""); setDraftIsExternal(false); }}>Clear</button></div>
             <div className="workspace-feedback" aria-live="polite"><strong>{jobSnapshots.length} saved job descriptions</strong><span>Descriptions are preserved for market learning; “Save to applications” creates a separate pipeline record.</span></div>
           </section>
 
@@ -1378,6 +1409,21 @@ export function JobSeekerApp() {
               <div className="truth-check"><strong>Truth check</strong><p>The score measures approved evidence coverage and profile readiness—not your chance of being hired. Unknown metrics and experience must be reviewed by you.</p><ul><li>{matchedFacts.length} approved facts are currently relevant to this role.</li><li>{firstGap ? `First unsupported requirement: ${firstGap}` : roleKeywords.length ? "Every detected requirement has at least partial evidence; review quality before using it." : "Paste a complete role description to produce a better check."}</li><li>Final application decisions and all sensitive answers remain yours.</li></ul></div>
             </div> : <div className="document-view">
               <div className="document-actions"><span>{output === "resume" ? currentResumeGeneration ? `AI résumé · ${currentResumeGeneration.modelLabel} · evidence validated` : "Local résumé scaffold · generate with a connected model for full tailoring" : output === "cover" ? "Editable working draft — based on approved facts" : "Generated from approved facts"}</span>{(output === "resume" || output === "cover") && <button onClick={() => openDraftEditor(output)}>Edit draft</button>}{(output === "resume" || output === "cover") && <button onClick={() => saveDraftVersion(output)}>Save version</button>}<button onClick={() => copyText(activeText, setNotice)}>Copy</button><button onClick={() => download(`tailored-${output}.txt`, activeText)}>Text</button><button onClick={() => downloadWordDocument(`tailored-${output}.doc`, `${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText, output === "resume" ? "resume" : "prose")}>Word</button><button className="primary" onClick={() => printDocument(`${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText, output === "resume" ? "resume" : "prose")}>Save as PDF</button></div>
+              {(output === "resume" || output === "cover") && <div className="paste-external-draft">
+                {pasteDraftOpen ? <>
+                  <textarea
+                    aria-label={`Paste a drafted ${output === "resume" ? "résumé" : "cover letter"}`}
+                    placeholder={`Paste the complete ${output === "resume" ? "résumé" : "cover letter"} text here — for example, output from the resume-tailor Skill run in a separate Claude conversation.`}
+                    value={pasteDraftText}
+                    onChange={(event) => setPasteDraftText(event.target.value)}
+                  />
+                  <div className="paste-external-draft-actions">
+                    <button className="primary" onClick={() => applyExternalDraft(output as "resume" | "cover")}>Use this draft</button>
+                    <button onClick={() => { setPasteDraftOpen(false); setPasteDraftText(""); }}>Cancel</button>
+                  </div>
+                </> : <button onClick={() => setPasteDraftOpen(true)}>Paste a drafted {output === "resume" ? "résumé" : "cover letter"}</button>}
+                <small>For drafting with your regular Claude subscription instead of a paid API key: run the resume-tailor Skill in a normal conversation, then paste its output here. It becomes your working draft — scored the same way as any other, exported the same way, saved to version history as “uploaded”.</small>
+              </div>}
               {output === "resume" && <div className="resume-ai-toolbar">
                 <div><span>RÉSUMÉ ENGINE</span><strong>{selectedProvider?.name || "Choose a provider"} · {selectedModel?.label || "Choose a model"}</strong><small>Generation writes the résumé. Review audits the current draft without changing it.</small></div>
                 <label>Provider<select value={aiPreference.provider} onChange={(event) => { const next = aiConnection.providers.find((item) => item.id === event.target.value); if (next) setAiPreference({ provider: next.id, modelKey: next.defaultModelKey }); }}>{aiConnection.providers.map((provider) => <option key={provider.id} value={provider.id} disabled={!provider.configured}>{provider.name}{provider.configured ? "" : " · not connected"}</option>)}</select></label>
@@ -1572,7 +1618,7 @@ export function JobSeekerApp() {
         {view === "companies" && <section className="companies-workspace"><div className="target-form"><div className="step"><b>03</b><span>ADD A TARGET</span></div><h2>Companies, brands, and agencies — in one list.</h2><p>Keep only targets you want to follow. Career links and notes are optional, so this works even before you have every detail.</p><label>Company or agency name<input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Agency, brand, or sports organization" /></label><div className="field-row"><label>Type<select value={companyKind} onChange={(event) => setCompanyKind(event.target.value as CompanyTarget["kind"])}><option>Brand</option><option>Agency</option><option>Sports</option><option>Tech</option></select></label><label>Focus<input value={companyFocus} onChange={(event) => setCompanyFocus(event.target.value)} /></label></div><label>Website<input value={companyWebsite} onChange={(event) => setCompanyWebsite(event.target.value)} placeholder="https://" /></label><label>Careers page<input value={companyCareers} onChange={(event) => setCompanyCareers(event.target.value)} placeholder="https://" /></label><button className="primary" onClick={addCompany}>Add to directory</button></div><div className="target-directory"><div className="review-heading"><div><span>TARGET DIRECTORY</span><h2>{companies.length} saved targets</h2></div><strong>Bay Area first</strong></div>{companies.length === 0 ? <div className="empty-state compact"><strong>Your target list starts here.</strong><span>Add brands, agencies, sports organizations, or tech teams. Nothing is marked as an open role until you verify it.</span></div> : <div className="company-list">{companies.map((target) => <article key={target.id}><div className="company-title"><span>{target.kind}</span><strong>{target.name}</strong><small>{target.market} · {target.focus || "No focus set"}</small></div><div className="company-links">{target.website && <a href={target.website} target="_blank" rel="noreferrer">Website</a>}{target.careers && <a href={target.careers} target="_blank" rel="noreferrer">Careers</a>}<button onClick={() => loadCompanyForRole(target)}>Use for role</button></div><div className="company-actions"><label>Status<select value={target.status} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: event.target.value as CompanyTarget["status"] } : item))}><option>Researching</option><option>Monitoring</option><option>Applied</option><option>Paused</option></select></label><label>Notes<input value={target.notes} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, notes: event.target.value } : item))} placeholder="Contact, role, or next step" /></label><button onClick={() => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: "Paused" } : item))}>Pause</button></div></article>)}</div>}</div></section>}
 
         {view === "applications" && <section className="table-card"><div className="table-head"><div><span>PIPELINE</span><h2>{applications.length} saved applications</h2></div><button onClick={() => download("v-jobs-applications.json", JSON.stringify({ applications, generatedDrafts, jobSnapshots },null,2), "application/json")}>Export</button></div>{applications.length === 0 ? <div className="empty-state"><strong>No applications saved yet.</strong><span>Prepare a role in the workspace, then choose “Save to applications.”</span><button className="primary" onClick={() => setView("workspace")}>Prepare first role</button></div> : <div className="application-list">{applications.map((app) => { const resumeDraft = generatedDrafts.find((draft) => draft.id === app.resumeVersionId); const coverDraft = generatedDrafts.find((draft) => draft.id === app.coverVersionId); const matchingDrafts = generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role); return <article key={app.id}><div className="application-main"><strong>{app.role}</strong><span>{app.company}</span>{app.url && <a href={app.url} target="_blank" rel="noreferrer">Original role ↗</a>}<small>{app.note || "Saved opportunity — not submitted"}</small></div><label>Application date<input type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(app.date) ? app.date : ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,date:e.target.value}:item))} /></label><label>Status<select value={app.status} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:e.target.value as ApplicationStatus}:item))}><option>Saved opportunity</option><option>Preparing</option><option>Applied</option><option>Interview</option><option>Closed</option></select></label><label>Note<input value={app.note || ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,note:e.target.value}:item))} placeholder="Follow-up, contact, or reminder" /></label><div className="application-document-links"><span>Résumé: {resumeDraft ? resumeDraft.title : "Not linked"}</span><span>Cover letter: {coverDraft ? coverDraft.title : "Not linked"}</span></div><div className="application-actions"><button onClick={() => { setCompany(app.company); setRole(app.role); setRoleUrl(app.url || ""); setView("workspace"); setNotice("Role reopened. Its saved history remains intact."); }}>Open role</button><button onClick={() => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:"Closed"}:item))}>Archive as closed</button></div>{matchingDrafts.length > 0 && <div className="application-draft-picker">{matchingDrafts.map((draft) => <button key={draft.id} onClick={() => attachDraftToApplication(app.id, draft)}>Link {draft.type === "resume" ? "résumé" : "cover letter"}: {draft.updatedAt}</button>)}</div>}</article>; })}</div>}</section>}
-        {view === "applications" && <section className="resume-library"><div className="table-head"><div><span>DOCUMENT LIBRARY</span><h2>{generatedDrafts.filter((draft) => draft.type === "resume").length} saved résumé versions</h2></div><small>Every version is preserved and can be linked to an application.</small></div>{generatedDrafts.filter((draft) => draft.type === "resume").length === 0 ? <div className="empty-state compact"><strong>No résumé version saved yet.</strong><span>Generate or edit a résumé in Role workspace, then choose Save version.</span></div> : <div className="resume-version-list">{generatedDrafts.filter((draft) => draft.type === "resume").map((draft) => <article key={draft.id}><div><strong>{draft.title}</strong><span>{draft.company} · {draft.role}</span><small>{draft.updatedAt} · {draft.provider === "local" || !draft.provider ? "Local draft" : `${draft.provider} · ${draft.model || "model recorded"}`} · {draft.playbookRuleCount ?? 0} playbook rules</small></div><button onClick={() => { setCompany(draft.company); setRole(draft.role); setDraftEditor(draft.content); setDraftEditorKey("resume"); setOutput("resume"); setView("workspace"); setNotice("Saved résumé version opened for editing. The original version remains preserved."); }}>Open copy</button><button onClick={() => download(`${draft.company}-${draft.role}-resume.txt`.replace(/[^a-z0-9.-]+/gi, "-"), draft.content)}>Download</button></article>)}</div>}</section>}
+        {view === "applications" && <section className="resume-library"><div className="table-head"><div><span>DOCUMENT LIBRARY</span><h2>{generatedDrafts.filter((draft) => draft.type === "resume").length} saved résumé versions</h2></div><small>Every version is preserved and can be linked to an application.</small></div>{generatedDrafts.filter((draft) => draft.type === "resume").length === 0 ? <div className="empty-state compact"><strong>No résumé version saved yet.</strong><span>Generate or edit a résumé in Role workspace, then choose Save version.</span></div> : <div className="resume-version-list">{generatedDrafts.filter((draft) => draft.type === "resume").map((draft) => <article key={draft.id}><div><strong>{draft.title}</strong><span>{draft.company} · {draft.role}</span><small>{draft.updatedAt} · {draft.provider === "local" || !draft.provider ? "Local draft" : `${draft.provider} · ${draft.model || "model recorded"}`} · {draft.playbookRuleCount ?? 0} playbook rules</small></div><button onClick={() => { setCompany(draft.company); setRole(draft.role); setDraftEditor(draft.content); setDraftEditorKey("resume"); setDraftIsExternal(draft.origin === "uploaded"); setOutput("resume"); setView("workspace"); setNotice("Saved résumé version opened for editing. The original version remains preserved."); }}>Open copy</button><button onClick={() => download(`${draft.company}-${draft.role}-resume.txt`.replace(/[^a-z0-9.-]+/gi, "-"), draft.content)}>Download</button></article>)}</div>}</section>}
 
         {view === "data" && <section className="data-workspace">
           <div className="data-safety-card"><span>APPEND-ONLY PRIVATE HISTORY</span><h2>Recover records without deleting the current workspace.</h2><p>Every durable save creates an immutable private revision. “Merge preserved records” adds missing applications, sources, résumé versions, job descriptions, and companies to the current workspace. Current records win when the same ID exists.</p><div><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving" || !workspaceLoaded}>Save revision now</button><button onClick={() => void loadWorkspaceHistory()} disabled={workspaceHistoryState === "loading"}>{workspaceHistoryState === "loading" ? "Refreshing…" : "Refresh history"}</button><button onClick={exportWorkspace}>Download complete backup</button></div></div>

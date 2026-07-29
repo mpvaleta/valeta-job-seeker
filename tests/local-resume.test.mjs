@@ -229,3 +229,103 @@ test("capability vocabulary covers tracks beyond brand and creative work", () =>
   const labels = resume.core_skills.map((skill) => skill.label).join(" ");
   assert.match(labels, /Marketing operations and CRM|Lifecycle and email programs|Analytics and performance reporting/);
 });
+
+// A fact carrying its own date range, whose title word was not recognized,
+// used to be silently absorbed as a bullet under whichever job was still
+// "open" — misattributing an entire second job's work to the wrong employer
+// with no omission recorded at all. This is the most serious defect a résumé
+// builder can have: it does not invent a fact, but it reassigns a real one.
+test("a second concurrent job never gets absorbed into the first one's bullets", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Part-time Marketing Coordinator, Acme Retail — Mar 2021 to present, 20 hours per week.",
+      "Managed social media scheduling for Acme Retail.",
+      "Part-time Barista, Blue Cup Cafe — Jun 2019 to present, weekends.",
+      "Trained new baristas on espresso equipment at Blue Cup Cafe.",
+    ],
+    roleText: ROLE,
+  });
+  assert.equal(resume.experience.length, 2, "each concurrent job must get its own entry");
+  const acme = resume.experience.find((entry) => entry.company === "Acme Retail");
+  const cafe = resume.experience.find((entry) => entry.company === "Blue Cup Cafe");
+  assert.ok(acme && cafe, "both employers must be recognized");
+  assert.equal(acme.bullets.length, 1);
+  assert.doesNotMatch(acme.bullets[0].text, /Blue Cup Cafe|barista/i, "Acme's bullets must not contain the other job's work");
+  assert.equal(cafe.bullets.length, 1);
+  assert.match(cafe.bullets[0].text, /espresso/i);
+});
+
+test("a fact naming a different 'at' employer than the open entry is reported as an omission, not merged in", () => {
+  // "for <Name>" stays deliberately ambiguous elsewhere in this file (it can
+  // describe a client the current employer serves), but "at <Name>" asserts
+  // employment outright -- a fact naming a second "at" employer with no dates
+  // of its own must never be folded into a different, already-open job.
+  const resume = buildLocalResume({
+    facts: [
+      "Senior Project Manager, Acme Studios — 2019 to Present.",
+      "Managed integrated campaigns and budgets.",
+      "Advised the founding team at Nimbus Robotics on hiring practices.",
+    ],
+    roleText: ROLE,
+  });
+  assert.equal(resume.experience.length, 1);
+  assert.doesNotMatch(resume.experience[0].bullets.map((b) => b.text).join(" "), /Nimbus Robotics/);
+  assert.ok(resume.omissions.some((entry) => entry.includes("Nimbus Robotics")));
+});
+
+test("a 'for <client>' mention with no dates of its own stays attached to the open job, since it may describe work performed within that role", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Senior Project Manager, Acme Studios — 2019 to Present.",
+      "Managed integrated campaigns and budgets.",
+      "Consulted for Zeta Ventures as part of an Acme Studios engagement.",
+    ],
+    roleText: ROLE,
+  });
+  assert.equal(resume.experience.length, 1);
+  assert.match(resume.experience[0].bullets.map((b) => b.text).join(" "), /Zeta Ventures/);
+});
+
+test("'since <year>' with no end date is read as an ongoing role", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Senior Project Manager, Acme Studios — since 2019.",
+      "Led cross-functional campaign delivery across brand and media teams.",
+      "Managed integrated budgets and vendor contracts.",
+    ],
+    roleText: ROLE,
+  });
+  assert.ok(resume, "'since <year>' must produce a structured résumé, not the flat fallback");
+  assert.equal(resume.experience[0].dates, "2019 – Present");
+  assert.doesNotMatch(resume.experience[0].bullets[0].text, /since 2019/i);
+});
+
+test("freelance work with no proper-noun employer still gets its own entry", () => {
+  const resume = buildLocalResume({
+    facts: [
+      "Freelance Producer, various clients — 2020 to 2022.",
+      "Produced video content for five different consumer brands.",
+      "Managed production budgets and crews across multiple projects.",
+    ],
+    roleText: ROLE,
+  });
+  assert.ok(resume, "freelance phrasing with no company name must not collapse to the flat fallback");
+  assert.equal(resume.experience[0].title, "Freelance Producer");
+  assert.match(resume.experience[0].company, /various clients/i);
+  assert.equal(resume.experience[0].dates, "2020 – 2022");
+});
+
+test("the widened title vocabulary recognizes common early-career and service roles", () => {
+  for (const title of ["Barista", "Server", "Cashier", "Receptionist", "Bookkeeper"]) {
+    const resume = buildLocalResume({
+      facts: [
+        `${title}, Acme Shop — 2019 to 2021.`,
+        "Handled daily operations and customer service tasks.",
+        "Trained new team members on store procedures.",
+      ],
+      roleText: ROLE,
+    });
+    assert.ok(resume, `${title} must be recognized as a title, not fall back to null`);
+    assert.equal(resume.experience[0].title, title, title);
+  }
+});
