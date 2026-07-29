@@ -1,41 +1,44 @@
 # V's Job Seeker — Complete Backlog Log
 
-Updated: 2026-07-28
+Updated: 2026-07-29
 
 Priority labels reflect Marcos's stated order. P0 and P1 are the work that most directly affects getting applications out quickly.
 
+Items marked **[DONE]** were verified working this session (tested, typechecked, browser-verified where applicable) — kept in the list rather than deleted so the original requirement stays visible. Unmarked items are still open. Items marked **[GAP]** are partially done with a specific known hole.
+
 ## P0 — Résumé generation and output quality
 
-- Produce a complete, professional résumé with name, approved contact header, target title, summary, selected experience, accomplishments, skills, and clean formatting.
-- Apply the selected résumé playbook before generation and show which rules were applied.
-- Use approved career evidence as the only source for claims; surface unsupported requirements instead of filling gaps.
-- Remove malformed keyword fragments, duplicated facts, raw CSV/code noise, contact chatter, and generic filler.
-- Filter writing-voice samples so greetings, comments, URLs, emojis, export headers, and casual noise do not dominate the learned profile.
-- Keep multiple résumé tracks: brand/creative PM, creative operations, production/producer, general PM/program management, sports marketing, and custom tracks.
-- Make the draft editable before export or application use.
-- Save every generated and edited version; never overwrite the previous version.
-- Attach each version to company, role title, role description, résumé track, provider/model, prompt inputs, creation date, edits, tokens/usage when available, and application date when submitted.
-- Reuse a strong prior version for similar roles with an adaptation explanation and lower-cost path.
-- Compare two or three model outputs side by side with quality signals: evidence compliance, clarity, specificity, playbook adherence, track fit, and writing voice.
-- Make the selected/default model and the model used for each output explicit.
+- **[DONE]** Produce a complete, professional résumé with name, approved contact header, target title, summary, selected experience, accomplishments, skills, and clean formatting. (`lib/resume-document.mjs`, `lib/local-resume.mjs`)
+- **[DONE]** Apply the selected résumé playbook before generation and show which rules were applied.
+- **[DONE]** Use approved career evidence as the only source for claims; surface unsupported requirements instead of filling gaps. (evidence map now also drives the cover letter, not just the résumé)
+- **[DONE]** Remove malformed keyword fragments, duplicated facts, raw CSV/code noise, contact chatter, and generic filler. (`prepareResumeEvidence`, now actually wired into generation)
+- **[DONE]** Filter writing-voice samples so greetings, comments, URLs, emojis, export headers, and casual noise do not dominate the learned profile. (`lib/writing-voice.mjs`)
+- Keep multiple résumé tracks: brand/creative PM, creative operations, production/producer, general PM/program management, sports marketing, and custom tracks. (tracks exist; not re-audited this session)
+- **[DONE]** Make the draft editable before export or application use, and keep the edit. (was editable but silently lost on reload — now persists)
+- **[DONE]** Save every generated and edited version; never overwrite the previous version. (regeneration now auto-saves an in-progress edit as a version first, instead of overwriting it)
+- **[DONE]** Attach each version to company, role title, role description, résumé track, provider/model, prompt inputs, creation date, edits, tokens/usage when available, and application date when submitted.
+- **[DONE]** Reuse a strong prior version for similar roles with an adaptation explanation and lower-cost path. (`lib/resume-reuse.mjs` was fully built but never called — now a panel on the Résumé tab)
+- **[DONE]** Compare two or three model outputs side by side with quality signals.
+- **[DONE]** Make the selected/default model and the model used for each output explicit.
+- **[GAP]** No-API path for résumé help. Marcos's own `resume-tailor` Claude Skill can now be run in a normal conversation (subscription-covered) and the output pasted into the app — it's scored by an offline standards checker and versioned normally. What's still missing: the app doesn't yet surface *when* to suggest this path (e.g. no provider connected) — right now the user has to know it exists.
 
 ## P1 — Job Radar reliability
 
-- Radar must scan the companies Marcos added and label results as monitored-by-Marcos, suggested-by-V, imported, or manually added.
-- Keep all Radar discoveries in the Radar/discovery inbox, not Role Workspace.
-- Add filters for company, source, target position, location, alignment, status, and origin.
-- Add target-position dropdowns/checkpoints while preserving custom values.
-- Preserve minimum alignment and other target settings across every run.
-- Classify real job postings separately from navigation/marketing content such as “learn more,” “working here,” or generic program pages.
-- Discover careers/jobs/opportunities/openings/join-us pages from company homepages.
-- Follow public ATS and job-board links where compliant: Greenhouse, Lever, Ashby, Workday, SmartRecruiters, iCIMS, Built In SF, Wellfound, TeamWork Online, Indeed references, and other relevant sources.
-- Use secondary public sources to recover a role when the employer page blocks reading, but retain direct-source verification status.
-- Test Meta, Google, Apple, and additional monitored companies as regression fixtures.
-- Add approve, dismiss, archive, and restore actions without deleting discovery history.
-- Support automatic scans at least twice daily when the hosting scheduler is available; clearly distinguish background scans from app-open catch-up.
-- Store last checked, next due, source response, discovered count, filtered count, and reason for zero results.
-- **Deduplicate discoveries across every origin.** The same role must occupy one inbox row no matter how it arrived. Matching on the raw `source_url` string treats trivially different URLs as different jobs — trailing slash, `http` vs `https`, `www.`, tracking parameters (`utm_*`, `gh_src`, `trk`), reordered query parameters, and `#fragment` all produce a second row, and a role found by a monitored scan, then by V's Job Watch, then imported by hand produces three. Merging must preserve the user's decision (an approved or dismissed row never reverts to `new`), keep the earliest `discovered_at`, and prefer the most direct source URL. Never silently delete history while merging.
-- **Add a startup job radar.** Marcos wants roles at startups, which mostly do not appear on the enterprise ATS boards the radar covers today. Cover compliant startup-focused sources — Wellfound/AngelList, Y Combinator's job board, Built In SF — plus startup ATS tenants (Ashby and Lever are heavily used by early-stage companies). Let a monitored target be marked as a startup so stage, funding, and company size can inform scoring, and so a startup track can be filtered separately in the inbox.
+- **[DONE]** Radar scans monitored companies and labels results monitored / suggested-by-V / imported / manually added — now 4 origins including `linkedin-saved`.
+- Keep all Radar discoveries in the inbox, not Role Workspace. (already true, not re-audited)
+- Filters for company, source, target position, location, alignment, status, origin. (already true)
+- Target-position dropdowns while preserving custom values. (already true)
+- Preserve minimum alignment across runs. (already true)
+- Classify real postings vs navigation/marketing content. (already true — `isPlausibleRadarJob`)
+- Discover careers/jobs pages from company homepages. (already true)
+- **[GAP]** Follow public ATS/job-board links where compliant: Greenhouse, Lever, Ashby, Workday, SmartRecruiters done. **iCIMS and TeamWork Online have no reader at all** (iCIMS is only detected by the autofill browser extension, not the radar scanner) — confirmed absent, not just unverified.
+- Use secondary public sources when the employer page blocks reading. (already true)
+- **[DONE]** Meta, Google, Apple as regression fixtures — Meta specifically covered by the import-link test suite.
+- Approve, dismiss, archive, restore without deleting history. (already true)
+- **[DONE]** Automatic scans at least twice daily, background vs catch-up distinguished. Still needs the hosting scheduler actually pointed at `/api/radar/cron` in production — see [[vfiles-deployment-model]].
+- **[DONE]** Store last checked, next due, source response, counts, zero-result reason.
+- **[DONE]** Deduplicate discoveries across every origin. `opportunityKey()` normalizes scheme/host/tracking-params/fragments; `mergeDuplicateOpportunities()` repairs rows an earlier build already duplicated, keeping the earliest `discovered_at` and the user's latest real decision. One piece of the original ask not built: merging keeps the *surviving* row's own URL rather than upgrading to "the most direct" one — low-value edge case, not done.
+- **[GAP]** Startup job radar. Wellfound and Y Combinator's Work at a Startup are wired up (paste-link import, auto-tagged `Startup / Early-stage` from the source regardless of posting text). Built In is wired up via paste-link but deliberately not auto-tagged (it lists companies of every size). **Not done: a monitor-level "this target is a startup" flag that feeds scoring** — the original ask was for stage/funding/size to influence match score, and that part doesn't exist yet, only the category tag on imported roles.
 
 ## P1 — Role Workspace and market learning
 
@@ -44,7 +47,7 @@ Priority labels reflect Marcos's stated order. P0 and P1 are the work that most 
 - Extract company, role title, location, description, requirements, source URL, and capture date from pasted/captured content.
 - Save every role description automatically for market learning, independent of Save to Pipeline.
 - Keep role history when the page is reloaded or cleared from the active workspace.
-- Move status/feedback above the application area; use clear success, warning, failure, and neutral colors.
+- **[GAP]** Move status/feedback above the application area; use clear success, warning, failure, and neutral colors. The color logic now exists and is wired up (`noticeTone` was written but never applied — fixed this session, notices read success/error/neutral at a glance). Position ("above the application area") not specifically re-audited. "Queued" and "in-progress" states still read the same neutral color as everything else — only success/failure are visually distinct.
 - Show progress and retry/resend controls for reading, parsing, saving, recommendation, résumé, cover letter, and comparison.
 - Clear the active intake after successful submission while retaining historical records.
 
@@ -52,7 +55,7 @@ Priority labels reflect Marcos's stated order. P0 and P1 are the work that most 
 
 - Keep “Knowledge Sources” (playbooks, tips, do/don'ts, templates, examples, research) separate from “Career Profile/Experience” (Marcos's facts and evidence).
 - Make all tabs consume the same unified approved knowledge layer.
-- Make imported source types explicit and visible.
+- **Not done:** make imported source types explicit and visible. `classifyKnowledgeSource()` exists in `lib/knowledge-sources.mjs` and is imported into the workspace, but its result is never rendered anywhere (confirmed dead by the linter) — an uploaded source's classified type is computed and thrown away, so the user never sees it.
 - Add Approve all/batch approval while retaining individual review for conflicts and sensitive facts.
 - Detect duplicate/overlapping résumés and conflicting claims without deleting any source.
 - Suggest canonical facts and preserve provenance to every original file.
@@ -71,14 +74,14 @@ Priority labels reflect Marcos's stated order. P0 and P1 are the work that most 
 
 ## P1 — AI providers and guardrails
 
-- Make OpenAI, Gemini, and Claude review/generation buttons explicit and task-specific.
-- Validate provider/model compatibility before sending a request.
-- Add retry/backoff for transient 429/5xx responses and safe fallback to local analysis.
-- Capture privacy-safe provider, model, task, status, request ID, latency, approximate tokens, and cost estimate when available.
-- Add default model dropdowns by task and a one/two/three-model comparison mode.
-- Store model outputs and user-selected winner for future reuse and evaluation.
-- Reject malformed or unsupported claims and map evidence to exact approved-fact indexes.
-- Distinguish consumer subscriptions from API billing/quotas in setup guidance.
+- **[DONE]** Explicit, task-specific provider/model buttons. (already true)
+- **[DONE]** Validate provider/model compatibility before sending. All three provider request shapes (OpenAI `text.format`, Anthropic `output_config`, Google `responseJsonSchema`) verified correct against live current docs this session.
+- **[DONE]** Retry/backoff for transient 429/5xx, safe fallback to local analysis.
+- **[GAP]** Capture privacy-safe provider/model/status/request-ID/latency/tokens. Usage tracking exists (`ai-security-store`); **cost estimate is not computed anywhere** — tokens are recorded but never converted to an approximate dollar figure.
+- **[DONE]** Model dropdowns by task + comparison mode.
+- **[GAP]** Store model outputs for reuse/evaluation — comparison results exist in memory during the session but are not saved anywhere; there is no "winner" selection UI at all. Dead code confirms this: an `aiDiagnostics` state and `setAiDiagnostics` setter exist for a "no-generation model check" feature whose UI text is already written ("Run a no-generation model check to verify exact API access") but `setAiDiagnostics` is never called anywhere — the feature was scaffolded and abandoned mid-build.
+- **[DONE]** Reject malformed claims, map to exact fact indexes.
+- **Not done:** distinguish consumer subscription vs API billing in the app's own setup guidance. This came up directly in conversation this session (clarified for Marcos: claude.ai subscription and API credits are billed separately, no bridge exists) but that explanation was never added to the AI & Reliability screen's copy — a user hitting this confusion today gets no in-app guidance.
 
 ## P1 — LinkedIn and connections
 
@@ -91,12 +94,12 @@ Priority labels reflect Marcos's stated order. P0 and P1 are the work that most 
 
 ## P2 — Autofill assistant
 
-- Fix meaningless numeric fills and stale mappings.
-- Add clean rescan/reload without restarting the workflow.
-- Use active role, company, résumé track, approved profile, selected documents, and role-specific answers.
-- Support text fields, textareas, dropdowns, radios, checkboxes, repeated sections, uploads, and dynamic ATS forms.
-- Preview every mapping, flag uncertainty, log unmapped fields, and never submit automatically.
-- Allow a different résumé version to be uploaded/selected before filling.
+- **[DONE]** Fix meaningless numeric fills and stale mappings. Two real bugs fixed: a shared section heading could fill every field beneath it with the same value; an unchecked checkbox/untouched dropdown was misread as "already answered" and hidden from the preview entirely.
+- **[GAP]** Clean rescan without restarting the workflow — rescanning works, but there's no live re-detection when a form adds fields dynamically after the page loads (e.g. a multi-step ATS form); the user has to manually rescan.
+- **[DONE]** Uses active role, company, track, profile, selected résumé version, and role-specific answers.
+- **[GAP]** Field-type coverage: text/email/phone/city/state/country/textarea/checkbox/radio/dropdown/file all handled correctly (checkbox/radio/dropdown/file always route to manual review, on purpose). **Repeated sections (e.g. "Add another prior employer") and true dynamic forms are not specifically handled** — not tested against a real multi-entry ATS form this session.
+- **[DONE]** Preview every mapping, flag uncertainty, log unmapped fields, never auto-submit.
+- **[DONE]** Different résumé version selectable before filling.
 
 ## P2 — Career profile and focus tracks
 
@@ -119,6 +122,10 @@ Priority labels reflect Marcos's stated order. P0 and P1 are the work that most 
 - Add optional LinkedIn Profile Builder with separate rules and source knowledge.
 - Add deletion/archive controls only after preservation and restore are reliable.
 - Add provider credit/token dashboards and long-term quality analytics.
+
+## Not yet audited this session (status unknown, not claimed done or open)
+
+These sections were not touched or re-verified in the 2026-07-28/29 work: **Role Workspace URL-paste robustness** (redirected/login/challenge pages), **LinkedIn OAuth diagnostics**, **Application/document-history filters**, **Career profile/focus-track editing**, and the **card-based visual redesign**. Treat backlog items in those sections as their original open/unknown status, not as newly confirmed gaps.
 
 ## Required verification for every release
 
