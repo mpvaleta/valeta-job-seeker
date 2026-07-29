@@ -15,23 +15,33 @@
   // auto-answered can misstate work authorization or a protected characteristic
   // on a real application. "authorization" alone previously missed the most
   // common phrasing of all — "Are you authorized to work…".
-  const SENSITIVE = /salary|compensation|pay expectation|desired pay|expected pay|authoriz(?:ed|ation)|right to work|work permit|sponsor|visa|immigration|gender|pronoun|\brace\b|ethnicity|veteran|disability|criminal|conviction|felony|background check|drug (?:test|screen)|security clearance|legal|ssn|social security|birth|\bage\b|marital|citizen|sexual orientation|protected/i;
+  //
+  // "legal" is matched only in its sensitive senses. On its own it also caught
+  // "Legal first name", a routine ATS name field, and pushed it to review.
+  const SENSITIVE = /salary|compensation|pay expectation|desired pay|expected pay|authoriz(?:ed|ation)|right to work|work permit|sponsor|visa|immigration|gender|pronoun|\brace\b|ethnicity|veteran|disability|criminal|conviction|felony|background check|drug (?:test|screen)|security clearance|legally|legal (?:status|right|proceedings?|history)|ssn|social security|birth|\bage\b|marital|citizen|sexual orientation|protected/i;
 
   // A control the user must operate themselves; V's can describe it but must
   // never choose a value.
   const CONTROLLED_TYPES = new Set(["number", "range", "date", "datetime-local", "time", "month", "week", "checkbox", "radio", "color"]);
 
+  // Ordered only for readability — a label matching two rules is reported as
+  // ambiguous rather than resolved by position, so order carries no meaning.
   const RULES = [
-    { key: "firstName", match: /\bfirst.?name\b|\bgiven.?name\b|\bforename\b/i, read: (data) => data.profile.fullName?.trim().split(/\s+/)[0] },
-    { key: "lastName", match: /\blast.?name\b|\bfamily.?name\b|\bsurname\b/i, read: (data) => data.profile.fullName?.trim().split(/\s+/).slice(1).join(" ") },
-    { key: "fullName", match: /\bfull.?name\b|\byour.?name\b|\bcandidate.?name\b|^name$/i, read: (data) => data.profile.fullName },
-    { key: "email", match: /\be.?mail\b/i, read: (data) => data.profile.email },
-    { key: "phone", match: /\bphone\b|\bmobile\b|\btelephone\b/i, read: (data) => data.profile.phone },
-    { key: "location", match: /\bcity\b|\bcurrent.?location\b|\byour.?location\b|where.*located/i, read: (data) => data.profile.location },
+    { key: "firstName", match: /\bfirst.?name\b|\bgiven.?name\b|\bforename\b|\bpreferred.?name\b|\blegal.?first\b/i, read: (data) => data.profile.firstName || data.profile.fullName?.trim().split(/\s+/)[0] },
+    { key: "lastName", match: /\blast.?name\b|\bfamily.?name\b|\bsurname\b|\blegal.?last\b/i, read: (data) => data.profile.lastName || data.profile.fullName?.trim().split(/\s+/).slice(1).join(" ") },
+    { key: "fullName", match: /\bfull.?name\b|\byour.?name\b|\bcandidate.?name\b|\blegal.?name\b|^name$/i, read: (data) => data.profile.fullName },
+    { key: "email", match: /\be.?mail\b|\bemail.?address\b/i, read: (data) => data.profile.email },
+    { key: "phone", match: /\bphone\b|\bmobile\b|\btelephone\b|\bcell\b/i, read: (data) => data.profile.phone },
+    // City and state are separate inputs on most ATS forms; the app derives
+    // both from the single location the user maintains.
+    { key: "city", match: /\bcity\b|\btown\b|\bcity.?\/?.?town\b/i, read: (data) => data.profile.city },
+    { key: "state", match: /\bstate\b|\bprovince\b|\bregion\b|\bstate.?\/?.?province\b/i, read: (data) => data.profile.state },
+    { key: "country", match: /\bcountry\b/i, read: (data) => data.profile.country },
+    { key: "location", match: /\bcurrent.?location\b|\byour.?location\b|where.*located|\blocation\b/i, read: (data) => data.profile.location },
     { key: "linkedin", match: /\blinkedin\b/i, read: (data) => data.profile.linkedin },
-    { key: "headline", match: /\bheadline\b|\bprofessional.?title\b/i, read: (data) => data.answers.headline },
-    { key: "summary", match: /\babout.?you\b|\bsummary\b|\bbackground\b|tell.?us.?about|\bprofessional.?profile\b/i, read: (data) => data.answers.summary },
-    { key: "interest", match: /why.*(role|position|company)|interest.*(role|position|company)/i, read: (data) => data.answers.interest },
+    { key: "headline", match: /\bheadline\b|\bprofessional.?title\b|\bcurrent.?title\b/i, read: (data) => data.answers.headline },
+    { key: "summary", match: /\babout.?you\b|\bsummary\b|\bbackground\b|tell.?us.?about|\bprofessional.?profile\b|\bbio\b/i, read: (data) => data.answers.summary },
+    { key: "interest", match: /why.*(role|position|company|join|apply)|interest.*(role|position|company)|why do you want/i, read: (data) => data.answers.interest },
   ];
 
   function matchingRules(label) {

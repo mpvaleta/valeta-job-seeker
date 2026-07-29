@@ -296,6 +296,19 @@ function renderStructuredResume(result: ResumeAiResult, profile: Profile) {
 // Renders the résumé exactly as the PDF/Word export will, straight from the
 // same parser, so the on-screen preview reflects manual edits and never
 // disagrees with the exported file.
+// Most ATS forms ask for city and state as separate inputs, while the profile
+// keeps one location line. Split it rather than making the user maintain both.
+// Only a trailing 2-letter code or single word is treated as the state, so
+// "San Francisco Bay Area" stays a city and does not invent a state.
+function splitLocation(value: string) {
+  const parts = String(value || "").split(",").map((part) => part.trim()).filter(Boolean);
+  if (!parts.length) return { city: "", state: "", country: "" };
+  if (parts.length === 1) return { city: parts[0], state: "", country: "" };
+  const [city, second, third] = parts;
+  const state = /^[A-Za-z]{2}$|^[A-Z][a-z]+$/.test(second) ? second : "";
+  return { city, state, country: third || "" };
+}
+
 function ResumePaper({ text }: { text: string }) {
   const parsed = useMemo(() => parseResumeText(text), [text]);
   if (!parsed.sections.length && !parsed.name) return <div className="resume-paper"><pre>{text}</pre></div>;
@@ -719,7 +732,7 @@ export function JobSeekerApp() {
   );
   const autofillData = JSON.stringify({
     version: 1,
-    profile: { fullName: profile.name, email: profile.email, phone: profile.phone, location: profile.location, linkedin: profile.linkedin },
+    profile: { fullName: profile.name, email: profile.email, phone: profile.phone, location: profile.location, linkedin: profile.linkedin, ...splitLocation(profile.location) },
     target: { company, role },
     answers: { headline: profile.headline, summary: profile.summary, interest: `I’m interested in ${role || "this role"} because it combines ${roleKeywords.slice(0, 3).join(", ") || "project leadership, creative operations, and cross-functional delivery"}.` },
     resumeVersion: selectedAutofillResume ? { id: selectedAutofillResume.id, title: selectedAutofillResume.title, versionNumber: selectedAutofillResume.versionNumber || null, origin: selectedAutofillResume.origin } : null,

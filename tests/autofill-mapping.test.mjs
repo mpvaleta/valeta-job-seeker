@@ -113,3 +113,55 @@ test("no decision ever returns a value for a field it did not positively match",
     if (decision.status === "fillable") assert.ok(decision.ruleKey, `fillable without a rule: ${strong}`);
   }
 });
+
+const withAddress = {
+  ...data,
+  profile: { ...data.profile, city: "Fremont", state: "CA", country: "United States" },
+};
+
+test("city and state fill separately, as most ATS forms ask for them", () => {
+  assert.equal(decideField(field({ strong: "City" }), withAddress).ruleKey, "city");
+  assert.equal(decideField(field({ strong: "State" }), withAddress).ruleKey, "state");
+  assert.equal(decideField(field({ strong: "State / Province" }), withAddress).ruleKey, "state");
+  assert.equal(decideField(field({ strong: "Country" }), withAddress).ruleKey, "country");
+});
+
+test("a state field with nothing saved is flagged rather than left unmapped", () => {
+  const decision = decideField(field({ strong: "State" }), data);
+  assert.equal(decision.status, "review");
+  assert.equal(decision.confidence, "missing-value");
+});
+
+test("common ATS label aliases resolve to the right answer", () => {
+  const aliases = [
+    ["Legal first name", "firstName"],
+    ["Preferred name", "firstName"],
+    ["Legal last name", "lastName"],
+    ["Cell phone", "phone"],
+    ["Email Address", "email"],
+    ["Current title", "headline"],
+    ["Short bio", "summary"],
+    ["Why do you want to work here?", "interest"],
+    ["Why are you interested in joining us?", "interest"],
+  ];
+  for (const [label, expected] of aliases) {
+    assert.equal(decideField(field({ strong: label }), withAddress).ruleKey, expected, label);
+  }
+});
+
+// "Statement" and "United States" both contain a rule word; neither is a state field.
+test("words that merely contain a rule term do not match it", () => {
+  assert.equal(decideField(field({ strong: "Statement of interest" }), withAddress).ruleKey, null);
+  // "United States" appears in work-authorization questions, which are sensitive
+  // and must be caught before any rule matching happens.
+  const auth = decideField(field({ strong: "Are you authorized to work in the United States?" }), withAddress);
+  assert.equal(auth.status, "review");
+  assert.equal(auth.ruleKey, null);
+});
+
+test("'legal name' is a name field, while genuinely legal questions stay sensitive", () => {
+  assert.equal(decideField(field({ strong: "Legal name" }), withAddress).ruleKey, "fullName");
+  for (const label of ["Legal status", "Are you legally authorized to work?", "Legal right to work in the US"]) {
+    assert.equal(decideField(field({ strong: label }), withAddress).status, "review", label);
+  }
+});
