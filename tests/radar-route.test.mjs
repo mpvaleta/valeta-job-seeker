@@ -583,3 +583,58 @@ test("a distinct posting at the same employer is never merged away", async () =>
     await mf.dispose();
   }
 });
+
+// Rows an earlier build already duplicated must be repaired, not just prevented.
+test("pre-existing duplicate rows merge on the next scan and keep the user's decision", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+
+    await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
+    const owner = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind("owner@example.com").first();
+    await db.prepare("INSERT INTO companies (id, name, company_type, primary_market) VALUES (?, ?, ?, ?)")
+      .bind("company-acme", "Acme Studios", "Creative / Advertising Agency", "United States").run();
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: { company: "Acme Studios", careersUrl: "https://boards.greenhouse.io/acme", cadence: "manual" } }),
+    }), env, context);
+
+    // Three rows for one posting, as the exact-string dedup used to produce.
+    const variants = [
+      ["dup-1", "https://boards.greenhouse.io/acme/jobs/4012", "new", "2026-07-01 10:00:00"],
+      ["dup-2", "https://boards.greenhouse.io/acme/jobs/4012/", "shortlisted", "2026-07-05 10:00:00"],
+      ["dup-3", "https://boards.greenhouse.io/acme/jobs/4012?gh_src=x", "new", "2026-07-09 10:00:00"],
+    ];
+    for (const [id, url, status, discovered] of variants) {
+      await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, source_url, source_type, fit_score, fit_summary, status, discovered_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(id, owner.id, "company-acme", "Creative Operations Manager", url, "greenhouse", 72, "Strong alignment with integrated campaign delivery.", status, discovered, discovered).run();
+    }
+
+    globalThis.fetch = async () => Response.json({ jobs: [] });
+    const scanned = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const data = await scanned.json();
+    assert.equal(scanned.status, 200, JSON.stringify(data));
+    assert.equal(data.result.mergedDuplicates, 2, "two redundant rows should merge away");
+
+    const rows = data.opportunities.filter((item) => item.title === "Creative Operations Manager");
+    assert.equal(rows.length, 1);
+    // The earliest row survives, so the original discovery date is preserved…
+    assert.equal(rows[0].id, "dup-1");
+    assert.match(rows[0].discoveredAt, /2026-07-01/);
+    // …carrying the decision the user actually made on one of the copies.
+    assert.equal(rows[0].status, "shortlisted");
+
+    // Idempotent: a second scan finds nothing left to merge.
+    const again = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    assert.equal((await again.json()).result.mergedDuplicates, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});

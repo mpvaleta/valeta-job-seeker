@@ -71,6 +71,7 @@ type RadarPayload = {
     added?: number;
     matchedAdded?: number;
     repairedSources?: number;
+    mergedDuplicates?: number;
     updated?: number;
     skipped?: string[];
     failures?: Array<{ company?: string; url?: string; message: string }>;
@@ -281,7 +282,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     if (!data) return;
     const result = data.result || {};
     const failures = result.failures?.length || 0;
-    if (!options.automatic) onNotice(`${result.checked || 0} ${result.checked === 1 ? "target" : "targets"} checked · ${result.discovered || 0} roles read · ${result.found || 0} matched · ${result.added || 0} new saved${result.repairedSources ? ` · ${result.repairedSources} source ${result.repairedSources === 1 ? "was" : "were"} repaired` : ""}${failures ? ` · ${failures} ${failures === 1 ? "target needs" : "targets need"} attention` : ""}`);
+    if (!options.automatic) onNotice(`${result.checked || 0} ${result.checked === 1 ? "target" : "targets"} checked · ${result.discovered || 0} roles read · ${result.found || 0} matched · ${result.added || 0} new saved${result.repairedSources ? ` · ${result.repairedSources} source ${result.repairedSources === 1 ? "was" : "were"} repaired` : ""}${result.mergedDuplicates ? ` · ${result.mergedDuplicates} duplicate ${result.mergedDuplicates === 1 ? "row was" : "rows were"} merged` : ""}${failures ? ` · ${failures} ${failures === 1 ? "target needs" : "targets need"} attention` : ""}`);
   }
 
   async function importJobLinks() {

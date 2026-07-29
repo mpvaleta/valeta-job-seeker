@@ -229,6 +229,48 @@ async function loadOpportunityIndex(db: D1Database, userId: string) {
   return index;
 }
 
+/*
+ * Collapse duplicate rows an earlier build already created.
+ *
+ * Matching on the canonical key stops NEW duplicates, but rows recorded before
+ * that fix stay in the inbox. This repairs them: the earliest row survives so
+ * the original discovery date is kept, and the user's own decision is carried
+ * across — their most recent explicit status wins, so a role they shortlisted
+ * or applied to never reverts to "new" because a later copy was untouched.
+ */
+export async function mergeDuplicateOpportunities(db: D1Database, userId: string) {
+  const rows = await db.prepare("SELECT id, source_url, status, discovered_at, updated_at FROM job_opportunities WHERE user_id = ? ORDER BY discovered_at ASC, rowid ASC")
+    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string; updated_at: string }>();
+
+  const groups = new Map<string, Array<{ id: string; status: string; updated_at: string }>>();
+  for (const row of rows.results || []) {
+    const key = opportunityKey(row.source_url || "");
+    if (!key) continue;
+    const group = groups.get(key);
+    if (group) group.push(row); else groups.set(key, [row]);
+  }
+
+  let merged = 0;
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const [survivor, ...redundant] = group;
+    // The latest decision the user actually made, ignoring untouched rows.
+    const decided = group
+      .filter((row) => normalizeOpportunityStatus(row.status) !== "new")
+      .sort((left, right) => String(right.updated_at).localeCompare(String(left.updated_at)))[0];
+    const status = decided ? normalizeOpportunityStatus(decided.status) : normalizeOpportunityStatus(survivor.status);
+    if (status !== normalizeOpportunityStatus(survivor.status)) {
+      await db.prepare("UPDATE job_opportunities SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+        .bind(status, survivor.id, userId).run();
+    }
+    for (const row of redundant) {
+      await db.prepare("DELETE FROM job_opportunities WHERE id = ? AND user_id = ?").bind(row.id, userId).run();
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
 function rememberOpportunity(index: Map<string, { id: string; status: string; discovered_at: string }>, url: string, id: string) {
   const key = opportunityKey(url);
   if (key && !index.has(key)) index.set(key, { id, status: "new", discovered_at: "" });
@@ -387,6 +429,8 @@ function companyFromUrl(value: string) {
 
 export async function scanRadar(db: D1Database, userId: string, options: { monitorId?: string; dueOnly?: boolean; trigger?: RadarScanTrigger } = {}) {
   const triggerLabel = SCAN_TRIGGER_LABELS[options.trigger || "manual"];
+  // Self-heal rows an earlier build duplicated before reading the current state.
+  const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
   const dashboard = await readRadarDashboard(db, userId);
   const index = await loadOpportunityIndex(db, userId);
   const selected = dashboard.monitors
@@ -593,7 +637,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       ]);
     }
   }
-  return { checked: selected.length, found, discovered, belowThreshold, added, matchedAdded, repairedSources, failures };
+  return { checked: selected.length, found, discovered, belowThreshold, added, matchedAdded, repairedSources, mergedDuplicates, failures };
 }
 
 export async function scanAllDueRadars(db: D1Database) {
