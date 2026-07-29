@@ -106,6 +106,7 @@ type ProfileDraft = {
 };
 
 const TARGET_TYPES = [
+  "Startup / Early-stage",
   "Brand / Consumer",
   "Creative / Advertising Agency",
   "Marketing Agency",

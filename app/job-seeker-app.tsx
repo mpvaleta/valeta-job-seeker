@@ -7,6 +7,7 @@ import { CURATED_RESUME_PLAYBOOK } from "@/lib/resume-playbook.mjs";
 import { readJsonResponse } from "@/lib/http-json.mjs";
 import { extractLinkedInArchive, extractLinkedInSavedJobs } from "@/lib/linkedin-archive.mjs";
 import { parseResumeText, proseToHtml, resumeToHtml } from "@/lib/resume-document.mjs";
+import { RESUME_STANDARD_DIMENSIONS, auditResume } from "@/lib/resume-standards.mjs";
 import { cleanWritingSamples, deriveWritingVoice } from "@/lib/writing-voice.mjs";
 import { buildLocalResume } from "@/lib/local-resume.mjs";
 import { DEFAULT_RESUME_TRACKS, normalizeResumeTracks, selectResumeTrack } from "@/lib/resume-tracks.mjs";
@@ -710,6 +711,12 @@ export function JobSeekerApp() {
 
   const generatedText = output === "resume" ? resume : output === "cover" ? cover : output === "answers" ? answers : "";
   const activeText = (output === "resume" || output === "cover") && draftEditorKey === output ? draftEditor : generatedText;
+  // Runs on whatever résumé is on screen — local, cloud, or hand-edited — with
+  // no provider call, so the standards check works with no API key configured.
+  const resumeAudit = useMemo(
+    () => (output === "resume" && activeText.trim() ? auditResume(activeText, { roleText: `${role}\n${jobText}` }) : null),
+    [activeText, jobText, output, role],
+  );
   const autofillData = JSON.stringify({
     version: 1,
     profile: { fullName: profile.name, email: profile.email, phone: profile.phone, location: profile.location, linkedin: profile.linkedin },
@@ -1316,6 +1323,22 @@ export function JobSeekerApp() {
               {output === "resume" && <div className={`playbook-banner ${approvedPlaybookRules.length ? "active" : "empty"}`}><div><span>RÉSUMÉ PLAYBOOK</span><strong>{userPlaybookRules.length} uploaded rules first · {curatedPlaybookRules.length} curated rules second</strong><small>{approvedPlaybookRules.length ? "Generation receives your uploaded rules as the highest-priority editorial instructions. Every candidate claim still requires approved evidence." : "Upload a Résumé playbook source. Detected guidance is activated automatically."}</small></div><button onClick={() => setView("documents")}>{approvedPlaybookRules.length ? "Review rules" : "Add playbook"}</button>{approvedPlaybookRules.length > 0 && <ul>{approvedPlaybookRules.slice(0, 3).map((rule) => <li key={rule}>{rule}</li>)}</ul>}</div>}
               {output === "cover" && knowledgeStats.voice > 0 && <div className="playbook-banner active"><div><span>WRITING VOICE</span><strong>{knowledgeStats.voice} uploaded voice {knowledgeStats.voice === 1 ? "source" : "sources"}</strong><small>Voice affects phrasing only; approved career facts remain the truth boundary.</small></div><button onClick={() => setView("voice")}>Review voice</button></div>}
               {(output === "resume" || output === "cover") && draftEditorKey === output ? <textarea className="draft-editor" aria-label={`Editable ${output} draft`} value={draftEditor} onChange={(event) => setDraftEditor(event.target.value)} /> : output === "resume" ? <ResumePaper text={activeText} /> : <pre>{activeText}</pre>}
+              {output === "resume" && resumeAudit && <div className="resume-standards">
+                <div className="resume-standards-head">
+                  <div><span>RÉSUMÉ STANDARDS</span><strong>{resumeAudit.score}<i>/10</i></strong><small>Your résumé-tailor rules, checked on this draft. Runs offline — no model, no API key, no cost. It reports; every wording change stays yours.</small></div>
+                  <div className="resume-standards-grid">{RESUME_STANDARD_DIMENSIONS.map((dimension) => <div key={dimension.key} className={`tier-${resumeAudit.scores[dimension.key]}`}><span>{dimension.label}</span><strong>{resumeAudit.scores[dimension.key]}<i>/2</i></strong><small>{dimension.detail}</small></div>)}</div>
+                </div>
+                <div className="resume-standards-stats">
+                  <span>{resumeAudit.stats.words} words</span>
+                  <span>{resumeAudit.stats.quantifiedBullets}/{resumeAudit.stats.bullets} bullets with a number</span>
+                  <span>{resumeAudit.stats.skills} skills</span>
+                  {resumeAudit.stats.keywordCoverage !== null && <span>{resumeAudit.stats.keywordCoverage}% of the posting&rsquo;s repeated terms used</span>}
+                </div>
+                {resumeAudit.findings.length > 0
+                  ? <ul>{resumeAudit.findings.slice(0, 12).map((finding, index) => <li key={`${finding.dimension}-${index}`} className={finding.severity}><b>{finding.dimension}</b>{finding.message}{finding.line && <em>{finding.line.length > 120 ? `${finding.line.slice(0, 120)}…` : finding.line}</em>}</li>)}</ul>
+                  : <p className="resume-standards-clear">Every standard passed on this draft.</p>}
+                {resumeAudit.findings.length > 12 && <p className="resume-standards-more">{resumeAudit.findings.length - 12} further findings are not listed.</p>}
+              </div>}
               {output === "resume" && !currentResumeGeneration && localResumeDocument && localResumeDocument.omissions.length > 0 && <div className="resume-provenance"><strong>{localResumeDocument.omissions.length} approved {localResumeDocument.omissions.length === 1 ? "fact was" : "facts were"} not placed automatically</strong><span>Nothing was deleted — these facts stay in your career profile. Edit the draft to add any that matter for this role, or connect a model for full tailoring.</span><ul className="resume-omissions">{localResumeDocument.omissions.map((omission) => <li key={omission}>{omission.replace(/^Approved fact not placed automatically: /, "")}</li>)}</ul></div>}
               {output === "resume" && currentResumeGeneration?.quality && <div className="resume-quality">
                 <div className="resume-quality-head">
