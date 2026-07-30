@@ -1,6 +1,6 @@
 # V's Job Seeker — Complete Backlog Log
 
-Updated: 2026-07-29
+Updated: 2026-07-29 (later)
 
 Priority labels reflect Marcos's stated order. P0 and P1 are the work that most directly affects getting applications out quickly.
 
@@ -31,7 +31,7 @@ Items marked **[DONE]** were verified working this session (tested, typechecked,
 - Preserve minimum alignment across runs. (already true)
 - Classify real postings vs navigation/marketing content. (already true — `isPlausibleRadarJob`)
 - Discover careers/jobs pages from company homepages. (already true)
-- **[GAP]** Follow public ATS/job-board links where compliant: Greenhouse, Lever, Ashby, Workday, SmartRecruiters done. **iCIMS and TeamWork Online have no reader at all** (iCIMS is only detected by the autofill browser extension, not the radar scanner) — confirmed absent, not just unverified.
+- **[DONE]** Follow public ATS/job-board links where compliant: Greenhouse, Lever, Ashby, Workday, SmartRecruiters read directly via documented APIs. iCIMS and TeamWork Online researched directly (robots.txt + real listing and job-detail pages on both) before building anything: iCIMS's real API is OAuth-gated to its own customers, and neither platform's pages carry JobPosting JSON-LD — checked a real iCIMS customer instance and both a TeamWork Online team-listing page and an individual job page. Same conclusion as Built In: no reliable bulk reader is possible, so both are supported through the existing "paste one link" import, with the employer name recovered from the URL itself (tenant subdomain for iCIMS, team slug for TeamWork Online) rather than reporting the platform name as the employer.
 - Use secondary public sources when the employer page blocks reading. (already true)
 - **[DONE]** Meta, Google, Apple as regression fixtures — Meta specifically covered by the import-link test suite.
 - Approve, dismiss, archive, restore without deleting history. (already true)

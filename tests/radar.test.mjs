@@ -8,6 +8,7 @@ import {
   discoverTargetJobsDetailed,
   isPlausibleRadarJob,
   normalizeRadarProfile,
+  readSingleJobPosting,
   scoreRadarOpportunity,
   rankCareerLinks,
 } from "../lib/radar.mjs";
@@ -62,6 +63,37 @@ test("official ATS career URLs are detected without arbitrary endpoint access", 
   assert.deepEqual(detectCareerSource("https://www.google.com/about/careers/applications/jobs/results/").type, "google-careers");
   assert.deepEqual(detectCareerSource("https://www.metacareers.com/jobsearch/").type, "meta-search");
   assert.deepEqual(detectCareerSource("https://example.com/careers").type, "public-page");
+  // Neither iCIMS nor TeamWork Online has a documented public API or
+  // JobPosting JSON-LD (checked directly against real pages on both), so
+  // they are detected only for correct labeling and company recovery on the
+  // "paste one link" path -- not for bulk scanning.
+  assert.deepEqual(detectCareerSource("https://careers-petsuppliesplus.icims.com/jobs/1234/producer/job").type, "icims");
+  assert.deepEqual(detectCareerSource("https://www.teamworkonline.com/football-jobs/chiefs/kansas-city-chiefs-29577/role-123").type, "teamwork-online");
+});
+
+test("importing an iCIMS job link recovers the employer from the tenant subdomain, not the platform", async () => {
+  const job = await readSingleJobPosting("https://careers-petsuppliesplus.icims.com/jobs/1234/producer/job", {
+    fetchImpl: async () => new Response("<html><head><title>Producer - Pet Supplies Plus Careers</title></head><body><main>Lead in-store production events, coordinate vendor schedules, and manage seasonal merchandising across assigned retail locations.</main></body></html>", { headers: { "content-type": "text/html" } }),
+  });
+  assert.equal(job.sourceType, "icims");
+  assert.equal(job.company, "Petsuppliesplus");
+  assert.match(job.title, /Producer/);
+});
+
+test("importing a TeamWork Online job link recovers the team from the URL path, not the platform", async () => {
+  const job = await readSingleJobPosting("https://www.teamworkonline.com/football-jobs/chiefs/kansas-city-chiefs-29577/business-development-sales-associate-2181800", {
+    fetchImpl: async () => new Response("<html><head><title>Business Development Sales Associate</title></head><body><main>Drive new ticket and sponsorship sales revenue for home games, manage a book of corporate accounts, and support gameday client relations.</main></body></html>", { headers: { "content-type": "text/html" } }),
+  });
+  assert.equal(job.sourceType, "teamwork-online");
+  assert.equal(job.company, "Kansas City Chiefs");
+  assert.match(job.title, /Business Development/);
+});
+
+test("iCIMS and TeamWork Online imports are trusted without needing a job-detail URL shape or a role-shaped title", () => {
+  // The fallback recovers only a title, no description -- confirm that alone
+  // is enough for these two sources, matching every other named ATS.
+  assert.equal(isPlausibleRadarJob({ title: "Front Desk Associate", sourceUrl: "https://careers-example.icims.com/x", sourceType: "icims" }), true);
+  assert.equal(isPlausibleRadarJob({ title: "Ticket Sales Representative", sourceUrl: "https://www.teamworkonline.com/x", sourceType: "teamwork-online" }), true);
 });
 
 test("Google careers discovery reads public search cards instead of mistaking support links for jobs", async () => {
