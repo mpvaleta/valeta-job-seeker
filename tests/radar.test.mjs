@@ -53,6 +53,62 @@ test("radar exclusions prevent a superficially matching role from passing", () =
   assert.match(result.summary, /review exclusion/i);
 });
 
+test("companyStagePreference defaults to no_preference and leaves scoring unchanged either way", () => {
+  const opportunity = {
+    title: "Creative Operations Manager",
+    description: "Lead integrated production and project management.",
+    location: "San Francisco, CA",
+  };
+  const withoutTag = scoreRadarOpportunity(opportunity, DEFAULT_RADAR_PROFILE);
+  const withStartupTag = scoreRadarOpportunity({ ...opportunity, companyCategory: "Startup / Early-stage" }, DEFAULT_RADAR_PROFILE);
+  assert.equal(DEFAULT_RADAR_PROFILE.companyStagePreference, "no_preference");
+  assert.equal(withoutTag.score, withStartupTag.score);
+  assert.equal(withoutTag.passes, true);
+});
+
+test("prefer_startups boosts a role tagged Startup / Early-stage without excluding anything else", () => {
+  const opportunity = {
+    title: "Creative Operations Manager",
+    description: "Lead integrated production and project management.",
+    location: "San Francisco, CA",
+  };
+  const profile = { ...DEFAULT_RADAR_PROFILE, companyStagePreference: "prefer_startups" };
+  const startup = scoreRadarOpportunity({ ...opportunity, companyCategory: "Startup / Early-stage" }, profile);
+  const established = scoreRadarOpportunity({ ...opportunity, companyCategory: "Technology" }, profile);
+  assert.ok(startup.score > established.score);
+  assert.match(startup.summary, /startup \/ early-stage company/i);
+  assert.equal(established.passes, true, "prefer_startups must not exclude non-startup roles");
+});
+
+test("startups_only filters out a well-matching role at an established company", () => {
+  const opportunity = {
+    title: "Creative Operations Manager",
+    description: "Lead integrated production and project management.",
+    location: "San Francisco, CA",
+  };
+  const profile = { ...DEFAULT_RADAR_PROFILE, companyStagePreference: "startups_only" };
+  const established = scoreRadarOpportunity({ ...opportunity, companyCategory: "Technology" }, profile);
+  assert.equal(established.passes, false);
+  assert.match(established.summary, /not early-stage \(Technology\)/i);
+  const startup = scoreRadarOpportunity({ ...opportunity, companyCategory: "Startup / Early-stage" }, profile);
+  assert.equal(startup.passes, true);
+});
+
+test("startups_only treats an unclassified opportunity as a mismatch rather than silently passing it through", () => {
+  const result = scoreRadarOpportunity({
+    title: "Creative Operations Manager",
+    description: "Lead integrated production and project management.",
+    location: "San Francisco, CA",
+  }, { ...DEFAULT_RADAR_PROFILE, companyStagePreference: "startups_only" });
+  assert.equal(result.passes, false);
+  assert.match(result.summary, /company stage not yet known/i);
+});
+
+test("normalizeRadarProfile rejects an unrecognized companyStagePreference instead of persisting garbage", () => {
+  const profile = normalizeRadarProfile({ companyStagePreference: "definitely-not-real" });
+  assert.equal(profile.companyStagePreference, "no_preference");
+});
+
 test("official ATS career URLs are detected without arbitrary endpoint access", () => {
   assert.deepEqual(detectCareerSource("https://boards.greenhouse.io/example").type, "greenhouse");
   assert.deepEqual(detectCareerSource("https://jobs.lever.co/example").type, "lever");

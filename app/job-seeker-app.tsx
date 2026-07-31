@@ -13,6 +13,8 @@ import { buildLocalResume } from "@/lib/local-resume.mjs";
 import { DEFAULT_RESUME_TRACKS, normalizeResumeTracks, selectResumeTrack } from "@/lib/resume-tracks.mjs";
 import { PLAYBOOK_GENERATION_RULE_LIMIT, prioritizeResumePlaybookRules } from "@/lib/playbook-priority.mjs";
 import { preparePlaybookLibrary, prepareResumeEvidence } from "@/lib/career-evidence.mjs";
+import { auditEvidence } from "@/lib/evidence-conflicts.mjs";
+import type { EvidenceAudit } from "@/lib/evidence-conflicts.mjs";
 import { findReusableResumes } from "@/lib/resume-reuse.mjs";
 import { RadarWorkspace } from "./radar-workspace";
 import type { RadarOpportunity } from "./radar-workspace";
@@ -445,6 +447,38 @@ export function JobSeekerApp() {
   const trackSelection = useMemo(() => selectResumeTrack(normalizedTracks, `${role}\n${jobText}`, activeTrackId), [activeTrackId, jobText, normalizedTracks, role]);
   const selectedTrack = trackSelection.track;
   const evidenceSources = useMemo(() => documents.filter((document) => sourceScope(document) === "evidence" && (!document.trackId || document.trackId === "all" || document.trackId === selectedTrack.id)), [documents, selectedTrack.id]);
+  // Every APPROVED evidence fact, across every track (a conflict between a
+  // brand-PM résumé and a production résumé about the same employer is still
+  // worth flagging even though only one track is active right now), tagged
+  // with the document it actually came from.
+  const evidenceAuditEntries = useMemo(() => {
+    const entries: { id: string; text: string; sourceId: string; sourceTitle: string }[] = [];
+    const approvedTextSeen = new Set<string>();
+    documents.forEach((document) => {
+      if (sourceScope(document) !== "evidence") return;
+      document.approved.forEach((text, index) => {
+        approvedTextSeen.add(text.trim().toLowerCase());
+        entries.push({ id: `${document.id}::${index}`, text, sourceId: document.id, sourceTitle: document.title });
+      });
+    });
+    // A fact typed or edited directly in Career profile isn't traced to any
+    // document's approval list -- give it its own provenance label instead
+    // of either dropping it from the audit or borrowing a document's identity.
+    facts.forEach((fact, index) => {
+      if (approvedTextSeen.has(fact.trim().toLowerCase())) return;
+      entries.push({ id: `profile::${index}`, text: fact, sourceId: "career-profile", sourceTitle: "Career profile" });
+    });
+    return entries;
+  }, [documents, facts]);
+  const evidenceAudit: EvidenceAudit = useMemo(() => auditEvidence(evidenceAuditEntries), [evidenceAuditEntries]);
+  // classifyKnowledgeSource already runs for every source (sourceScope uses it
+  // to silently reassign scope on a high-confidence mismatch) -- this is the
+  // same call, memoized once per document list, so the source card can show
+  // the user what it detected instead of only acting on it invisibly.
+  const sourceClassifications = useMemo(
+    () => new Map(documents.map((document) => [document.id, classifyKnowledgeSource({ title: document.title, text: document.text, selectedCategory: document.category })])),
+    [documents],
+  );
   const knowledgeStats = useMemo(() => ({
     evidence: documents.filter((document) => sourceScope(document) === "evidence").length,
     voice: documents.filter((document) => sourceScope(document) === "voice").length,
@@ -1297,12 +1331,34 @@ export function JobSeekerApp() {
     if (scope !== "evidence" && scope !== "guidance") return;
     const candidates = source.candidates.filter(Boolean);
     if (!candidates.length) { setNotice("There are no candidate items to approve in this source"); return; }
-    setDocuments((current) => current.map((document) => document.id === documentId ? { ...document, approved: [...new Set([...document.approved, ...candidates])] } : document));
-    if (scope === "evidence") {
-      const additions = candidates.filter((candidate) => !isOverlappingFact(candidate, facts));
-      if (additions.length) setProfile({ ...profile, facts: [...facts, ...additions].join("\n") });
+
+    if (scope === "guidance") {
+      setDocuments((current) => current.map((document) => document.id === documentId ? { ...document, approved: [...new Set([...document.approved, ...candidates])] } : document));
+      setNotice(`${candidates.length} résumé playbook rules activated.`);
+      return;
     }
-    setNotice(scope === "evidence" ? `${candidates.length} career facts approved. Review or edit them any time in Career profile.` : `${candidates.length} résumé playbook rules activated.`);
+
+    // Batch approval skips anything that conflicts with an ALREADY-approved
+    // fact from a different source -- those still need the individual
+    // "Approve fact" click, so Approve All can never quietly paper over two
+    // sources disagreeing about a title or a number.
+    const candidateEntries = candidates.map((text, index) => ({ id: `pending::${index}`, text, sourceId: documentId, sourceTitle: source.title }));
+    const audit = auditEvidence([...evidenceAuditEntries, ...candidateEntries]);
+    const heldBackTexts = new Set(
+      audit.conflicts
+        .filter((conflict) => conflict.factA.id.startsWith("pending::") !== conflict.factB.id.startsWith("pending::"))
+        .map((conflict) => (conflict.factA.id.startsWith("pending::") ? conflict.factA.text : conflict.factB.text)),
+    );
+    const cleared = candidates.filter((candidate) => !heldBackTexts.has(candidate));
+    const heldBack = candidates.filter((candidate) => heldBackTexts.has(candidate));
+
+    setDocuments((current) => current.map((document) => document.id === documentId ? { ...document, approved: [...new Set([...document.approved, ...cleared])] } : document));
+    const additions = cleared.filter((candidate) => !isOverlappingFact(candidate, facts));
+    if (additions.length) setProfile({ ...profile, facts: [...facts, ...additions].join("\n") });
+
+    setNotice(heldBack.length
+      ? `${cleared.length} career facts approved. ${heldBack.length} held back for individual review — ${heldBack.length === 1 ? "it" : "they"} may conflict with an already-approved fact from a different source. See the consistency check below.`
+      : `${cleared.length} career facts approved. Review or edit them any time in Career profile.`);
   }
 
   function addCompany() {
@@ -1604,11 +1660,43 @@ export function JobSeekerApp() {
           <div className="fact-review">
             <div className="review-heading"><div><span>SOURCE LIBRARY</span><h2>{documents.length} imported sources</h2></div><strong>{facts.length} approved facts</strong></div>
             <div className="knowledge-summary"><div><strong>{knowledgeStats.evidence}</strong><span>Career evidence</span></div><div><strong>{knowledgeStats.guidance + 1}</strong><span>Playbook sources</span></div><div><strong>{knowledgeStats.voice}</strong><span>Voice sources</span></div><div><strong>{knowledgeStats.research}</strong><span>Research sources</span></div><div><strong>{approvedPlaybookRules.length}</strong><span>Active résumé rules</span></div></div>
+
+            <section className={`consistency-panel ${evidenceAudit.conflicts.length ? "has-conflicts" : evidenceAudit.duplicates.some((cluster) => cluster.crossSource) ? "has-overlap" : "clean"}`}>
+              <div className="consistency-head">
+                <span>CONSISTENCY CHECK</span>
+                <h3>{evidenceAudit.conflicts.length === 0 && !evidenceAudit.duplicates.some((cluster) => cluster.crossSource)
+                  ? "No conflicts or repeated facts across your approved sources"
+                  : [
+                    evidenceAudit.conflicts.length ? `${evidenceAudit.conflicts.length} possible conflict${evidenceAudit.conflicts.length === 1 ? "" : "s"}` : "",
+                    evidenceAudit.duplicates.some((cluster) => cluster.crossSource) ? `${evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).length} fact${evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).length === 1 ? "" : "s"} repeated across sources` : "",
+                  ].filter(Boolean).join(" · ")}</h3>
+                <small>Checked across every approved career-evidence source, regardless of résumé track. Nothing here is ever deleted automatically.</small>
+              </div>
+              {evidenceAudit.conflicts.length > 0 && <div className="conflict-list">{evidenceAudit.conflicts.map((conflict, index) => <article key={index} className={`conflict-card ${conflict.kind}`}>
+                <span className="conflict-kind">{conflict.kind === "title" ? "Different role, same employer & years" : "Different number for the same claim"}</span>
+                <p>{conflict.detail}</p>
+                <div className="conflict-sides">
+                  <div><strong>{conflict.factA.sourceTitle}</strong><span>{conflict.factA.text}</span></div>
+                  <div><strong>{conflict.factB.sourceTitle}</strong><span>{conflict.factB.text}</span></div>
+                </div>
+                <small>Both stay in your library. Edit or remove the outdated one in Career profile once you know which is correct.</small>
+              </article>)}</div>}
+              {evidenceAudit.duplicates.some((cluster) => cluster.crossSource) && <details className="duplicate-list">
+                <summary>{evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).length} fact{evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).length === 1 ? "" : "s"} approved from more than one source</summary>
+                {evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).map((cluster, index) => <div key={index} className="duplicate-cluster">
+                  <strong>{cluster.canonical}</strong>
+                  <span>Also approved from: {cluster.members.filter((member) => member.id !== cluster.canonicalId).map((member) => member.sourceTitle).join(", ")}</span>
+                </div>)}
+              </details>}
+            </section>
+
             <article className={`curated-playbook-card ${playbookSettings.curatedEnabled ? "enabled" : "disabled"}`}><div className="curated-title"><div><span>BUILT-IN · CURATED GUIDANCE</span><strong>{CURATED_RESUME_PLAYBOOK.name}</strong><small>Version {CURATED_RESUME_PLAYBOOK.version} · reviewed {CURATED_RESUME_PLAYBOOK.lastReviewed}</small></div><button onClick={() => setPlaybookSettings({ curatedEnabled: !playbookSettings.curatedEnabled })}>{playbookSettings.curatedEnabled ? "Disable" : "Enable"}</button></div><p>{CURATED_RESUME_PLAYBOOK.summary}</p><div className="curated-meta"><span>{CURATED_RESUME_PLAYBOOK.rules.length} paraphrased do/don’t rules</span><span>{CURATED_RESUME_PLAYBOOK.sources.length} authoritative sources</span><span>Updates with V’s releases</span></div><details><summary>Review sources</summary><div>{CURATED_RESUME_PLAYBOOK.sources.map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><strong>{source.title}</strong><small>{source.authority} ↗</small></a>)}</div></details></article>
             {documents.length === 0 ? <div className="empty-state compact"><strong>Your knowledge library is empty.</strong><span>Start with your current résumé for evidence. Then add “Résumé playbook” sources containing tips, do’s, don’ts, templates, or best practices.</span></div> : <div className="source-list">{documents.map((doc) => {
               const scope = sourceScope(doc);
+              const detected = sourceClassifications.get(doc.id);
+              const detectedMismatch = detected && detected.confidence !== "low" && detected.category !== (doc.category || "Other evidence");
               return <article key={doc.id} className={`source-card ${doc.status} ${scope}`}>
-                <header><div><div className="source-badges"><span className="source-category">{doc.category || "Imported source"}</span><span className={`source-scope ${scope}`}>{sourceScopeLabel(scope)}</span><span className="source-track">{doc.trackId && doc.trackId !== "all" ? normalizedTracks.find((track) => track.id === doc.trackId)?.name || "Specific track" : "All tracks"}</span></div><strong>{doc.title}</strong><span>{doc.type} · {doc.importedAt}{doc.truncated ? " · first 300,000 characters stored" : ""}</span>{doc.sourceUrl && /^https?:\/\//i.test(doc.sourceUrl) && <a href={doc.sourceUrl} target="_blank" rel="noreferrer">Open original source ↗</a>}</div><div className="source-controls"><span className={`source-status ${doc.status}`}>{doc.status === "reading" ? "Reading…" : doc.status === "ready" ? scope === "evidence" || scope === "guidance" ? "Ready for review" : "Stored safely" : "Needs text"}</span><small>Preserved in your library</small></div></header>
+                <header><div><div className="source-badges"><span className="source-category">{doc.category || "Imported source"}</span><span className={`source-scope ${scope}`}>{sourceScopeLabel(scope)}</span><span className="source-track">{doc.trackId && doc.trackId !== "all" ? normalizedTracks.find((track) => track.id === doc.trackId)?.name || "Specific track" : "All tracks"}</span>{detectedMismatch && <span className={`source-detected ${detected!.confidence}`} title={detected!.reasons.join("; ") || "Detected from the source's own content"}>Reads like: {detected!.category} ({detected!.confidence})</span>}</div><strong>{doc.title}</strong><span>{doc.type} · {doc.importedAt}{doc.truncated ? " · first 300,000 characters stored" : ""}</span>{doc.sourceUrl && /^https?:\/\//i.test(doc.sourceUrl) && <a href={doc.sourceUrl} target="_blank" rel="noreferrer">Open original source ↗</a>}</div><div className="source-controls"><span className={`source-status ${doc.status}`}>{doc.status === "reading" ? "Reading…" : doc.status === "ready" ? scope === "evidence" || scope === "guidance" ? "Ready for review" : "Stored safely" : "Needs text"}</span><small>Preserved in your library</small></div></header>
                 {doc.status === "reading" ? <p className="needs-text">Reading this file on your Mac…</p> : doc.status === "needs-text" ? <p className="needs-text">This file could not be read. It may be unsupported or over 10 MB. Save it as PDF, Word .docx, text, or JSON, or open it and paste its text on the left.</p> : scope === "voice" ? <div className="scope-result"><strong>Added to Writing voice</strong><span>This source shapes tone and phrasing only. It cannot create career facts.</span><button onClick={() => setView("voice")}>Review writing voice</button></div> : scope === "research" ? <div className="scope-result"><strong>Saved as research context</strong><span>This information stays separate from your experience and is not sent in fit reviews.</span></div> : <div className="candidate-list">{doc.candidates.length ? <><div className="candidate-batch"><strong>{doc.approved.length}/{doc.candidates.length} {scope === "evidence" ? "facts" : "rules"} active</strong><button onClick={() => approveAllCandidates(doc.id)}>Approve all</button></div>{doc.candidates.map((candidate) => <div key={candidate}><p>{candidate}</p><button className={doc.approved.includes(candidate) ? "approved" : ""} onClick={() => scope === "evidence" ? approveCandidate(doc.id, candidate) : approvePlaybookRule(doc.id, candidate)}>{doc.approved.includes(candidate) ? scope === "evidence" ? "Approved fact" : "Active rule" : scope === "evidence" ? "Approve fact" : "Use rule"}</button></div>)}</> : <p className="needs-text">{scope === "evidence" ? "No useful fact candidates were found. You can add facts directly in Career profile." : "No clear tip or rule was detected. Paste shorter do/don’t statements for the playbook."}</p>}</div>}
               </article>;
             })}</div>}

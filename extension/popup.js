@@ -61,6 +61,12 @@ function showScan(response) {
     note.textContent = `${response.hiddenFieldCount} more field${response.hiddenFieldCount === 1 ? "" : "s"} on this page are not listed here — review the page itself before submitting.`;
     results.append(note);
   }
+  if (response.appearedSinceScan > 0) {
+    const note = document.createElement("div");
+    note.className = "field review";
+    note.textContent = `${response.appearedSinceScan} field${response.appearedSinceScan === 1 ? "" : "s"} appeared on this page since your last scan — rescan to review and fill ${response.appearedSinceScan === 1 ? "it" : "them"}.`;
+    results.append(note);
+  }
   fillButton.disabled = response.fillable === 0;
 }
 
@@ -96,8 +102,13 @@ fillButton.addEventListener("click", async () => {
     showPackageMeta(value);
     const tab = await activeTab();
     const response = await chrome.tabs.sendMessage(tab.id, { type: "VALETA_FILL", payload: value });
+    if (response.staleScan) {
+      status.textContent = "This page hasn't been scanned yet in this session. Click Scan first, review the fields, then fill.";
+      return;
+    }
     showScan(response);
-    status.textContent = `${response.filled} approved ${response.filled === 1 ? "field" : "fields"} filled. ${response.review} still need your review and ${response.unknown} were not recognized. Nothing was submitted.`;
+    const appeared = response.appearedSinceScan > 0 ? ` ${response.appearedSinceScan} new field${response.appearedSinceScan === 1 ? "" : "s"} appeared since your scan and were left untouched — rescan to include ${response.appearedSinceScan === 1 ? "it" : "them"}.` : "";
+    status.textContent = `${response.filled} approved ${response.filled === 1 ? "field" : "fields"} filled. ${response.review} still need your review and ${response.unknown} were not recognized. Nothing was submitted.${appeared}`;
     fillButton.disabled = true;
   } catch {
     status.textContent = "Could not fill this page. Refresh it, scan again, and review the highlighted fields.";

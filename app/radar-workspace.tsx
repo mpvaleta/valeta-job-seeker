@@ -103,7 +103,14 @@ type ProfileDraft = {
   goals: string;
   exclusions: string;
   minScore: number;
+  companyStagePreference: RadarProfile["companyStagePreference"];
 };
+
+const STAGE_PREFERENCE_OPTIONS: Array<{ value: RadarProfile["companyStagePreference"]; label: string }> = [
+  { value: "no_preference", label: "No preference" },
+  { value: "prefer_startups", label: "Prefer startups / early-stage" },
+  { value: "startups_only", label: "Startups / early-stage only" },
+];
 
 const TARGET_TYPES = [
   "Startup / Early-stage",
@@ -144,7 +151,11 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
   const [targetFilter, setTargetFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
   const [company, setCompany] = useState("");
-  const [kind, setKind] = useState(TARGET_TYPES[0]);
+  // "Other" is a deliberate neutral default — TARGET_TYPES[0] is "Startup /
+  // Early-stage" (ordered that way for the filter dropdown's prominence), so
+  // defaulting the Type field to it silently tagged every manually-added
+  // company as a startup unless the user remembered to change it.
+  const [kind, setKind] = useState("Other");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [careersUrl, setCareersUrl] = useState("");
   const [referenceUrl, setReferenceUrl] = useState("");
@@ -350,7 +361,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
         <label>Skills and themes<textarea value={profileDraft.skills} onChange={(event) => setProfileDraft({ ...profileDraft, skills: event.target.value })} placeholder="Creative operations, integrated production…" /></label>
         <div className="radar-two"><label>Markets<textarea value={profileDraft.locations} onChange={(event) => setProfileDraft({ ...profileDraft, locations: event.target.value })} /></label><label>Exclude<textarea value={profileDraft.exclusions} onChange={(event) => setProfileDraft({ ...profileDraft, exclusions: event.target.value })} placeholder="Commission only, unpaid…" /></label></div>
         <label>Career goals<textarea value={profileDraft.goals} onChange={(event) => setProfileDraft({ ...profileDraft, goals: event.target.value })} /></label>
-        <div className="radar-preferences"><fieldset><legend>Work style</legend>{["On-site", "Hybrid", "Remote"].map((mode) => <label key={mode}><input type="checkbox" checked={profileDraft.workModes.includes(mode)} onChange={(event) => setProfileDraft({ ...profileDraft, workModes: event.target.checked ? [...profileDraft.workModes, mode] : profileDraft.workModes.filter((item) => item !== mode) })} />{mode}</label>)}</fieldset><label>Minimum alignment <strong>{profileDraft.minScore}%</strong><input type="range" min="20" max="90" step="5" value={profileDraft.minScore} onChange={(event) => setProfileDraft({ ...profileDraft, minScore: Number(event.target.value) })} /></label></div>
+        <div className="radar-preferences"><fieldset><legend>Work style</legend>{["On-site", "Hybrid", "Remote"].map((mode) => <label key={mode}><input type="checkbox" checked={profileDraft.workModes.includes(mode)} onChange={(event) => setProfileDraft({ ...profileDraft, workModes: event.target.checked ? [...profileDraft.workModes, mode] : profileDraft.workModes.filter((item) => item !== mode) })} />{mode}</label>)}</fieldset><label>Minimum alignment <strong>{profileDraft.minScore}%</strong><input type="range" min="20" max="90" step="5" value={profileDraft.minScore} onChange={(event) => setProfileDraft({ ...profileDraft, minScore: Number(event.target.value) })} /></label><label>Company stage<select value={profileDraft.companyStagePreference} onChange={(event) => setProfileDraft({ ...profileDraft, companyStagePreference: event.target.value as RadarProfile["companyStagePreference"] })}>{STAGE_PREFERENCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div>
       </article>
 
       <article className="radar-target-card">
@@ -459,6 +470,7 @@ function profileToDraft(profile: RadarProfile): ProfileDraft {
     goals: profile.goals,
     exclusions: profile.exclusions.join("\n"),
     minScore: profile.minScore,
+    companyStagePreference: profile.companyStagePreference,
   };
 }
 
@@ -471,6 +483,7 @@ function draftToProfile(draft: ProfileDraft): RadarProfile {
     goals: draft.goals.trim(),
     exclusions: list(draft.exclusions),
     minScore: draft.minScore,
+    companyStagePreference: draft.companyStagePreference,
   };
 }
 

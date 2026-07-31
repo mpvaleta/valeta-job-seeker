@@ -1,3 +1,5 @@
+export type CompanyStagePreference = "no_preference" | "prefer_startups" | "startups_only";
+
 export type RadarProfile = {
   titles: string[];
   skills: string[];
@@ -6,6 +8,7 @@ export type RadarProfile = {
   goals: string;
   exclusions: string[];
   minScore: number;
+  companyStagePreference: CompanyStagePreference;
 };
 
 export type RadarOpportunityInput = {
@@ -17,6 +20,7 @@ export type RadarOpportunityInput = {
   sourceType?: string;
   datePosted?: string;
   fitSummary?: string;
+  companyCategory?: string;
 };
 
 export const RADAR_TRACKS: Array<{ id: string; label: string }>;

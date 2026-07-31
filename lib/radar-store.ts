@@ -105,7 +105,14 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
       fitSummary: row.fit_summary || "",
     }, { kind: row.company_type || "" });
     const fitScore = row.fit_score ?? 0;
-    const exclusionHit = /review exclusion:/i.test(row.fit_summary || "");
+    // Sniffed from the stored summary rather than a stored boolean, same as
+    // everywhere else in this function -- lets a live minScore change
+    // re-evaluate old rows without a rescan. Must cover every hard-fail
+    // scoreRadarOpportunity can produce, not just plain exclusions: a
+    // startups-only mismatch caps score at 20, and the minScore slider goes
+    // as low as 20, so missing this here would show a filtered-out role as
+    // passing right at that boundary.
+    const exclusionHit = /review exclusion:|startups-only filter/i.test(row.fit_summary || "");
     const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
     const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : row.source_type === "linkedin-saved" ? "linkedin-saved" : "monitored";
     return {
@@ -148,7 +155,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
 export async function saveRadarProfile(db: D1Database, userId: string, value: Partial<RadarProfile>) {
   const profile = normalizeRadarProfile(value);
   const existing = await db.prepare("SELECT id FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<{ id: string }>();
-  const constraints = JSON.stringify({ skills: profile.skills, workModes: profile.workModes, exclusions: profile.exclusions, minScore: profile.minScore });
+  const constraints = JSON.stringify({ skills: profile.skills, workModes: profile.workModes, exclusions: profile.exclusions, minScore: profile.minScore, companyStagePreference: profile.companyStagePreference });
   if (existing) {
     await db.prepare("UPDATE career_profiles SET headline = ?, target_roles_json = ?, target_markets_json = ?, positioning = ?, constraints_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
       .bind(profile.titles[0] || "Job radar", JSON.stringify(profile.titles), JSON.stringify(profile.locations), profile.goals || "Target-role radar", constraints, existing.id, userId).run();
@@ -338,14 +345,19 @@ export async function importRadarOpportunities(db: D1Database, userId: string, u
         continue;
       }
       const companyName = job.company || companyFromUrl(url);
-      let company = await db.prepare("SELECT id FROM companies WHERE lower(name) = lower(?) LIMIT 1").bind(companyName).first<{ id: string }>();
+      let company = await db.prepare("SELECT id, company_type FROM companies WHERE lower(name) = lower(?) LIMIT 1").bind(companyName).first<{ id: string; company_type: string }>();
+      // Reuse the company's own stored type as a kind override when it already
+      // exists (e.g. the user manually marked it Startup/Early-stage on its
+      // monitor) — otherwise a fresh import of the same company would silently
+      // disagree with what's already on file, since classification without a
+      // kind override falls back to source/text signals alone.
+      const classification = classifyRadarOpportunity({ company: companyName, title: job.title, fitSummary: job.description, sourceUrl: job.sourceUrl }, { kind: company?.company_type });
       if (!company) {
-        company = { id: crypto.randomUUID() };
-        const classification = classifyRadarOpportunity({ company: companyName, title: job.title, fitSummary: job.description, sourceUrl: job.sourceUrl });
+        company = { id: crypto.randomUUID(), company_type: classification.companyCategory };
         await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
           .bind(company.id, companyName, classification.companyCategory, "United States", "Added from an imported job link").run();
       }
-      const match = scoreRadarOpportunity(job, dashboard.profile);
+      const match = scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, dashboard.profile);
       const existing = index.get(opportunityKey(job.sourceUrl));
       if (existing) {
         await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
@@ -389,16 +401,16 @@ export async function importLinkedInSavedJobs(
     const url = clean(row?.url, 4_000);
     if (!title || !/^https?:\/\//i.test(url)) { skipped.push(title || url || "unnamed row"); continue; }
     const companyName = clean(row?.company, 180) || "Saved on LinkedIn";
-    let company = await db.prepare("SELECT id FROM companies WHERE lower(name) = lower(?) LIMIT 1").bind(companyName).first<{ id: string }>();
+    let company = await db.prepare("SELECT id, company_type FROM companies WHERE lower(name) = lower(?) LIMIT 1").bind(companyName).first<{ id: string; company_type: string }>();
+    const classification = classifyRadarOpportunity({ company: companyName, title }, { kind: company?.company_type });
     if (!company) {
-      company = { id: crypto.randomUUID() };
-      const classification = classifyRadarOpportunity({ company: companyName, title });
+      company = { id: crypto.randomUUID(), company_type: classification.companyCategory };
       await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
         .bind(company.id, companyName, classification.companyCategory, "United States", "Added from your LinkedIn saved jobs export").run();
     }
     // Only the exported title and company are available, so the score reflects
     // that limited text rather than a full description.
-    const match = scoreRadarOpportunity({ title, company: companyName, location: "", description: "" }, dashboard.profile);
+    const match = scoreRadarOpportunity({ title, company: companyName, location: "", description: "", companyCategory: classification.companyCategory }, dashboard.profile);
     const summary = `${match.summary} · Scored from your LinkedIn export's title and company only — open the role to review the full description.`;
     const existing = index.get(opportunityKey(url));
     if (existing) {
@@ -555,8 +567,13 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
         ? [monitor.targetPosition, ...dashboard.profile.titles.filter((title) => title !== monitor.targetPosition)]
         : dashboard.profile.titles;
       const profile = normalizeRadarProfile({ ...dashboard.profile, titles, skills: [...dashboard.profile.skills, ...focus] });
-      const scored = jobs.map((job) => ({ job, match: scoreRadarOpportunity(job, profile) }))
-        .sort((left, right) => right.match.score - left.match.score)
+      const scored = jobs.map((job) => {
+        // monitor.kind carries whatever the user picked in the "Type" dropdown
+        // when adding this target, so it overrides text/source-based signals
+        // the same way classifyRadarOpportunity already does for display.
+        const classification = classifyRadarOpportunity(job, monitor);
+        return { job, match: scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, profile) };
+      }).sort((left, right) => right.match.score - left.match.score)
         .slice(0, 150);
       const matches = scored.filter(({ match }) => match.passes);
       let monitorAdded = 0;
@@ -660,6 +677,9 @@ function profileFromRow(row: ProfileRow | null): RadarProfile {
     goals: row.positioning,
     exclusions: Array.isArray(constraints.exclusions) ? constraints.exclusions : [],
     minScore: typeof constraints.minScore === "number" ? constraints.minScore : undefined,
+    // Validated for real by normalizeRadarProfile's own allow-list below; this
+    // cast only satisfies the stricter Partial<RadarProfile> input type.
+    companyStagePreference: typeof constraints.companyStagePreference === "string" ? (constraints.companyStagePreference as RadarProfile["companyStagePreference"]) : undefined,
   });
 }
 

@@ -638,3 +638,148 @@ test("pre-existing duplicate rows merge on the next scan and keep the user's dec
     await mf.dispose();
   }
 });
+
+// The company's own stored type (set once, e.g. via the monitor's Type
+// dropdown) must keep winning on every later import of that same company,
+// even when the imported posting's own text/URL carries no startup language
+// at all -- otherwise re-importing a known startup would silently disagree
+// with what is already on file.
+test("startups-only preference passes a monitored startup's role and filters out an established company's role", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "save_profile", profile: {
+        titles: ["Creative Operations Manager"],
+        skills: ["integrated production"],
+        locations: [],
+        workModes: [],
+        goals: "Lead creative delivery.",
+        exclusions: [],
+        minScore: 40,
+        companyStagePreference: "startups_only",
+      } }),
+    }), env, context);
+
+    // Mark "Acme Startup" as Startup / Early-stage the same way a user would:
+    // picking it in the add-monitor Type field.
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: { company: "Acme Startup", kind: "Startup / Early-stage", careersUrl: "https://boards.greenhouse.io/acmestartup", cadence: "manual" } }),
+    }), env, context);
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: { company: "Acme Enterprises", kind: "Technology", careersUrl: "https://boards.greenhouse.io/acmeenterprises", cadence: "manual" } }),
+    }), env, context);
+
+    const posting = (company, url) => `<html><head><title>Creative Operations Manager</title>
+      <script type="application/ld+json">${JSON.stringify({
+        "@type": "JobPosting",
+        title: "Creative Operations Manager",
+        hiringOrganization: { name: company },
+        jobLocation: { address: { addressLocality: "San Francisco", addressRegion: "CA" } },
+        description: "<p>Lead integrated production across cross-functional teams.</p>",
+        url,
+        datePosted: "2026-07-20",
+      })}</script></head><body>Role details</body></html>`;
+
+    globalThis.fetch = async (url) => {
+      if (String(url).includes("/acme-startup-role")) return new Response(posting("Acme Startup", String(url)), { headers: { "content-type": "text/html" } });
+      if (String(url).includes("/acme-enterprise-role")) return new Response(posting("Acme Enterprises", String(url)), { headers: { "content-type": "text/html" } });
+      throw new Error(`Unexpected URL ${url}`);
+    };
+
+    const imported = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_job_links", links: [
+        "https://boards.greenhouse.io/acmestartup/acme-startup-role",
+        "https://boards.greenhouse.io/acmeenterprises/acme-enterprise-role",
+      ] }),
+    }), env, context);
+    const data = await imported.json();
+    assert.equal(imported.status, 200, JSON.stringify(data));
+    assert.equal(data.result.imported.length, 2, JSON.stringify(data.result));
+
+    const startupRole = data.opportunities.find((item) => item.company === "Acme Startup");
+    const enterpriseRole = data.opportunities.find((item) => item.company === "Acme Enterprises");
+    assert.ok(startupRole, "the startup's role must appear in the inbox");
+    assert.ok(enterpriseRole, "the established company's role must still appear in the inbox, just below threshold");
+    assert.equal(startupRole.alignmentPasses, true, JSON.stringify(startupRole));
+    assert.equal(enterpriseRole.alignmentPasses, false, JSON.stringify(enterpriseRole));
+    assert.match(enterpriseRole.fitSummary, /not early-stage \(Technology\)/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
+// scoreRadarOpportunity caps a startups-only mismatch at score 20, and the
+// UI's minimum-alignment slider goes as low as 20 -- right at that boundary,
+// a plain "fitScore >= minScore" recheck would show a filtered-out role as
+// passing. readRadarDashboard's text-sniffed exclusionHit must catch this
+// the same way it already catches a plain exclusion-term hit.
+test("startups-only mismatch stays filtered out even when minScore is set to the lowest allowed value", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "save_profile", profile: {
+        // Enough matching signal (exact title + a skill match + no location
+        // preference to weigh against) to land pre-penalty score at/above 60,
+        // so the startups-only penalty (score - 40, capped at 20) actually
+        // lands AT 20 instead of below it -- otherwise this test would not
+        // exercise the boundary it's named for.
+        titles: ["Creative Operations Manager"],
+        skills: ["integrated production"],
+        locations: [],
+        workModes: [],
+        goals: "",
+        exclusions: [],
+        minScore: 20,
+        companyStagePreference: "startups_only",
+      } }),
+    }), env, context);
+
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: { company: "Acme Enterprises", kind: "Technology", careersUrl: "https://boards.greenhouse.io/acmeenterprises", cadence: "manual" } }),
+    }), env, context);
+
+    globalThis.fetch = async (url) => {
+      if (String(url).includes("/acme-enterprise-role")) {
+        return new Response(`<html><head><title>Creative Operations Manager</title>
+          <script type="application/ld+json">${JSON.stringify({
+            "@type": "JobPosting",
+            title: "Creative Operations Manager",
+            hiringOrganization: { name: "Acme Enterprises" },
+            jobLocation: { address: { addressLocality: "San Francisco", addressRegion: "CA" } },
+            description: "<p>Lead integrated production across cross-functional teams.</p>",
+            url: String(url),
+            datePosted: "2026-07-20",
+          })}</script></head><body>Role details</body></html>`, { headers: { "content-type": "text/html" } });
+      }
+      throw new Error(`Unexpected URL ${url}`);
+    };
+
+    const imported = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_job_links", links: ["https://boards.greenhouse.io/acmeenterprises/acme-enterprise-role"] }),
+    }), env, context);
+    const data = await imported.json();
+    const enterpriseRole = data.opportunities.find((item) => item.company === "Acme Enterprises");
+    assert.ok(enterpriseRole);
+    assert.ok(enterpriseRole.fitScore >= 20, "the capped score should sit at or above this profile's minScore");
+    assert.equal(enterpriseRole.alignmentPasses, false, "a startups-only mismatch must stay filtered out even at the score/minScore boundary");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});

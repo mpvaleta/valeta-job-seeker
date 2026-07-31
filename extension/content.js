@@ -73,22 +73,34 @@ function clearMarks() {
   });
 }
 
+// The exact field set + decision the user reviewed in their last explicit
+// Scan, kept as live element references (not indexes or a selector string) so
+// a field that gets removed or replaced is detected as gone rather than
+// silently matched to whatever now sits at the same position. Fill reads
+// ONLY from this -- see the comment on fill() for why.
+let lastScan = null;
+
+function decideCandidate(field, data) {
+  return decideField({
+    strong: strongLabel(field),
+    weak: weakLabel(field),
+    type: (field.getAttribute("type") || field.tagName).toLowerCase(),
+    tag: field.tagName,
+    answered: isAnswered(field),
+  }, data);
+}
+
 function scan(data, mark = true) {
   clearMarks();
   const fields = [];
   const counts = { fillable: 0, review: 0, unknown: 0, existing: 0 };
+  const marked = new Map();
 
   candidateFields().forEach((field, index) => {
     const strong = strongLabel(field);
     const weak = weakLabel(field);
     const fallback = field.name || field.id || `${field.tagName.toLowerCase()} ${index + 1}`;
-    const decision = decideField({
-      strong,
-      weak,
-      type: (field.getAttribute("type") || field.tagName).toLowerCase(),
-      tag: field.tagName,
-      answered: isAnswered(field),
-    }, data);
+    const decision = decideCandidate(field, data);
 
     counts[decision.status] = (counts[decision.status] || 0) + 1;
     field.dataset.valetaIndex = String(index);
@@ -99,12 +111,15 @@ function scan(data, mark = true) {
       field.style.outline = "3px solid #ff9e36";
       field.dataset.valetaReview = decision.reason;
     }
+    marked.set(field, { status: decision.status, ruleKey: decision.ruleKey, label: shortLabel(strong || weak, fallback), reason: decision.reason, confidence: decision.confidence });
     // Everything the user still has to deal with is reported, including the
     // dropdowns and checkboxes an earlier build hid as "already answered".
     if (decision.status !== "existing") {
       fields.push({ index, label: shortLabel(strong || weak, fallback), status: decision.status, reason: decision.reason, ruleKey: decision.ruleKey, confidence: decision.confidence });
     }
   });
+
+  if (mark) lastScan = marked;
 
   const reported = fields.slice(0, 60);
   return {
@@ -117,6 +132,7 @@ function scan(data, mark = true) {
     fields: reported,
     // Say so rather than letting a truncated list read as the whole form.
     hiddenFieldCount: fields.length - reported.length,
+    appearedSinceScan: 0,
   };
 }
 
@@ -133,23 +149,74 @@ function setFieldValue(field, value) {
   field.dispatchEvent(new Event("blur", { bubbles: true }));
 }
 
+/*
+ * Fills ONLY the fields the user actually previewed in their last explicit
+ * Scan -- it never re-scans the live page first.
+ *
+ * The old version called scan() again right before filling, so "preview"
+ * and "act" were only ever consistent with EACH OTHER inside that one call,
+ * never with what the user saw in the popup after clicking Scan. A
+ * multi-step ATS form advancing, or a page adding an "Add another employer"
+ * section, between the Scan click and the Fill click meant the fill could
+ * silently write into fields the user never reviewed -- exactly what the
+ * preview-first design exists to prevent.
+ */
 function fill(data) {
-  const before = scan(data, true);
+  if (!lastScan) {
+    return { platform: platformName(), title: document.title, fillable: 0, review: 0, unknown: 0, existing: 0, fields: [], hiddenFieldCount: 0, appearedSinceScan: 0, filled: 0, staleScan: true };
+  }
+
+  const currentFields = candidateFields();
+  const currentFieldSet = new Set(currentFields);
   let filled = 0;
-  candidateFields().forEach((field) => {
-    if (field.dataset.valetaState !== "fillable") return;
-    // Reuse the rule the scan settled on, so the preview the user approved and
-    // the value actually written can never come from different rules.
-    const rule = rules.find((item) => item.key === field.dataset.valetaRule);
+
+  lastScan.forEach((entry, field) => {
+    if (entry.status !== "fillable") return;
+    if (!currentFieldSet.has(field) || !document.contains(field)) return;
+    // Reuse the rule the reviewed scan settled on, so the preview the user
+    // approved and the value actually written can never come from a
+    // different rule than what was shown.
+    const rule = rules.find((item) => item.key === entry.ruleKey);
     const value = rule?.read(data);
     if (!value) return;
     setFieldValue(field, value);
     field.style.outline = "3px solid #3155ff";
     field.dataset.valetaFilled = "true";
     field.dataset.valetaState = "filled";
+    entry.status = "filled";
     filled += 1;
   });
-  return { ...before, filled, fillable: 0 };
+
+  // Anything fillable- or review-looking now that the reviewed scan never
+  // saw is reported, never filled sight-unseen -- the user rescans to bring
+  // it into a reviewed preview first.
+  let appearedSinceScan = 0;
+  currentFields.forEach((field) => {
+    if (lastScan.has(field)) return;
+    const decision = decideCandidate(field, data);
+    if (decision.status === "fillable" || decision.status === "review") appearedSinceScan += 1;
+  });
+
+  const counts = { fillable: 0, review: 0, unknown: 0, existing: 0, filled: 0 };
+  const fields = [];
+  lastScan.forEach((entry) => {
+    counts[entry.status] = (counts[entry.status] || 0) + 1;
+    if (entry.status !== "existing") fields.push({ label: entry.label, status: entry.status, reason: entry.reason, ruleKey: entry.ruleKey, confidence: entry.confidence });
+  });
+  const reported = fields.slice(0, 60);
+
+  return {
+    platform: platformName(),
+    title: document.title,
+    fillable: counts.fillable,
+    review: counts.review,
+    unknown: counts.unknown,
+    existing: counts.existing,
+    fields: reported,
+    hiddenFieldCount: fields.length - reported.length,
+    appearedSinceScan,
+    filled,
+  };
 }
 
 function captureVisibleRole() {
