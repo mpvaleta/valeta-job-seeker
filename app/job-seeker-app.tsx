@@ -15,6 +15,7 @@ import { PLAYBOOK_GENERATION_RULE_LIMIT, prioritizeResumePlaybookRules } from "@
 import { preparePlaybookLibrary, prepareResumeEvidence } from "@/lib/career-evidence.mjs";
 import { auditEvidence } from "@/lib/evidence-conflicts.mjs";
 import type { EvidenceAudit } from "@/lib/evidence-conflicts.mjs";
+import { estimateUsageCost, formatEstimatedCost } from "@/lib/ai-pricing.mjs";
 import { findReusableResumes } from "@/lib/resume-reuse.mjs";
 import { RadarWorkspace } from "./radar-workspace";
 import type { RadarOpportunity } from "./radar-workspace";
@@ -72,7 +73,7 @@ type ResumeAiResult = {
 type ResumeAiReview = { score: number; verdict: "ready_for_human_review" | "needs_revision" | "blocked_by_missing_evidence"; strengths: string[]; improvements: string[]; unsupported_claims: string[]; playbook_issues: string[] };
 type ResumeQuality = { score: number; wordCount: number; bulletCount: number; skillCount: number; experienceCount: number; evidenceUsed: number; evidenceAvailable: number; playbookEvaluated: number; playbookFollowed: number; playbookConflicts: number; checks: string[] };
 type ResumeAiResponse = { ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; result?: ResumeAiResult | ResumeAiReview; usage?: CloudUsage; requestId?: string | null; diagnosticCode?: string; guardrailStage?: string; attempts?: number; providerFallback?: { from: string; to: string } | null; playbookCoverage?: { selectedUserRules: number; libraryUserRules: number; curatedRules: number }; quality?: ResumeQuality };
-type ResumeGeneration = { key: string; provider: AiProviderId; providerName: string; model: string; modelLabel: string; result: ResumeAiResult; usage?: CloudUsage; quality?: ResumeQuality };
+type ResumeGeneration = { key: string; provider: AiProviderId; providerName: string; model: string; modelKey?: AiModelKey; modelLabel: string; result: ResumeAiResult; usage?: CloudUsage; quality?: ResumeQuality };
 
 type Profile = {
   name: string;
@@ -876,6 +877,7 @@ export function JobSeekerApp() {
         provider: data.provider || provider.id,
         providerName: data.providerName || provider.name,
         model: data.model || model.id,
+        modelKey: model.key,
         modelLabel: data.modelLabel || model.label,
         result,
         usage: data.usage,
@@ -986,6 +988,38 @@ export function JobSeekerApp() {
       logError("connection", "connection_recheck_failed", cause);
       setAiConnection({ state: "error", authenticated: false, authorized: false, providers: [], message: "The connection check failed. Local analysis remains active." });
     }
+  }
+
+  // Both diagnostics hit the same backend route (app/api/ai/models); `live`
+  // additionally spends one real generation request on the currently
+  // selected model, so it stays a separate, explicitly-labelled action
+  // rather than something the free catalog check does silently.
+  async function runAiDiagnostics(body: Record<string, unknown>, checkingMessage: string) {
+    setAiDiagnostics((current) => ({ ...current, state: "checking", message: checkingMessage }));
+    try {
+      const response = await fetch("/api/ai/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await readJsonResponse<AiDiagnosticsPayload>(response, "The model check could not be read.");
+      if (!response.ok || data.ok === false) {
+        setAiDiagnostics({ state: "error", providers: [], message: data.message || "The model check returned an error." });
+        return;
+      }
+      setAiDiagnostics({ state: "ready", checkedAt: data.checkedAt, providers: data.providers || [], message: data.note || "Model check complete." });
+    } catch (cause) {
+      logError("ai", "model_diagnostics_failed", cause);
+      setAiDiagnostics({ state: "error", providers: [], message: "The model check failed. Try again in a moment." });
+    }
+  }
+
+  function runModelDiagnostics() {
+    return runAiDiagnostics({}, "Checking model catalog access across every connected provider — no résumé text is generated.");
+  }
+
+  function runLiveGenerationCheck() {
+    if (!selectedProvider || !selectedModel) return Promise.resolve();
+    return runAiDiagnostics(
+      { live: true, provider: selectedProvider.id, modelKey: selectedModel.key },
+      `Sending one real, minimal generation request to ${selectedModel.label} to confirm quota and billable access…`,
+    );
   }
 
   function saveApplication() {
@@ -1452,7 +1486,7 @@ export function JobSeekerApp() {
                   <div><span>Priority evidence</span>{currentCloudReview.recommendation.priorityFacts.length ? <ul>{currentCloudReview.recommendation.priorityFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul> : <p>No approved fact was selected as priority evidence.</p>}</div>
                   <div><span>Evidence gaps & cautions</span>{[...currentCloudReview.recommendation.evidenceGaps, ...currentCloudReview.recommendation.cautions].length ? <ul>{[...currentCloudReview.recommendation.evidenceGaps, ...currentCloudReview.recommendation.cautions].map((item) => <li key={item}>{item}</li>)}</ul> : <p>No additional gaps were returned. Human review is still required.</p>}</div>
                   {currentCloudReview.recommendation.evidenceMap?.length ? <div><span>Cloud evidence trace</span><ul>{currentCloudReview.recommendation.evidenceMap.slice(0, 8).map((item) => <li key={item.requirement}><strong>{item.support.toUpperCase()}</strong> · {item.requirement}{item.facts.length ? ` — ${item.facts.join("; ")}` : " — no approved support"}</li>)}</ul></div> : null}
-                  {currentCloudReview.usage && <div><span>Usage audit</span><p>{currentCloudReview.usage.totalTokens.toLocaleString()} total tokens · {currentCloudReview.usage.inputTokens.toLocaleString()} input · {currentCloudReview.usage.outputTokens.toLocaleString()} output{currentCloudReview.usage.cachedTokens ? ` · ${currentCloudReview.usage.cachedTokens.toLocaleString()} cached` : ""}. No prompt or career-fact text is stored in the audit log.</p></div>}
+                  {currentCloudReview.usage && <div><span>Usage audit</span><p>{currentCloudReview.usage.totalTokens.toLocaleString()} total tokens · {currentCloudReview.usage.inputTokens.toLocaleString()} input · {currentCloudReview.usage.outputTokens.toLocaleString()} output{currentCloudReview.usage.cachedTokens ? ` · ${currentCloudReview.usage.cachedTokens.toLocaleString()} cached` : ""}{(() => { const cost = estimateUsageCost(currentCloudReview.provider, currentCloudReview.modelKey, currentCloudReview.usage); return cost != null ? ` · ${formatEstimatedCost(cost)} estimated` : ""; })()}. No prompt or career-fact text is stored in the audit log.</p></div>}
                 </div>}
                 <div className="recommendation-actions"><button className="primary" onClick={() => setOutput("resume")}>Open tailored résumé</button><button onClick={saveApplication}>Save to pipeline</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Checking…" : currentCloudReview ? `Refresh with ${currentCloudReview.providerName}` : aiReady ? `Run ${aiProviderName} review` : "See AI setup"}</button></div>
                 <small>{currentCloudReview ? `${currentCloudReview.modelLabel} (${currentCloudReview.model}) · Structured response validated · Local fallback active` : `${analysis.version} · Deterministic · Works without an internet connection`}. Based only on approved facts and the pasted role. It never invents experience or predicts hiring.</small>
@@ -1530,7 +1564,7 @@ export function JobSeekerApp() {
                   ? <ul>{currentResumeGeneration.quality.checks.map((note) => <li key={note}>{note}</li>)}</ul>
                   : <p className="resume-quality-clear">Nothing was flagged for review in this draft.</p>}
               </div>}
-              {output === "resume" && currentResumeGeneration && <div className="resume-provenance"><strong>Generated by {currentResumeGeneration.modelLabel}</strong><span>{facts.length} approved facts · {userPlaybookRules.length} uploaded rules · {curatedPlaybookRules.length} secondary rules · {currentResumeGeneration.usage?.totalTokens ? `${currentResumeGeneration.usage.totalTokens.toLocaleString()} tokens` : "usage unavailable"}</span><small>{currentResumeGeneration.result.omissions.length ? `Omitted as unsupported: ${currentResumeGeneration.result.omissions.join("; ")}` : "No unsupported requirement was inserted into the draft."}</small></div>}
+              {output === "resume" && currentResumeGeneration && <div className="resume-provenance"><strong>Generated by {currentResumeGeneration.modelLabel}</strong><span>{facts.length} approved facts · {userPlaybookRules.length} uploaded rules · {curatedPlaybookRules.length} secondary rules · {currentResumeGeneration.usage?.totalTokens ? `${currentResumeGeneration.usage.totalTokens.toLocaleString()} tokens` : "usage unavailable"}{currentResumeGeneration.modelKey && currentResumeGeneration.usage ? (() => { const cost = estimateUsageCost(currentResumeGeneration.provider, currentResumeGeneration.modelKey, currentResumeGeneration.usage); return cost != null ? ` · ${formatEstimatedCost(cost)} estimated` : ""; })() : ""}</span><small>{currentResumeGeneration.result.omissions.length ? `Omitted as unsupported: ${currentResumeGeneration.result.omissions.join("; ")}` : "No unsupported requirement was inserted into the draft."}</small></div>}
               {output === "resume" && resumeReview && <div className={`resume-review-card ${resumeReview.result.verdict}`}><div><span>{resumeReview.providerName.toUpperCase()} REVIEW · {resumeReview.modelLabel}</span><strong>{resumeReview.result.score}/100 · {resumeReview.result.verdict.replaceAll("_", " ")}</strong></div>{resumeReview.result.unsupported_claims.length > 0 && <section><b>Unsupported or overstated claims</b><ul>{resumeReview.result.unsupported_claims.map((item) => <li key={item}>{item}</li>)}</ul></section>}<section><b>Recommended improvements</b><ul>{resumeReview.result.improvements.map((item) => <li key={item}>{item}</li>)}</ul></section><small>This review did not edit the résumé. Apply only the changes you approve.</small></div>}
             </div>}
           </section>
@@ -1543,6 +1577,11 @@ export function JobSeekerApp() {
             <div className="step"><b>AI</b><span>CONNECTION & RELIABILITY</span></div>
             <div className="connection-heading"><div><span className={`connection-dot ${aiConnection.state === "loaded" && aiReady ? "ready" : aiConnection.state}`} /><div><small>SELECTED CLOUD CONNECTION</small><h2>{aiConnection.state === "checking" ? "Checking…" : aiReady ? "Connected" : !selectedProvider?.configured ? "Setup required" : !aiConnection.authenticated ? "Sign-in required" : "Access not allowed"}</h2></div></div><button onClick={recheckAiConnection} disabled={aiConnection.state === "checking"}>Recheck</button></div>
             <p>{aiConnectionMessage}</p>
+            <div className="model-diagnostics-actions">
+              <button onClick={runModelDiagnostics} disabled={aiDiagnostics.state === "checking"}>{aiDiagnostics.state === "checking" ? "Checking…" : "Check model catalog access"}</button>
+              {selectedProvider?.configured && selectedModel && <button onClick={runLiveGenerationCheck} disabled={aiDiagnostics.state === "checking"}>Test real generation with {selectedModel.label}</button>}
+              <small>{aiDiagnostics.state === "idle" ? "Catalog check validates the key and exact model access without generating résumé text. The generation test also spends one small, real request." : null}</small>
+            </div>
             {aiDiagnostics.state !== "idle" && <div className={`ai-model-diagnostics ${aiDiagnostics.state}`}><div><strong>Live model-access check</strong><span>{aiDiagnostics.checkedAt ? `Checked ${new Date(aiDiagnostics.checkedAt).toLocaleString()}` : aiDiagnostics.message}</span></div>{aiDiagnostics.providers.map((provider) => <article key={provider.id}><strong>{provider.name}</strong><span>{provider.message}</span><ul>{provider.models.map((model) => <li key={model.key} className={model.generationAvailable === false || !model.available ? "unavailable" : "available"}>{model.id} · {model.generationAvailable === true ? "generation verified" : model.generationAvailable === false ? model.generationReason || "generation failed" : model.available ? "catalog available" : "unavailable"}</li>)}</ul></article>)}</div>}
 
             <div className="provider-picker"><span>1 · Choose a provider</span><div>{aiConnection.providers.map((provider) => <button key={provider.id} className={selectedProvider?.id === provider.id ? "selected" : ""} onClick={() => setAiPreference({ provider: provider.id, modelKey: provider.defaultModelKey })}><strong>{provider.name}</strong><small>{provider.configured ? "Connected secret" : `Needs ${provider.keyName}`}</small></button>)}</div></div>
