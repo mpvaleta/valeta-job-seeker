@@ -47,7 +47,7 @@ Items marked **[DONE]** were verified working this session (tested, typechecked,
 - Extract company, role title, location, description, requirements, source URL, and capture date from pasted/captured content.
 - Save every role description automatically for market learning, independent of Save to Pipeline.
 - Keep role history when the page is reloaded or cleared from the active workspace.
-- **[GAP]** Move status/feedback above the application area; use clear success, warning, failure, and neutral colors. The color logic now exists and is wired up (`noticeTone` was written but never applied — fixed this session, notices read success/error/neutral at a glance). Position ("above the application area") not specifically re-audited. "Queued" and "in-progress" states still read the same neutral color as everything else — only success/failure are visually distinct.
+- **[DONE]** Move status/feedback above the application area; use clear success, warning, failure, and neutral colors. Position confirmed: the notice banner renders in the app's global `<header>`, above every view's content — already the highest position possible, not something to move further. Color: `noticeTone()` now has a fourth "pending" tone (amber, checked after error/success so a message that mentions a progress word in passing while reporting a real failure — "failed while reading" — is never misclassified as still in progress) for the "queued/in-progress" case the backlog flagged as unhandled; existing error/success classification unchanged.
 - Show progress and retry/resend controls for reading, parsing, saving, recommendation, résumé, cover letter, and comparison.
 - Clear the active intake after successful submission while retaining historical records.
 
@@ -69,7 +69,7 @@ Items marked **[DONE]** were verified working this session (tested, typechecked,
 - Make application records editable, including application date, status, source, notes, company, and role.
 - Link the exact résumé and cover-letter version used, without duplicating files.
 - Store why a version was selected and whether Marcos used a different version than suggested.
-- Add document-library filters by company, role, track, date, provider, and application.
+- **[DONE]** Add document-library filters by company, role, track, and provider. New filter bars (matching the existing Radar filter visual pattern) on both Applications sections: Pipeline gets status/company/search; Document library gets company/track/provider/search. Track and provider dropdowns are populated only from tracks/providers actually present in the data, not the full static lists. Browser-verified live with seeded data (3 applications, 3 résumé versions across 2 companies) — confirmed a company filter correctly narrows 3→2 results. Date filtering not built (no explicit ask for range vs. sort semantics; lists already render newest-relevant first).
 - Preserve all historical job descriptions, drafts, submissions, and decisions.
 
 ## P1 — AI providers and guardrails
