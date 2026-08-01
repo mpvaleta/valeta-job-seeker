@@ -18,7 +18,7 @@ backend, a full API, and a base visual design already applied — but it has
 3. **Set up a real Supabase project** (free tier is fine) — follow
    `docs/DEPLOY.md` steps 1–2. Run the SQL files in `supabase/` in the exact
    order listed in `README.md` (schema.sql, then migration-002 through
-   migration-008, then seed.sql).
+   migration-009, then seed.sql).
 4. **Take a screenshot of the homepage** and sanity-check spacing, color
    contrast, and that the `OriginBadge` component (the two-tone pill on every
    card) is legible. This has been code-reviewed carefully but never actually

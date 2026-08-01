@@ -52,7 +52,7 @@ rendered, since the environment that wrote it had no browser tool.
    bypass it when writing to `professionals.attributes`.
 
 ## Where things are
-- `supabase/schema.sql` + `migration-002` through `migration-008` — run in order.
+- `supabase/schema.sql` + `migration-002` through `migration-009` — run in order.
 - `src/lib/` — Supabase clients, validation, rate limiting, Stripe, notifications,
   category fields + their validator, audit, email.
 - `src/app/api/` — the REST API (see docs/BACKEND.md for the full list).

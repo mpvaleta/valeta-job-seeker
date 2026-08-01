@@ -28,8 +28,9 @@ expat-connect/
 ├── docs/                  # Plan, security, design, deploy, go-to-market docs
 ├── supabase/
 │   ├── schema.sql         # Core schema + Row Level Security
-│   ├── migration-002..008 # Self-registration, events, full-text search,
-│   │                      # storage, hardening, attributes, notifications
+│   ├── migration-002..009 # Self-registration, events, full-text search,
+│   │                      # storage, hardening, attributes, notifications,
+│   │                      # service-role plan fix
 │   └── seed.sql           # Categories, languages, sample professionals
 ├── scripts/
 │   └── import-professionals.mjs  # Bulk CSV seeding
@@ -48,7 +49,8 @@ expat-connect/
    `schema.sql` → `migration-002-self-registration.sql` →
    `migration-003-events.sql` → `migration-004-fulltext-search.sql` →
    `migration-005-storage.sql` → `migration-006-hardening.sql` →
-   `migration-007-attributes.sql` → `migration-008-notifications.sql` → `seed.sql`.
+   `migration-007-attributes.sql` → `migration-008-notifications.sql` →
+   `migration-009-service-role-plan-fix.sql` → `seed.sql`.
 3. Copy `.env.example` to `.env.local` and fill in your Supabase values.
 4. `npm install && npm run dev` → open http://localhost:3000
 

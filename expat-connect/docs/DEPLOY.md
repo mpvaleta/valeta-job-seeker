@@ -4,7 +4,7 @@
 1. Crie conta grátis em supabase.com → "New project". Escolha uma região
    próxima da cidade-alvo (ex: East US para Boston/Orlando/Miami).
 2. SQL Editor → rode, um de cada vez: `schema.sql` → `migration-002` até
-   `migration-008` (nessa ordem) → `seed.sql`.
+   `migration-009` (nessa ordem) → `seed.sql`.
 3. Settings → API: copie Project URL, anon key, e service_role key (SECRETA).
 
 ## 2. Segurança do Supabase — 5 min, não pule

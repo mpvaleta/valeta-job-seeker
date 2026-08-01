@@ -6,7 +6,17 @@
 - One review per user per professional (prevents review bombing); moderated
   (pending → approved) before appearing publicly.
 - Professionals cannot self-elevate: a DB trigger (migration-002) blocks
-  non-admins from changing their own `status`, `verified`, or `plan`.
+  non-admins from changing their own `status`, `verified`, or `plan`. The
+  trigger also lets `service_role` through (migration-009), because the Stripe
+  webhook has no user session and was otherwise having paid plan upgrades
+  silently reverted. `service_role` never reaches the client, so professionals
+  still have no self-elevation path.
+
+All five properties above were verified by executing the schema against a real
+PostgreSQL instance: anonymous reads see only approved rows, an owner's edit to
+`status`/`verified`/`plan` is reverted while their legitimate field edits go
+through, an admin's moderation succeeds, and a `service_role` plan upgrade
+sticks.
 
 ## Application layer
 - All input validated with Zod before touching the database (`src/lib/validation.ts`).
