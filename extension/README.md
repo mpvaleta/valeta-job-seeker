@@ -1,6 +1,6 @@
 # V's Application Autofill companion
 
-This unpacked Chrome extension can copy the visible job page you are already viewing and preview/fill common job-application fields from the JSON package exported by V's Job Seeker. It has visible-page extractors for LinkedIn, Indeed, Greenhouse, Lever, Workday, Ashby, iCIMS, and SmartRecruiters. It uses your already-open page rather than sending a login or cookie to V's. It never clicks submit, never fills file uploads or numeric fields, and highlights sensitive fields and dropdowns for manual review.
+This unpacked Chrome extension can copy the visible job page you are already viewing and preview/fill common job-application fields from the JSON package exported by V's Job Seeker. It has visible-page extractors for LinkedIn, Indeed, Greenhouse, Lever, Workday, Ashby, iCIMS, and SmartRecruiters. It uses your already-open page rather than sending a login or cookie to V's. It keeps the selected résumé version visible, skips fields that already contain a value, never clicks submit, and leaves file uploads, controlled fields, sensitive questions, and dropdowns for manual review.
 
 ## Install on a MacBook
 
@@ -8,7 +8,7 @@ This unpacked Chrome extension can copy the visible job page you are already vie
 2. Open `chrome://extensions` in Chrome.
 3. Turn on **Developer mode**.
 4. Choose **Load unpacked** and select this `extension` folder.
-5. In V's Job Seeker, open **Autofill assistant** and download the JSON package.
+5. In V's Job Seeker, open **Autofill assistant**, choose the résumé version for this application, and download the JSON package.
 6. Open the extension, paste the package, and choose **Save profile**.
 7. For a LinkedIn or login-only job page, open the extension and choose **Copy visible job page**. In V's **Role workspace**, choose **Paste visible-page capture**.
 8. On an application form, choose **Scan page**. Review the blue, orange, and unmapped fields.

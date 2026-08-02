@@ -73,3 +73,43 @@ test("public article and YouTube transcript reads are bounded and deterministic"
 test("LinkedIn pages are rejected instead of being scraped", async () => {
   await assert.rejects(() => readPublicLink("https://www.linkedin.com/jobs/view/123", { fetchImpl: async () => new Response("should not run") }), /does not permit/i);
 });
+
+// A bot-verification interstitial (Cloudflare, PerimeterX, DataDome,
+// reCAPTCHA/hCaptcha) returns a normal HTTP 200 with a full HTML page -- it
+// would otherwise sail past the login/access-required (401/403) check and
+// often past the not-enough-text check too, silently becoming the imported
+// "job description" or "article" with no error at all.
+test("a Cloudflare-style browser-check page is rejected by title rather than imported as real content", async () => {
+  const challengeHtml = `<!doctype html><html><head><title>Just a moment...</title></head><body><div class="cf-browser-verification cf-im-under-attack">Checking your browser before accessing example.com. This process is automatic. Your browser will redirect to your requested content shortly.</div><script>window._cf_chl_opt = {};</script></body></html>`;
+  await assert.rejects(
+    () => readPublicLink("https://careers.example.com/senior-producer", { fetchImpl: async () => new Response(challengeHtml, { headers: { "content-type": "text/html" } }) }),
+    /bot-verification challenge/i,
+  );
+});
+
+test("a PerimeterX-style challenge page is rejected by its captcha markup", async () => {
+  const html = `<!doctype html><html><head><title>Access to this page has been denied</title></head><body><div id="px-captcha"></div><p>Please verify you are a human to continue to careers.example.com.</p></body></html>`;
+  await assert.rejects(
+    () => readPublicLink("https://careers.example.com/senior-producer", { fetchImpl: async () => new Response(html, { headers: { "content-type": "text/html" } }) }),
+    /bot-verification challenge/i,
+  );
+});
+
+test("a bare reCAPTCHA embed is detected even with an unrelated page title", async () => {
+  const html = `<!doctype html><html><head><title>example.com</title></head><body><div class="g-recaptcha" data-sitekey="abc"></div><script src="https://www.google.com/recaptcha/api.js"></script><p>Verifying you are not a robot before we show this page.</p></body></html>`;
+  await assert.rejects(
+    () => readPublicLink("https://careers.example.com/senior-producer", { fetchImpl: async () => new Response(html, { headers: { "content-type": "text/html" } }) }),
+    /bot-verification challenge/i,
+  );
+});
+
+// A real job posting that happens to use verification-adjacent language in
+// its own copy (asking applicants to verify eligibility, mentioning captcha
+// only as a topic) must never be misclassified as a challenge page --
+// detection keys on vendor titles/markup, not on words like "verify".
+test("a real job posting mentioning verification language in its own text is not misclassified as a bot challenge", async () => {
+  const html = `<!doctype html><title>Senior Producer</title><main><h1>Senior Producer</h1><p>Lead integrated production across partner teams. Please verify you are legally authorized to work in the country of employment before applying.</p><p>Our security team will verify your identity as part of the standard background check human resources runs for every hire.</p></main>`;
+  const result = await readPublicLink("https://careers.example.com/senior-producer", { fetchImpl: async () => new Response(html, { headers: { "content-type": "text/html" } }) });
+  assert.equal(result.sourceType, "article");
+  assert.match(result.text, /Senior Producer/);
+});

@@ -118,11 +118,11 @@ function providerRegistry(): ProviderDefinition[] {
       name: "Google Gemini",
       keyName: "GEMINI_API_KEY",
       apiKey: process.env.GEMINI_API_KEY?.trim() || "",
-      defaultModelKey: "balanced",
+      defaultModelKey: "reliable",
       models: [
-        { key: "reliable", id: process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash", label: "Gemini 3.6 Flash · thorough", tier: "Highest quality", description: "Current stable Gemini Flash with high reasoning effort.", effort: "high" },
-        { key: "balanced", id: process.env.GEMINI_BALANCED_MODEL?.trim() || "gemini-3.5-flash", label: "Gemini 3.5 Flash", tier: "Balanced", description: "Current stable model with medium reasoning effort and a free API tier where available.", effort: "medium" },
-        { key: "fast", id: process.env.GEMINI_FAST_MODEL?.trim() || "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash-Lite", tier: "Fast & economical", description: "Current stable, cost-efficient role triage model.", effort: "low" },
+        { key: "reliable", id: process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash", label: "Gemini 3.5 Flash · thorough", tier: "Highest quality", description: "Current stable Gemini Flash with high reasoning effort.", effort: "high" },
+        { key: "balanced", id: process.env.GEMINI_BALANCED_MODEL?.trim() || "gemini-3.5-flash", label: "Gemini 3.5 Flash · balanced", tier: "Balanced", description: "The same stable model with medium reasoning effort for faster drafts.", effort: "medium" },
+        { key: "fast", id: process.env.GEMINI_FAST_MODEL?.trim() || "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", tier: "Fast & economical", description: "Current stable, cost-efficient model for quick role triage.", effort: "low" },
       ],
     },
   ];
@@ -362,7 +362,7 @@ async function requestProvider(provider: ProviderDefinition, model: ModelDefinit
       contents: [{ role: "user", parts: [{ text: `<untrusted_application_data>\n${JSON.stringify(input)}\n</untrusted_application_data>` }] }],
       generationConfig: {
         responseMimeType: "application/json",
-        responseSchema: outputSchema,
+        responseJsonSchema: outputSchema,
         maxOutputTokens: 1_600,
         thinkingConfig: { thinkingLevel },
       },
@@ -482,7 +482,7 @@ async function safeProviderErrorCode(response: Response) {
     if (typeof errorValue === "string") return safeCode(errorValue);
     if (errorValue && typeof errorValue === "object") {
       const record = errorValue as Record<string, unknown>;
-      return safeCode(record.code || record.status || record.type || "");
+      return safeCode([record.code, record.status, record.type, record.message].filter(Boolean).join("_"));
     }
   } catch {}
   return "";

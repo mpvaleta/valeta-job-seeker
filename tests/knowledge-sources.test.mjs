@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mergeWritingSample, removeWritingSample, scopeForCategory, sourceScope, sourceScopeLabel } from "../lib/knowledge-sources.mjs";
+import { classifyKnowledgeSource, mergeWritingSample, removeWritingSample, scopeForCategory, sourceScope, sourceScopeLabel } from "../lib/knowledge-sources.mjs";
 import { CURATED_RESUME_PLAYBOOK } from "../lib/resume-playbook.mjs";
 
 test("knowledge categories keep résumé guidance, voice, research, and evidence separate", () => {
@@ -13,6 +13,18 @@ test("knowledge categories keep résumé guidance, voice, research, and evidence
   assert.equal(sourceScope({ category: "Résumé playbook" }), "guidance");
   assert.equal(sourceScope({ scope: "research", category: "Résumé" }), "research");
   assert.equal(sourceScopeLabel("guidance"), "Résumé playbook");
+});
+
+test("content classification corrects a confidently misfiled résumé playbook without deleting it", () => {
+  const result = classifyKnowledgeSource({
+    selectedCategory: "Résumé",
+    title: "Resume do and don't guide",
+    text: "Resume best practices checklist. Use action verbs in bullet points. Tailor your resume for the ATS. Avoid writing long paragraphs.",
+  });
+  assert.equal(result.scope, "guidance");
+  assert.equal(result.category, "Résumé playbook");
+  assert.equal(result.confidence, "high");
+  assert.equal(sourceScope({ category: "Résumé", scope: "evidence", title: "Resume tips", text: "Resume best practices and ATS checklist. Use action verbs in bullet points. Tailor your resume. Avoid writing long paragraphs." }), "guidance");
 });
 
 test("writing samples can be added and removed without entering the career fact bank", () => {
