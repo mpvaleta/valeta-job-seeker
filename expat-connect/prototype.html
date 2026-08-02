@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conecta — Protótipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* Base theme: United States (Atlantic navy) + Brazil (Cerrado green, Ipê gold).
+     See docs/DESIGN.md for the full rationale. Swapping a future country pair
+     means changing these six variables — nothing else in this file. */
+  :root {
+    --paper:#F4F6F8; --ink:#13212F; --line:#DDE3EA;
+    --atlantic:#1C2E4A; --atlantic-soft:#E8ECF3;
+    --cerrado:#0E7A4C; --cerrado-dark:#0B5F3B; --cerrado-soft:#E3F3E9;
+    --ipe:#D9A441; --ipe-soft:#FBF0DC;
+  }
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:'Public Sans',-apple-system,sans-serif; background:var(--paper); color:var(--ink); }
+  h1,h2,h3,.display { font-family:'Fraunces',serif; }
+  .mono { font-family:'IBM Plex Mono',monospace; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 16px; }
+
+  /* header */
+  header { position:sticky; top:0; z-index:40; background:rgba(244,246,248,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line); }
+  .seam { height:3px; background:linear-gradient(90deg, var(--atlantic), var(--ipe), var(--cerrado)); }
+  header .wrap { height:64px; display:flex; align-items:center; justify-content:space-between; }
+  .brand-row { display:flex; align-items:center; gap:10px; }
+  .logo { font-size:20px; font-weight:600; }
+  .proto-badge { font-size:10px; font-family:'IBM Plex Mono',monospace; font-weight:600; letter-spacing:.06em; background:var(--ink); color:var(--paper); padding:3px 10px; border-radius:999px; }
+  nav a, nav button { font-size:14px; color:rgba(19,33,47,.7); text-decoration:none; background:none; border:none; cursor:pointer; }
+  .btn-primary { background:var(--cerrado); color:#fff !important; padding:9px 18px; border-radius:8px; font-weight:600; }
+
+  /* hero */
+  .hero { padding:56px 0 40px; display:grid; grid-template-columns:1fr; gap:36px; }
+  @media (min-width:960px){ .hero { grid-template-columns:1fr 1fr; align-items:center; } }
+  .eyebrow { font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--cerrado-dark); }
+  .hero h1 { font-size:clamp(30px,4.5vw,44px); line-height:1.08; margin-top:10px; font-weight:600; }
+  .hero p { margin-top:14px; color:rgba(19,33,47,.7); font-size:17px; max-width:480px; }
+  .search-row { margin-top:26px; display:flex; flex-wrap:wrap; gap:8px; max-width:560px; }
+  .search-row input { flex:1; min-width:160px; padding:13px 14px; border:1px solid var(--line); border-radius:10px; font-size:14px; background:#fff; font-family:inherit; }
+  .search-row button { padding:13px 22px; border:none; border-radius:10px; background:var(--cerrado); color:#fff; font-weight:600; cursor:pointer; font-size:14px; }
+  .stat-row { margin-top:30px; display:flex; gap:32px; }
+  .stat-row .num { font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600; }
+  .stat-row .label { font-size:12px; color:rgba(19,33,47,.5); margin-top:2px; }
+
+  .match-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:26px; }
+  .match-card .caption { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:rgba(19,33,47,.4); }
+  .match-row { margin-top:16px; display:flex; align-items:center; gap:10px; }
+  .match-side { flex:1; border-radius:10px; padding:14px; }
+  .match-side.us { background:var(--atlantic-soft); }
+  .match-side.br { background:var(--cerrado-soft); }
+  .match-side p:first-child { font-size:12px; font-weight:600; }
+  .match-side.us p:first-child { color:var(--atlantic); }
+  .match-side.br p:first-child { color:var(--cerrado-dark); }
+  .match-side p:last-child { font-family:'Fraunces',serif; font-size:17px; margin-top:4px; }
+  .seam-line { height:1px; flex:1; background:linear-gradient(90deg, var(--atlantic), var(--ipe), var(--cerrado)); }
+  .match-card .note { margin-top:16px; font-size:13px; color:rgba(19,33,47,.6); }
+
+  /* sections */
+  section.block { padding:44px 0; }
+  .section-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:20px; }
+  .section-head a { font-size:13px; color:var(--cerrado); text-decoration:none; }
+
+  /* filters (interactive demo) */
+  .filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-bottom:18px; }
+  .filters input, .filters select { padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:13px; background:#fff; font-family:inherit; }
+  .count { font-size:13px; color:rgba(19,33,47,.5); margin-bottom:14px; }
+
+  /* cards */
+  .rail { display:flex; gap:14px; overflow-x:auto; padding-bottom:8px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:14px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:18px; cursor:pointer; transition:.15s; min-width:260px; }
+  .card:hover { border-color:rgba(14,122,76,.4); box-shadow:0 4px 14px rgba(19,33,47,.06); transform:translateY(-1px); }
+  .card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .card-icon { width:38px; height:38px; border-radius:999px; background:var(--atlantic-soft); color:var(--atlantic); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .card h3 { font-size:15px; font-weight:600; }
+  .verified-tag { font-size:9px; font-weight:700; text-transform:uppercase; color:var(--cerrado-dark); letter-spacing:.04em; margin-left:6px; }
+  .card .cat { font-size:12.5px; color:rgba(19,33,47,.5); margin-top:1px; }
+  .rating-chip { font-family:'IBM Plex Mono',monospace; font-size:12.5px; background:var(--ink); color:var(--ipe-soft); border-radius:6px; padding:3px 7px; white-space:nowrap; }
+  .rating-chip .star { color:var(--ipe); }
+  .card .headline { font-size:13.5px; margin-top:10px; color:rgba(19,33,47,.85); }
+  .origin-badge { margin-top:14px; display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; font-size:11px; font-weight:500; }
+  .origin-badge span { padding:4px 10px; }
+  .origin-badge .a { background:var(--atlantic-soft); color:var(--atlantic); }
+  .origin-badge .seam { width:1px; background:var(--ipe); padding:0; }
+  .origin-badge .b { background:var(--cerrado-soft); color:var(--cerrado-dark); }
+
+  /* categories */
+  .cat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+  .cat-item { display:flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px; font-size:13.5px; font-weight:500; }
+  .cat-item .ic { width:32px; height:32px; border-radius:999px; background:var(--cerrado-soft); color:var(--cerrado-dark); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+
+  /* how it works */
+  .steps-bg { background:rgba(232,236,243,.5); border-radius:20px; padding:36px 24px; }
+  .steps { display:grid; grid-template-columns:1fr; gap:16px; }
+  @media (min-width:800px){ .steps { grid-template-columns:repeat(3,1fr); } }
+  .step { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; }
+  .step-num { width:30px; height:30px; border-radius:999px; background:var(--ink); color:var(--paper); font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .step h3 { font-size:15px; margin-top:14px; }
+  .step p { font-size:13px; color:rgba(19,33,47,.6); margin-top:6px; }
+
+  /* trust */
+  .trust-grid { display:grid; grid-template-columns:1fr; gap:14px; }
+  @media (min-width:800px){ .trust-grid { grid-template-columns:repeat(3,1fr); } }
+  .trust-card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; }
+  .trust-card h3 { font-size:15px; }
+  .trust-card p { font-size:13px; color:rgba(19,33,47,.6); margin-top:6px; }
+
+  .cta-block { background:var(--ink); border-radius:20px; padding:44px 24px; text-align:center; }
+  .cta-block h2 { color:var(--paper); }
+  .cta-block p { color:rgba(244,246,248,.7); margin-top:8px; max-width:420px; margin-left:auto; margin-right:auto; font-size:14px; }
+  .cta-block a { display:inline-block; margin-top:20px; background:var(--cerrado); color:#fff; padding:12px 26px; border-radius:10px; font-weight:600; text-decoration:none; font-size:14px; }
+
+  footer { border-top:1px solid var(--line); padding:28px 0; font-size:13px; color:rgba(19,33,47,.5); }
+  .empty { color:rgba(19,33,47,.6); padding:30px 0; text-align:center; }
+
+  /* modal */
+  .overlay { position:fixed; inset:0; background:rgba(19,33,47,.45); display:none; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; z-index:50; }
+  .overlay.open { display:flex; }
+  .modal { background:#fff; border-radius:18px; max-width:600px; width:100%; padding:28px; position:relative; }
+  .modal .close { position:absolute; top:14px; right:16px; border:none; background:none; font-size:22px; cursor:pointer; color:rgba(19,33,47,.5); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="seam"></div>
+  <div class="wrap">
+    <div class="brand-row">
+      <span class="logo display">Conecta</span>
+      <span class="proto-badge" title="Versão de demonstração — ainda em desenvolvimento">PROTÓTIPO</span>
+    </div>
+    <nav style="display:flex; gap:18px; align-items:center;">
+      <a href="#buscar">Buscar</a>
+      <a href="#">Entrar</a>
+      <a href="#" class="btn-primary">Criar conta</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Estados Unidos ⇄ Brasil</p>
+      <h1>Encontre quem entende a sua jornada.</h1>
+      <p>Médicos, advogados, terapeutas e outros profissionais brasileiros — ou que atendem em português — perto de você nos Estados Unidos, ou online.</p>
+      <div class="search-row" id="buscar">
+        <input id="q" placeholder="Médico, advogado, terapeuta…" oninput="render()">
+        <input id="city" placeholder="Cidade" oninput="render()">
+        <button onclick="render()">Buscar</button>
+      </div>
+      <div class="stat-row">
+        <div><p class="num">6</p><p class="label">profissionais (exemplo)</p></div>
+        <div><p class="num">5</p><p class="label">cidades</p></div>
+        <div><p class="num">6</p><p class="label">categorias</p></div>
+      </div>
+    </div>
+    <div class="match-card">
+      <p class="caption">Como funciona a busca</p>
+      <div class="match-row">
+        <div class="match-side us"><p>Onde você está</p><p class="display">Boston, EUA</p></div>
+        <div class="seam-line"></div>
+        <div class="match-side br"><p>Quem você procura</p><p class="display">Fala Português</p></div>
+      </div>
+      <p class="note">Todo profissional no Conecta mostra as duas coisas lado a lado — onde atende e o idioma/origem — para você decidir em segundos.</p>
+    </div>
+  </section>
+
+  <p style="font-size:13px; background:var(--ipe-soft); border:1px solid #F0DDB0; padding:10px 14px; border-radius:10px; color:#6b4d17;">
+    Este protótipo usa dados fictícios de exemplo, só para demonstrar o layout e a paleta de cores. A versão real busca no banco de dados.
+  </p>
+
+  <section class="block">
+    <div class="section-head"><h2>Profissionais em destaque</h2></div>
+    <p class="count" id="count"></p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="block">
+    <div class="section-head"><h2>Explore por categoria</h2></div>
+    <div class="cat-grid" id="catGrid"></div>
+  </section>
+</div>
+
+<section class="block">
+  <div class="wrap">
+    <div class="steps-bg">
+      <h2 style="text-align:center; margin-bottom:24px;">Como funciona</h2>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><h3>Busque por categoria e idioma</h3><p>Filtre por especialidade, cidade e idioma de atendimento.</p></div>
+        <div class="step"><div class="step-num">2</div><h3>Veja o perfil verificado</h3><p>Credenciais, avaliações reais e onde a pessoa atende.</p></div>
+        <div class="step"><div class="step-num">3</div><h3>Fale direto pelo WhatsApp</h3><p>Sem intermediários — você combina direto com o profissional.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <section class="block">
+    <h2 style="text-align:center; margin-bottom:24px;">Por que a comunidade confia</h2>
+    <div class="trust-grid">
+      <div class="trust-card"><h3>Credenciais verificadas</h3><p>Profissionais de saúde e jurídico passam por checagem de registro antes da aprovação.</p></div>
+      <div class="trust-card"><h3>Avaliações moderadas</h3><p>Toda avaliação é de um usuário real e passa por revisão antes de ficar pública.</p></div>
+      <div class="trust-card"><h3>Contato direto</h3><p>Sem intermediários cobrando pelo contato — você fala direto com o profissional.</p></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="cta-block">
+      <h2>É profissional?</h2>
+      <p>Cadastre seu perfil gratuitamente e seja encontrado pela comunidade brasileira na sua região.</p>
+      <a href="#">Cadastrar meu perfil</a>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">© 2026 Conecta — protótipo de demonstração, não é o produto final.</div>
+</footer>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+const CATEGORIES = [
+  {name:"Médicos", slug:"doctors", icon:"⚕"}, {name:"Dentistas", slug:"dentists", icon:"🦷"},
+  {name:"Psicólogos e Terapeutas", slug:"therapists", icon:"🧠"}, {name:"Advogados", slug:"lawyers", icon:"⚖"},
+  {name:"Assessoria de Imigração", slug:"immigration", icon:"🧭"}, {name:"Contadores", slug:"accountants", icon:"📊"},
+];
+const PROS = [
+ {name:"Dra. Ana Souza", cat:"Médicos", icon:"⚕", headline:"Médica de família brasileira em Boston", city:"Boston", country:"EUA", online:false, verified:true, rating:4.9, reviews:23},
+ {name:"Dr. Carlos Lima", cat:"Dentistas", icon:"🦷", headline:"Dentista brasileiro em Orlando", city:"Orlando", country:"EUA", online:false, verified:true, rating:4.8, reviews:41},
+ {name:"Mariana Costa", cat:"Psicólogos e Terapeutas", icon:"🧠", headline:"Psicóloga brasileira — atendimento online mundial", city:"São Paulo", country:"Brasil", online:true, verified:true, rating:5.0, reviews:67},
+ {name:"João Pereira", cat:"Assessoria de Imigração", icon:"🧭", headline:"Vistos e cidadania em Portugal", city:"Lisboa", country:"Portugal", online:true, verified:true, rating:4.7, reviews:38},
+ {name:"Fernanda Alves", cat:"Contadores", icon:"📊", headline:"Impostos americanos para brasileiros", city:"Miami", country:"EUA", online:true, verified:true, rating:4.9, reviews:52},
+ {name:"Salão Brasil", cat:"Beleza e Estética", icon:"✂", headline:"Salão brasileiro em Newark", city:"Newark", country:"EUA", online:false, verified:false, rating:4.6, reviews:19}
+];
+
+const catGrid = document.getElementById('catGrid');
+CATEGORIES.forEach(c => {
+  const d = document.createElement('div'); d.className = 'cat-item';
+  d.innerHTML = '<span class="ic">'+c.icon+'</span>'+c.name;
+  catGrid.appendChild(d);
+});
+
+function render(){
+  const q = document.getElementById('q').value.toLowerCase().trim();
+  const city = document.getElementById('city').value.toLowerCase().trim();
+  const results = PROS.filter(p =>
+    (!q || (p.name+p.headline+p.cat).toLowerCase().includes(q)) &&
+    (!city || p.city.toLowerCase().includes(city))
+  ).sort((a,b) => b.rating - a.rating);
+
+  document.getElementById('count').textContent = results.length + (results.length === 1 ? ' profissional encontrado' : ' profissionais encontrados');
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  if(!results.length){ grid.innerHTML = '<p class="empty">Nenhum profissional encontrado. Tente ampliar a busca.</p>'; return; }
+
+  results.forEach(p => {
+    const d = document.createElement('div'); d.className = 'card'; d.onclick = () => openModal(p);
+    d.innerHTML =
+      '<div class="card-top">'+
+        '<div style="display:flex; gap:10px;">'+
+          '<span class="card-icon">'+p.icon+'</span>'+
+          '<div><h3 class="display">'+p.name+(p.verified?'<span class="verified-tag">✓ verificado</span>':'')+'</h3><p class="cat">'+p.cat+'</p></div>'+
+        '</div>'+
+        (p.reviews>0?'<span class="rating-chip"><span class="star">★</span> '+p.rating.toFixed(1)+'</span>':'')+
+      '</div>'+
+      '<p class="headline">'+p.headline+'</p>'+
+      '<div class="origin-badge"><span class="a">'+p.city+(p.online?' · online':'')+'</span><span class="seam"></span><span class="b">Fala Português</span></div>';
+    grid.appendChild(d);
+  });
+}
+
+function openModal(p){
+  const m = document.getElementById('modal');
+  m.innerHTML =
+    '<button class="close" onclick="closeModal()" aria-label="Fechar">×</button>'+
+    '<h2 class="display">'+p.name+(p.verified?'<span class="verified-tag" style="margin-left:8px;">✓ Verificado</span>':'')+'</h2>'+
+    '<p class="cat" style="margin-top:4px;">'+p.cat+' · ★ '+p.rating.toFixed(1)+' ('+p.reviews+' avaliações)</p>'+
+    '<div class="origin-badge" style="margin-top:14px;"><span class="a">'+p.city+', '+p.country+(p.online?' · online':'')+'</span><span class="seam"></span><span class="b">Fala Português</span></div>'+
+    '<p style="margin-top:16px; font-size:14px; color:rgba(19,33,47,.75);">'+p.headline+'.</p>'+
+    '<a href="#" class="btn-primary" style="display:inline-block; margin-top:20px; text-decoration:none;" onclick="return false">WhatsApp (demo)</a>';
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+render();
+</script>
+</body>
+</html>

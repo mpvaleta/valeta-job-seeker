@@ -1,0 +1,2 @@
+full_name,category_slug,headline,bio,country,city,whatsapp,email,website,credentials,accepts_insurance,online_service,languages,verified
+Exemplo Nome,doctors,Médica brasileira em Boston,"Descrição dos serviços, formação e experiência.",US,Boston,+15550100,contato@example.com,https://example.com,MD #000000,"Blue Cross, Aetna",false,pt|en,true
