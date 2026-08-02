@@ -2,16 +2,13 @@ import { NextResponse } from "next/server";
 import { getRuntimeBucket, getRuntimeDatabase } from "@/lib/runtime-bindings";
 import { listWorkspaceRevisions, MAX_WORKSPACE_BYTES, readLatestWorkspace, readWorkspaceRevision, restoreWorkspaceRevision, saveWorkspaceRevision, WorkspaceRevisionNotFoundError } from "@/lib/workspace-store";
 import { isTrustedSameOriginMutation } from "@/lib/request-security";
+import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
 
 export const dynamic = "force-dynamic";
 
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
-const USER_NAME_HEADER = "oai-authenticated-user-full-name";
-const USER_NAME_ENCODING_HEADER = "oai-authenticated-user-full-name-encoding";
-
 export async function GET(request: Request) {
   try {
-    const identity = requireIdentity(request);
+    const identity = await requireIdentity(request);
     const url = new URL(request.url);
     const revisionId = url.searchParams.get("revision")?.trim();
     if (url.searchParams.get("history") === "1") {
@@ -32,7 +29,7 @@ export async function POST(request: Request) {
   const contentLength = Number(request.headers.get("content-length") || "0");
   if (contentLength > MAX_WORKSPACE_BYTES) return json({ ok: false, code: "workspace_too_large", message: "The private workspace is larger than the 5 MB backup limit." }, 413);
   try {
-    const identity = requireIdentity(request);
+    const identity = await requireIdentity(request);
     const raw = await request.text();
     if (new TextEncoder().encode(raw).byteLength > MAX_WORKSPACE_BYTES) return json({ ok: false, code: "workspace_too_large", message: "The private workspace is larger than the 5 MB backup limit." }, 413);
     const envelope = JSON.parse(raw) as { action?: unknown; revisionId?: unknown; sourceBuild?: unknown; snapshot?: unknown };
@@ -57,15 +54,17 @@ export async function POST(request: Request) {
   }
 }
 
-function requireIdentity(request: Request) {
-  const email = request.headers.get(USER_EMAIL_HEADER)?.trim().toLowerCase();
-  if (!email) throw new WorkspaceHttpError(401, "authentication_required", "Open V’s through your signed-in ChatGPT account to use durable private backup.");
-  const encoded = request.headers.get(USER_NAME_HEADER);
-  let name: string | null = null;
-  if (encoded && request.headers.get(USER_NAME_ENCODING_HEADER) === "percent-encoded-utf-8") {
-    try { name = decodeURIComponent(encoded).slice(0, 160); } catch { name = null; }
+async function requireIdentity(request: Request) {
+  try {
+    const identity = await resolveAccessIdentity(request);
+    return { email: identity.email, name: null as string | null };
+  } catch (cause) {
+    if (cause instanceof AccessAuthError) {
+      const status = cause.code === "not_configured" ? 503 : 401;
+      throw new WorkspaceHttpError(status, cause.code, cause.message);
+    }
+    throw cause;
   }
-  return { email, name };
 }
 
 class WorkspaceHttpError extends Error {

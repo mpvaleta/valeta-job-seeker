@@ -4,8 +4,8 @@ import { authenticatedEmail, authorizationUrl, getLinkedInConfig, LINKEDIN_STATE
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const owner = authenticatedEmail(request);
-  if (!owner) return NextResponse.json({ ok: false, code: "authentication_required", message: "Open V’s through your signed-in ChatGPT account before connecting LinkedIn." }, { status: 401 });
+  const owner = await authenticatedEmail(request);
+  if (!owner) return NextResponse.json({ ok: false, code: "authentication_required", message: "Sign in to V’s Job Seeker before connecting LinkedIn." }, { status: 401 });
   const config = getLinkedInConfig();
   if (!config.configured) return NextResponse.json({ ok: false, code: "linkedin_not_configured", message: "Official LinkedIn sign-in needs protected deployment credentials. ZIP import remains available." }, { status: 503 });
   const state = await signPayload({ owner, nonce: crypto.randomUUID(), exp: Math.floor(Date.now() / 1000) + 10 * 60 }, config.sessionSecret);

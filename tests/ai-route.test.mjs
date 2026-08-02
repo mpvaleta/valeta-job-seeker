@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+
+await installAccessEnv();
+const ACCESS_HEADER = await accessHeaders("owner@example.com");
+const VISITOR_ACCESS_HEADER = await accessHeaders("visitor@example.com");
 
 async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -82,7 +87,7 @@ test("AI endpoint blocks cross-site attempts before they can spend provider cred
   const worker = await loadWorker();
   const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "https://attacker.example", "sec-fetch-site": "cross-site", "oai-authenticated-user-email": "owner@example.com" },
+    headers: { "content-type": "application/json", origin: "https://attacker.example", "sec-fetch-site": "cross-site", ...ACCESS_HEADER },
     body: JSON.stringify(validRequestBody),
   }), env, context);
   const data = await response.json();
@@ -192,7 +197,7 @@ test("all allowlisted provider adapters validate structured output and preserve 
       const worker = await loadWorker();
       const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
         method: "POST",
-        headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+        headers: { "content-type": "application/json", ...ACCESS_HEADER },
         body: JSON.stringify({ ...validRequestBody, provider: scenario.provider, modelKey: scenario.modelKey }),
       }), env, context);
       const data = await response.json();
@@ -230,7 +235,7 @@ test("AI guardrails reject a provider response that cites a fact outside the app
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ ...validRequestBody, provider: "openai", modelKey: "reliable" }),
     }), env, context);
     const data = await response.json();
@@ -276,7 +281,7 @@ test("the optional account allowlist blocks an authenticated but unapproved visi
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "visitor@example.com" },
+      headers: { "content-type": "application/json", ...VISITOR_ACCESS_HEADER },
       body: JSON.stringify(validRequestBody),
     }), env, context);
     const data = await response.json();

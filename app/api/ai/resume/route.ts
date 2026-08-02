@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { beginAiReview, finishAiReview } from "@/lib/ai-security-store";
 import { isTrustedSameOriginMutation } from "@/lib/request-security";
+import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
 
 export const dynamic = "force-dynamic";
 
 const MAX_BODY_BYTES = 220_000;
 const MAX_RESUME_OUTPUT_TOKENS = 12_000;
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
 
 type ProviderId = "openai" | "anthropic" | "google";
 type ModelKey = "reliable" | "balanced" | "fast";
@@ -171,8 +171,13 @@ export async function POST(request: Request) {
     return error(400, "invalid_request", cause instanceof Error ? cause.message : "The résumé request is invalid.");
   }
 
-  const identity = request.headers.get(USER_EMAIL_HEADER)?.trim().toLowerCase();
-  if (!identity) return error(401, "authentication_required", "Sign in through ChatGPT before using cloud résumé generation.");
+  let identity: string;
+  try {
+    identity = (await resolveAccessIdentity(request)).email;
+  } catch (cause) {
+    if (cause instanceof AccessAuthError) return error(cause.code === "not_configured" ? 503 : 401, cause.code, cause.message);
+    throw cause;
+  }
   if (!isAllowedIdentity(identity)) return error(403, "access_not_allowed", "This account is not on the cloud AI access list.");
   const provider = providers().find((item) => item.id === input.provider)!;
   const model = provider.models.find((item) => item.key === input.modelKey)!;

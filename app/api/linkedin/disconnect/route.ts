@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   if (!isTrustedSameOriginMutation(request)) return NextResponse.json({ ok: false, code: "cross_site_request_blocked", message: "This protected action must start inside V’s Job Seeker." }, { status: 403 });
-  const owner = authenticatedEmail(request);
-  if (!owner) return NextResponse.json({ ok: false, message: "Open V’s through your signed-in ChatGPT account." }, { status: 401 });
+  const owner = await authenticatedEmail(request);
+  if (!owner) return NextResponse.json({ ok: false, message: "Sign in to V’s Job Seeker first." }, { status: 401 });
   const config = getLinkedInConfig();
   if (config.configured) await revokeLinkedInSession(getRuntimeDatabase(), owner, readCookie(request, LINKEDIN_SESSION_COOKIE), config.sessionSecret);
   const response = NextResponse.json({ ok: true, message: "Official LinkedIn identity disconnected." });

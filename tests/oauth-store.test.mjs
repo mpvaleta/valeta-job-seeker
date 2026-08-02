@@ -3,6 +3,11 @@ import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import { Miniflare } from "miniflare";
 import { LINKEDIN_SESSION_COOKIE, signPayload } from "../lib/linkedin-oauth.ts";
+import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+
+await installAccessEnv();
+const OWNER_ACCESS_HEADER = await accessHeaders("owner@example.com");
+const OTHER_ACCESS_HEADER = await accessHeaders("other@example.com");
 
 async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -43,7 +48,7 @@ test("LinkedIn callback creates an opaque revocable server session and never sto
     const context = { waitUntil() {}, passThroughOnException() {} };
     const state = await signPayload({ owner: "owner@example.com", nonce: "oauth-test", exp: Math.floor(Date.now() / 1000) + 60 }, secret);
     const callback = await worker.fetch(new Request(`http://localhost/api/linkedin/callback?code=test-code&state=${encodeURIComponent(state)}`, {
-      headers: { cookie: `__Host-vjobs_linkedin_state=${encodeURIComponent(state)}`, "oai-authenticated-user-email": "owner@example.com" },
+      headers: { cookie: `__Host-vjobs_linkedin_state=${encodeURIComponent(state)}`, ...OWNER_ACCESS_HEADER },
       redirect: "manual",
     }), env, context);
     assert.ok([302, 303, 307, 308].includes(callback.status));
@@ -54,14 +59,14 @@ test("LinkedIn callback creates an opaque revocable server session and never sto
     assert.doesNotMatch(token, /owner|linkedin|example/i);
     assert.doesNotMatch(setCookie, /linkedin-access-token-must-not-be-stored/);
 
-    const status = await worker.fetch(new Request("http://localhost/api/linkedin/status", { headers: { cookie: `${LINKEDIN_SESSION_COOKIE}=${encodeURIComponent(token)}`, "oai-authenticated-user-email": "owner@example.com" } }), env, context);
+    const status = await worker.fetch(new Request("http://localhost/api/linkedin/status", { headers: { cookie: `${LINKEDIN_SESSION_COOKIE}=${encodeURIComponent(token)}`, ...OWNER_ACCESS_HEADER } }), env, context);
     assert.equal((await status.json()).connected, true);
-    const otherOwner = await worker.fetch(new Request("http://localhost/api/linkedin/status", { headers: { cookie: `${LINKEDIN_SESSION_COOKIE}=${encodeURIComponent(token)}`, "oai-authenticated-user-email": "other@example.com" } }), env, context);
+    const otherOwner = await worker.fetch(new Request("http://localhost/api/linkedin/status", { headers: { cookie: `${LINKEDIN_SESSION_COOKIE}=${encodeURIComponent(token)}`, ...OTHER_ACCESS_HEADER } }), env, context);
     assert.equal((await otherOwner.json()).connected, false);
 
     const stored = await db.prepare("SELECT token_hash FROM oauth_sessions LIMIT 1").first();
     assert.notEqual(stored.token_hash, token);
-    const disconnected = await worker.fetch(new Request("http://localhost/api/linkedin/disconnect", { method: "POST", headers: { cookie: `${LINKEDIN_SESSION_COOKIE}=${encodeURIComponent(token)}`, "oai-authenticated-user-email": "owner@example.com" } }), env, context);
+    const disconnected = await worker.fetch(new Request("http://localhost/api/linkedin/disconnect", { method: "POST", headers: { cookie: `${LINKEDIN_SESSION_COOKIE}=${encodeURIComponent(token)}`, ...OWNER_ACCESS_HEADER } }), env, context);
     assert.equal(disconnected.status, 200);
     const revoked = await db.prepare("SELECT revoked_at FROM oauth_sessions LIMIT 1").first();
     assert.ok(revoked.revoked_at);

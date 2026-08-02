@@ -6,8 +6,8 @@ import { getRuntimeDatabase } from "@/lib/runtime-bindings";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const owner = authenticatedEmail(request);
-  if (!owner) return NextResponse.json({ ok: false, configured: false, connected: false, message: "Open V’s through your signed-in ChatGPT account to use official LinkedIn sign-in." }, { status: 401 });
+  const owner = await authenticatedEmail(request);
+  if (!owner) return NextResponse.json({ ok: false, configured: false, connected: false, message: "Sign in to use official LinkedIn sign-in." }, { status: 401 });
   const config = getLinkedInConfig();
   if (!config.configured) return NextResponse.json({ ok: true, configured: false, connected: false, missing: config.missing, message: `Official LinkedIn sign-in is not configured. Missing or invalid: ${config.missing.join(", ")}. ZIP import works without them.` });
   const identity = await readLinkedInSession(getRuntimeDatabase(), owner, readCookie(request, LINKEDIN_SESSION_COOKIE), config.sessionSecret);

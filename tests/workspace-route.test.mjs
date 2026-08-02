@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import { Miniflare } from "miniflare";
+import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+
+await installAccessEnv();
 
 async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -39,7 +42,7 @@ function memoryBucket() {
 }
 
 const context = { waitUntil() {}, passThroughOnException() {} };
-const headers = { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" };
+const headers = { "content-type": "application/json", ...(await accessHeaders("owner@example.com")) };
 
 test("private workspace creates immutable revisions, deduplicates, and restores the latest snapshot", async () => {
   const { mf, db } = await createDatabase();

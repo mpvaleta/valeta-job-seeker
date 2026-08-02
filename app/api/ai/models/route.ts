@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { isTrustedSameOriginMutation } from "@/lib/request-security";
+import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
 
 export const dynamic = "force-dynamic";
 
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
 type ProviderModelResult = { key: "reliable" | "balanced" | "fast"; id: string; available: boolean; reason?: string; generationAvailable?: boolean; generationReason?: string; diagnosticCode?: string };
 type ProviderCheckResult = { id: string; name: string; state: string; message: string; models: ProviderModelResult[]; diagnosticCode?: string; requestId?: string | null };
 const providers = [
@@ -41,8 +41,13 @@ const providers = [
 
 export async function POST(request: Request) {
   if (!isTrustedSameOriginMutation(request)) return error(403, "cross_site_request_blocked", "This protected check must start inside V’s Job Seeker.");
-  const identity = request.headers.get(USER_EMAIL_HEADER)?.trim().toLowerCase();
-  if (!identity) return error(401, "authentication_required", "Sign in through ChatGPT before testing provider access.");
+  let identity: string;
+  try {
+    identity = (await resolveAccessIdentity(request)).email;
+  } catch (cause) {
+    if (cause instanceof AccessAuthError) return error(cause.code === "not_configured" ? 503 : 401, cause.code, cause.message);
+    throw cause;
+  }
   if (!isAllowedIdentity(identity)) return error(403, "access_not_allowed", "This account is not on the cloud AI access list.");
   const input = await readRequest(request);
   const results = await Promise.all(providers.map(checkProvider));
