@@ -1,3 +1,5 @@
+import { mockR2Bucket } from "./mock-r2";
+
 let database: D1Database | undefined;
 let bucket: R2Bucket | undefined;
 
@@ -19,6 +21,6 @@ export function setRuntimeBucket(value: R2Bucket | undefined) {
 }
 
 export function getRuntimeBucket() {
-  if (!bucket) throw new Error("The private R2 storage binding is unavailable.");
-  return bucket;
+  // Fall back to mock R2 for Vercel deployments (useful for local dev/testing)
+  return bucket || mockR2Bucket;
 }

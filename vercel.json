@@ -1,0 +1,7 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm run install:ci",
+  "env": {
+    "API_TOKEN": "@api_token"
+  }
+}
