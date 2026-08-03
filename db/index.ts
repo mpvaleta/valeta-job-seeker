@@ -1,20 +1,13 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { env } from "cloudflare:workers";
+import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./schema";
 
-let db: ReturnType<typeof drizzle> | null = null;
-
 export function getDb() {
-  if (db) return db;
-
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
+  if (!env.DB) {
     throw new Error(
-      "DATABASE_URL environment variable is not set. Add a Postgres database and set DATABASE_URL in your environment variables."
+      "Cloudflare D1 binding `DB` is unavailable. Set the `d1` field in .openai/hosting.json to `DB` or let your control plane inject the real binding values before using the database."
     );
   }
 
-  const client = postgres(databaseUrl);
-  db = drizzle(client, { schema });
-  return db;
+  return drizzle(env.DB, { schema });
 }

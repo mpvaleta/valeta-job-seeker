@@ -7,9 +7,9 @@
   },
   "scripts": {
     "install:ci": "bash scripts/install-ci.sh",
-    "dev": "vite",
+    "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vite",
     "build": "bash scripts/build-verified.sh",
-    "start": "vinext start",
+    "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/*.test.mjs",
     "validate:artifact": "bash scripts/validate-artifact.sh",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
@@ -17,15 +17,16 @@
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
+    "jose": "^5.10.0",
     "jszip": "^3.10.1",
     "mammoth": "^1.12.0",
     "next": "16.2.6",
     "pdfjs-dist": "^6.1.200",
-    "postgres": "^3.4.0",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "1.37.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
@@ -38,8 +39,9 @@
     "react-server-dom-webpack": "19.2.6",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
+    "vinext": "0.0.50",
     "vite": "8.0.13",
-    "vinext": "0.0.50"
+    "wrangler": "4.92.0"
   },
   "type": "module",
   "displayName": "V's Job Seeker"
