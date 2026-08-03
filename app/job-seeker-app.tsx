@@ -2,12 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { analyzeRole } from "@/lib/recommendation-engine.mjs";
-import { mergeWritingSample, scopeForCategory, sourceScope, sourceScopeDescription, sourceScopeLabel, SOURCE_CATEGORIES } from "@/lib/knowledge-sources.mjs";
+import { classifyKnowledgeSource, mergeWritingSample, scopeForCategory, sourceScope, sourceScopeDescription, sourceScopeLabel, SOURCE_CATEGORIES } from "@/lib/knowledge-sources.mjs";
 import { CURATED_RESUME_PLAYBOOK } from "@/lib/resume-playbook.mjs";
 import { readJsonResponse } from "@/lib/http-json.mjs";
-import { extractLinkedInArchive } from "@/lib/linkedin-archive.mjs";
-import { deriveWritingVoice } from "@/lib/writing-voice.mjs";
+import { extractLinkedInArchive, extractLinkedInSavedJobs } from "@/lib/linkedin-archive.mjs";
+import { parseResumeText, proseToHtml, resumeToHtml } from "@/lib/resume-document.mjs";
+import { RESUME_STANDARD_DIMENSIONS, auditResume } from "@/lib/resume-standards.mjs";
+import { cleanWritingSamples, deriveWritingVoice } from "@/lib/writing-voice.mjs";
+import { buildLocalResume } from "@/lib/local-resume.mjs";
 import { DEFAULT_RESUME_TRACKS, normalizeResumeTracks, selectResumeTrack } from "@/lib/resume-tracks.mjs";
+import { PLAYBOOK_GENERATION_RULE_LIMIT, prioritizeResumePlaybookRules } from "@/lib/playbook-priority.mjs";
+import { preparePlaybookLibrary, prepareResumeEvidence } from "@/lib/career-evidence.mjs";
+import { auditEvidence } from "@/lib/evidence-conflicts.mjs";
+import type { EvidenceAudit } from "@/lib/evidence-conflicts.mjs";
+import { estimateUsageCost, formatEstimatedCost } from "@/lib/ai-pricing.mjs";
+import { findReusableResumes } from "@/lib/resume-reuse.mjs";
 import { RadarWorkspace } from "./radar-workspace";
 import type { RadarOpportunity } from "./radar-workspace";
 import type { ApplicationRecommendation } from "@/lib/recommendation-engine.mjs";
@@ -15,12 +24,12 @@ import type { SourceCategory, SourceScope } from "@/lib/knowledge-sources.mjs";
 import type { ResumeTrack } from "@/lib/resume-tracks.mjs";
 
 type View = "workspace" | "radar" | "profile" | "documents" | "voice" | "connections" | "companies" | "applications" | "autofill" | "ai" | "data";
-type Output = "analysis" | "resume" | "cover" | "answers";
+type Output = "analysis" | "resume" | "cover" | "answers" | "history";
 type ApplicationStatus = "Saved opportunity" | "Preparing" | "Applied" | "Interview" | "Closed";
 type Application = { id: string; company: string; role: string; status: ApplicationStatus; date: string; url?: string; jobSnapshotId?: string; resumeVersionId?: string; coverVersionId?: string; note?: string };
 type JobSnapshot = { id: string; company: string; role: string; url?: string; description: string; source: "pasted" | "imported" | "radar"; savedAt: string; updatedAt: string; trackId: string };
-type GeneratedDraft = { id: string; type: "resume" | "cover"; title: string; content: string; createdAt: string; updatedAt: string; company: string; role: string; trackId: string; jobSnapshotId?: string; applicationId?: string; origin: "generated" | "edited"; provider?: AiProviderId | "local"; model?: string; playbookRuleCount?: number; approvedFactCount?: number };
-type SourceDocument = { id: string; title: string; type: string; category?: SourceCategory; scope?: SourceScope; trackId?: string; sourceUrl?: string; importedAt: string; text: string; candidates: string[]; approved: string[]; status: "reading" | "ready" | "needs-text"; truncated?: boolean };
+type GeneratedDraft = { id: string; type: "resume" | "cover"; title: string; content: string; createdAt: string; updatedAt: string; company: string; role: string; trackId: string; jobSnapshotId?: string; applicationId?: string; sourceDocumentId?: string; origin: "generated" | "edited" | "uploaded"; provider?: AiProviderId | "local"; model?: string; modelLabel?: string; versionNumber?: number; usage?: CloudUsage; generationAttempts?: number; playbookRuleCount?: number; selectedPlaybookRuleCount?: number; approvedFactCount?: number; cleanedFactCount?: number; inputSummary?: string; reusedFromDraftId?: string; qualityScore?: number; qualityWordCount?: number; qualityBulletCount?: number; qualitySkillCount?: number };
+type SourceDocument = { id: string; title: string; type: string; category?: SourceCategory; declaredCategory?: SourceCategory; scope?: SourceScope; classificationConfidence?: "high" | "medium" | "low"; classificationReasons?: string[]; trackId?: string; sourceUrl?: string; importedAt: string; text: string; candidates: string[]; approved: string[]; status: "reading" | "ready" | "needs-text"; truncated?: boolean };
 type CompanyTarget = { id: string; name: string; website: string; careers: string; kind: "Brand" | "Agency" | "Sports" | "Tech"; focus: string; market: string; status: "Researching" | "Monitoring" | "Applied" | "Paused"; lastChecked: string; notes: string };
 type WritingStyle = { tone: string; prefer: string; avoid: string; samples: string };
 type AiProviderId = "openai" | "anthropic" | "google";
@@ -31,6 +40,9 @@ type AiModelOption = { key: AiModelKey; id: string; label: string; tier: string;
 type AiProviderStatus = { id: AiProviderId; name: string; keyName: string; configured: boolean; ready: boolean; defaultModelKey: AiModelKey; models: AiModelOption[] };
 type AiConnection = { state: "checking" | "loaded" | "error"; authenticated: boolean; authorized: boolean; providers: AiProviderStatus[]; message: string };
 type AiStatusPayload = { authenticated?: boolean; authorized?: boolean; providers?: AiProviderStatus[]; privacy?: string };
+type AiModelDiagnostic = { key: AiModelKey; id: string; available: boolean; reason?: string; generationAvailable?: boolean; generationReason?: string; diagnosticCode?: string };
+type AiProviderDiagnostic = { id: AiProviderId; name: string; state: "ready" | "not_configured" | "no_configured_models" | "error"; message: string; diagnosticCode?: string; requestId?: string | null; models: AiModelDiagnostic[] };
+type AiDiagnosticsPayload = { ok?: boolean; code?: string; message?: string; checkedAt?: string; note?: string; providers?: AiProviderDiagnostic[] };
 type CloudRecommendation = { decision: "prioritize_and_apply" | "apply_after_edits" | "hold_and_investigate"; confidence: "high" | "medium" | "low"; summary: string; actions: string[]; priorityFacts: string[]; evidenceGaps: string[]; cautions: string[]; evidenceMap?: Array<{ requirement: string; support: "strong" | "partial" | "gap"; facts: string[] }> };
 type CloudUsage = { inputTokens: number; outputTokens: number; cachedTokens: number; totalTokens: number };
 type CloudReview = { key: string; provider: AiProviderId; providerName: string; model: string; modelKey: AiModelKey; modelLabel: string; recommendation: CloudRecommendation; usage?: CloudUsage; requestId?: string | null };
@@ -46,18 +58,22 @@ type WorkspacePayload = { ok?: boolean; code?: string; message?: string; changed
 type WorkspaceRevision = { id: string; createdAt: string; sizeBytes: number; sourceBuild: string; isCurrent: boolean };
 type ResumeAiResult = {
   headline: string;
+  headline_fact_indexes: number[];
   summary: string;
   summary_fact_indexes: number[];
-  skills: Array<{ label: string; fact_indexes: number[] }>;
-  experience_bullets: Array<{ text: string; fact_indexes: number[] }>;
-  education_bullets: Array<{ text: string; fact_indexes: number[] }>;
-  awards_bullets: Array<{ text: string; fact_indexes: number[] }>;
+  core_skills: Array<{ label: string; fact_indexes: number[] }>;
+  experience: Array<{ company: string; title: string; location: string; dates: string; fact_indexes: number[]; bullets: Array<{ text: string; fact_indexes: number[] }> }>;
+  education: Array<{ text: string; fact_indexes: number[] }>;
+  awards: Array<{ text: string; fact_indexes: number[] }>;
+  professional_development: Array<{ text: string; fact_indexes: number[] }>;
+  languages: Array<{ text: string; fact_indexes: number[] }>;
   omissions: string[];
   playbook_checks: Array<{ rule_source: "user" | "curated"; rule_index: number; status: "followed" | "not_applicable" | "conflict"; note: string }>;
 };
 type ResumeAiReview = { score: number; verdict: "ready_for_human_review" | "needs_revision" | "blocked_by_missing_evidence"; strengths: string[]; improvements: string[]; unsupported_claims: string[]; playbook_issues: string[] };
-type ResumeAiResponse = { ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; result?: ResumeAiResult | ResumeAiReview; usage?: CloudUsage; requestId?: string | null; diagnosticCode?: string };
-type ResumeGeneration = { key: string; provider: AiProviderId; providerName: string; model: string; modelLabel: string; result: ResumeAiResult; usage?: CloudUsage };
+type ResumeQuality = { score: number; wordCount: number; bulletCount: number; skillCount: number; experienceCount: number; evidenceUsed: number; evidenceAvailable: number; playbookEvaluated: number; playbookFollowed: number; playbookConflicts: number; checks: string[] };
+type ResumeAiResponse = { ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; result?: ResumeAiResult | ResumeAiReview; usage?: CloudUsage; requestId?: string | null; diagnosticCode?: string; guardrailStage?: string; attempts?: number; providerFallback?: { from: string; to: string } | null; playbookCoverage?: { selectedUserRules: number; libraryUserRules: number; curatedRules: number }; quality?: ResumeQuality };
+type ResumeGeneration = { key: string; provider: AiProviderId; providerName: string; model: string; modelKey?: AiModelKey; modelLabel: string; result: ResumeAiResult; usage?: CloudUsage; quality?: ResumeQuality };
 
 type Profile = {
   name: string;
@@ -88,7 +104,7 @@ const initialWritingStyle: WritingStyle = {
   samples: "",
 };
 
-const APP_BUILD = "2026.07-resume-data-r2";
+const APP_BUILD = "2026.07-resume-radar-r10";
 const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_LINKEDIN_ARCHIVE_BYTES = 50 * 1024 * 1024;
 const MAX_SOURCE_TEXT = 300_000;
@@ -107,6 +123,16 @@ function safeErrorMessage(value: unknown) {
   return message.replace(/https?:\/\/\S+/gi, "[url]").replace(/\s+/g, " ").trim().slice(0, 500);
 }
 
+function noticeTone(message: string) {
+  if (/\b(?:failed|failure|error|rejected|could not|cannot|unavailable|quota|billing|blocked|invalid|needs attention|not connected)\b/i.test(message)) return "error";
+  if (/\b(?:saved|created|generated|completed|connected|ready|added|approved|imported|found|preserved|relearned|copied)\b/i.test(message)) return "success";
+  // Checked after error/success so a genuine failure or completion message
+  // that happens to mention a progress verb in passing ("failed while
+  // reading the response") is never misclassified as still in progress.
+  if (/…\s*$/.test(message.trim()) || /\b(?:checking|reading|saving|loading|searching|comparing|uploading|generating|creating|running|scanning|importing|analyzing|preparing|fetching|connecting|opening|sending|verifying|syncing)\b/i.test(message)) return "pending";
+  return "info";
+}
+
 function connectionFromStatus(data: AiStatusPayload): AiConnection {
   const providers = Array.isArray(data.providers) ? data.providers : [];
   if (!providers.length) return { state: "error", authenticated: Boolean(data.authenticated), authorized: Boolean(data.authorized), providers: [], message: "The provider list could not be loaded. Local analysis remains active." };
@@ -115,9 +141,28 @@ function connectionFromStatus(data: AiStatusPayload): AiConnection {
 
 function factCandidates(text: string) {
   const seen = new Set<string>();
-  return [...text.split(/\n|(?<=[.!?])\s+/)]
+  const lines = text.split(/\n+/).map((item) => item.replace(/\s+/g, " ").trim()).filter(Boolean);
+  const contextual: string[] = [];
+  let heading = "";
+  for (const line of lines) {
+    const cleaned = line.replace(/^[-•*\d.)\s]+/, "").trim();
+    const looksLikeHeading = cleaned.length <= 160 && (
+      /\b(?:19|20)\d{2}\b/.test(cleaned)
+      || /\b(?:present|current)\b/i.test(cleaned)
+      || /^[A-Z][A-Z0-9&.,'’/ -]{5,}$/.test(cleaned)
+      || (cleaned.includes("|") && cleaned.split("|").length >= 2)
+    );
+    if (looksLikeHeading) {
+      heading = cleaned;
+      contextual.push(cleaned);
+      continue;
+    }
+    if (heading && cleaned.length >= 25) contextual.push(`${heading} — ${cleaned}`);
+    contextual.push(cleaned);
+  }
+  return [...contextual, ...text.split(/(?<=[.!?])\s+/)]
     .map((item) => item.replace(/^[-•*\d.)\s]+/, "").trim())
-    .filter((item) => item.length >= 35 && item.length <= 260)
+    .filter((item) => item.length >= 20 && item.length <= 500)
     .filter((item) => {
       const key = item.toLowerCase();
       if (seen.has(key)) return false;
@@ -158,7 +203,23 @@ async function extractPdfText(arrayBuffer: ArrayBuffer) {
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
-    pages.push(content.items.map((item) => "str" in item ? item.str : "").join(" "));
+    const lines: string[] = [];
+    let currentLine = "";
+    let currentY: number | null = null;
+    for (const item of content.items) {
+      if (!("str" in item)) continue;
+      const value = item.str.trim();
+      if (!value) continue;
+      const y: number | null = Array.isArray(item.transform) ? Number(item.transform[5]) : currentY;
+      if (currentY != null && y != null && Math.abs(y - currentY) > 3 && currentLine) {
+        lines.push(currentLine.trim());
+        currentLine = "";
+      }
+      currentLine += `${currentLine ? " " : ""}${value}`;
+      if (y != null) currentY = y;
+    }
+    if (currentLine) lines.push(currentLine.trim());
+    pages.push(lines.join("\n"));
   }
   return pages.join("\n");
 }
@@ -227,14 +288,55 @@ function copyText(value: string, setNotice: (value: string) => void) {
   navigator.clipboard.writeText(value).then(() => setNotice("Copied to clipboard"));
 }
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character] ?? character));
-}
-
 function renderStructuredResume(result: ResumeAiResult, profile: Profile) {
   const contact = [profile.location, profile.email, profile.phone, profile.linkedin].map((item) => item.trim()).filter(Boolean).join(" | ");
   const section = (name: string, items: string[]) => items.length ? `\n\n${name.toUpperCase()}\n${items.map((item) => `• ${item}`).join("\n")}` : "";
-  return `${profile.name || "Candidate name"}\n${result.headline}${contact ? `\n${contact}` : ""}\n\nPROFESSIONAL SUMMARY\n${result.summary}${section("Professional Experience", result.experience_bullets.map((item) => item.text))}${section("Education", result.education_bullets.map((item) => item.text))}${section("Awards", result.awards_bullets.map((item) => item.text))}${section("Core Skills", result.skills.map((item) => item.label))}`;
+  const experience = result.experience.map((entry) => {
+    const employer = [entry.company, entry.location].filter(Boolean).join(" | ");
+    const position = [entry.title, entry.dates].filter(Boolean).join(" | ");
+    return `${employer}\n${position}\n${entry.bullets.map((bullet) => `• ${bullet.text}`).join("\n")}`;
+  }).join("\n\n");
+  const skills = result.core_skills.length ? `\n\nCORE SKILLS\n${result.core_skills.map((item) => item.label).join(" • ")}` : "";
+  return `${profile.name || "Candidate name"}\n${result.headline}${contact ? `\n${contact}` : ""}\n\nPROFESSIONAL SUMMARY\n${result.summary}${skills}${experience ? `\n\nPROFESSIONAL EXPERIENCE\n${experience}` : ""}${section("Education", result.education.map((item) => item.text))}${section("Awards", result.awards.map((item) => item.text))}${section("Professional Development", result.professional_development.map((item) => item.text))}${section("Languages", result.languages.map((item) => item.text))}`;
+}
+
+// Renders the résumé exactly as the PDF/Word export will, straight from the
+// same parser, so the on-screen preview reflects manual edits and never
+// disagrees with the exported file.
+// Most ATS forms ask for city and state as separate inputs, while the profile
+// keeps one location line. Split it rather than making the user maintain both.
+// Only a trailing 2-letter code or single word is treated as the state, so
+// "San Francisco Bay Area" stays a city and does not invent a state.
+function splitLocation(value: string) {
+  const parts = String(value || "").split(",").map((part) => part.trim()).filter(Boolean);
+  if (!parts.length) return { city: "", state: "", country: "" };
+  if (parts.length === 1) return { city: parts[0], state: "", country: "" };
+  const [city, second, third] = parts;
+  const state = /^[A-Za-z]{2}$|^[A-Z][a-z]+$/.test(second) ? second : "";
+  return { city, state, country: third || "" };
+}
+
+function ResumePaper({ text }: { text: string }) {
+  const parsed = useMemo(() => parseResumeText(text), [text]);
+  if (!parsed.sections.length && !parsed.name) return <div className="resume-paper"><pre>{text}</pre></div>;
+  return <div className="resume-paper"><article className="structured-resume" aria-label="Résumé preview">
+    <header>
+      {parsed.name && <h1>{parsed.name}</h1>}
+      {parsed.headline && <p>{parsed.headline}</p>}
+      {parsed.contact && <address>{parsed.contact.split("|").map((part, index) => <span key={part}>{index > 0 && <i>•</i>}{part.trim()}</span>)}</address>}
+    </header>
+    {parsed.sections.map((section) => <section key={section.title}>
+      <h2>{section.title}</h2>
+      {section.kind === "paragraph" && section.paragraphs.map((value) => <p key={value}>{value}</p>)}
+      {section.kind === "skills" && <div className="structured-skills">{section.items.map((item) => <span key={item}>{item}</span>)}</div>}
+      {section.kind === "list" && <ul>{section.items.map((item) => <li key={item}>{item}</li>)}</ul>}
+      {section.kind === "experience" && <div className="structured-experience">{section.entries.map((entry, index) => <div key={`${entry.employer}-${entry.title}-${index}`}>
+        {(entry.employer || entry.location) && <div className="experience-employer"><strong>{entry.employer}</strong><span>{entry.location}</span></div>}
+        {(entry.title || entry.dates) && <div className="experience-role"><b>{entry.title}</b><span>{entry.dates}</span></div>}
+        {entry.bullets.length > 0 && <ul>{entry.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>}
+      </div>)}</div>}
+    </section>)}
+  </article></div>;
 }
 
 function linkKind(value: string) {
@@ -282,12 +384,16 @@ export function JobSeekerApp() {
   const [applications, setApplications] = useSavedState<Application[]>("valeta-applications-v3", [], ["valeta-applications-v1", "valeta-applications-v2"]);
   const [jobSnapshots, setJobSnapshots] = useSavedState<JobSnapshot[]>("v-jobs-market-history-v1", []);
   const [generatedDrafts, setGeneratedDrafts] = useSavedState<GeneratedDraft[]>("v-jobs-generated-drafts-v1", []);
+  const [workspaceResumeVersionId, setWorkspaceResumeVersionId] = useSavedState("v-jobs-workspace-resume-v1", "");
+  const [autofillResumeVersionId, setAutofillResumeVersionId] = useSavedState("v-jobs-autofill-resume-v1", "");
   const [documents, setDocuments] = useSavedState<SourceDocument[]>("valeta-documents-v1", []);
   const [companies, setCompanies] = useSavedState<CompanyTarget[]>("valeta-companies-v1", []);
-  const [jobText, setJobText] = useSavedState("valeta-job-v2", "");
-  const [company, setCompany] = useSavedState("valeta-company-v2", "");
-  const [role, setRole] = useSavedState("valeta-role-v2", "");
-  const [roleUrl, setRoleUrl] = useSavedState("valeta-role-url-v1", "");
+  // The active intake is intentionally transient. Completed descriptions remain
+  // preserved in jobSnapshots and durable workspace revisions.
+  const [jobText, setJobText] = useState("");
+  const [company, setCompany] = useState("");
+  const [role, setRole] = useState("");
+  const [roleUrl, setRoleUrl] = useState("");
   const [notice, setNotice] = useState("");
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentText, setDocumentText] = useState("");
@@ -296,14 +402,26 @@ export function JobSeekerApp() {
   const [sourceUrl, setSourceUrl] = useState("");
   const [sourceReading, setSourceReading] = useState(false);
   const [roleReading, setRoleReading] = useState(false);
-  const [draftEditor, setDraftEditor] = useState("");
-  const [draftEditorKey, setDraftEditorKey] = useState("");
+  // The one place the user repairs what generation got wrong was the only
+  // workspace state that was not persisted, so a reload discarded every manual
+  // edit. Saved like the rest of the workspace.
+  const [draftEditor, setDraftEditor] = useSavedState("v-jobs-draft-editor-v1", "");
+  const [draftEditorKey, setDraftEditorKey] = useSavedState("v-jobs-draft-editor-key-v1", "");
+  // True when the current draft came from pasting an externally drafted
+  // version (e.g. the resume-tailor Skill run in a separate Claude
+  // conversation) rather than this app's own local or cloud generator.
+  // Persisted so the provenance survives a reload, same as the draft itself.
+  const [draftIsExternal, setDraftIsExternal] = useSavedState("v-jobs-draft-external-v1", false);
+  const [pasteDraftOpen, setPasteDraftOpen] = useState(false);
+  const [pasteDraftText, setPasteDraftText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [companyName, setCompanyName] = useState("");
   const [companyKind, setCompanyKind] = useState<CompanyTarget["kind"]>("Brand");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyCareers, setCompanyCareers] = useState("");
   const [companyFocus, setCompanyFocus] = useState("Creative operations, project management, production");
+  const [pipelineFilters, setPipelineFilters] = useState({ status: "all", company: "all", search: "" });
+  const [documentFilters, setDocumentFilters] = useState({ company: "all", trackId: "all", provider: "all", search: "" });
   const [aiConnection, setAiConnection] = useState<AiConnection>({ state: "checking", authenticated: false, authorized: false, providers: [], message: "Checking the secure backend connection…" });
   const [cloudReview, setCloudReview] = useState<CloudReview | null>(null);
   const [comparisonResults, setComparisonResults] = useState<CloudReview[]>([]);
@@ -321,7 +439,8 @@ export function JobSeekerApp() {
   const [workspaceHistoryState, setWorkspaceHistoryState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [resumeGeneration, setResumeGeneration] = useState<ResumeGeneration | null>(null);
   const [resumeReview, setResumeReview] = useState<{ providerName: string; modelLabel: string; result: ResumeAiReview; usage?: CloudUsage } | null>(null);
-  const [resumeAiRunning, setResumeAiRunning] = useState<"generate" | "review" | null>(null);
+  const [resumeAiRunning, setResumeAiRunning] = useState<"generate" | "review" | "compare" | null>(null);
+  const [aiDiagnostics, setAiDiagnostics] = useState<{ state: "idle" | "checking" | "ready" | "error"; checkedAt?: string; providers: AiProviderDiagnostic[]; message: string }>({ state: "idle", providers: [], message: "Run a no-generation model check to verify exact API access." });
   const workspaceAbort = useRef<AbortController | null>(null);
 
   const logError = useCallback((area: ErrorLogEntry["area"], code: string, message: unknown, context?: ErrorLogEntry["context"]) => {
@@ -329,20 +448,100 @@ export function JobSeekerApp() {
   }, [setErrorLog]);
 
   const facts = useMemo(() => profile.facts.split("\n").map((x) => x.trim()).filter(Boolean), [profile.facts]);
+  const preparedResumeEvidence = useMemo(() => prepareResumeEvidence(facts), [facts]);
+  const resumeFacts = preparedResumeEvidence.facts;
   const normalizedTracks = useMemo(() => normalizeResumeTracks(resumeTracks), [resumeTracks]);
   const trackSelection = useMemo(() => selectResumeTrack(normalizedTracks, `${role}\n${jobText}`, activeTrackId), [activeTrackId, jobText, normalizedTracks, role]);
   const selectedTrack = trackSelection.track;
   const evidenceSources = useMemo(() => documents.filter((document) => sourceScope(document) === "evidence" && (!document.trackId || document.trackId === "all" || document.trackId === selectedTrack.id)), [documents, selectedTrack.id]);
+  // Every APPROVED evidence fact, across every track (a conflict between a
+  // brand-PM résumé and a production résumé about the same employer is still
+  // worth flagging even though only one track is active right now), tagged
+  // with the document it actually came from.
+  const evidenceAuditEntries = useMemo(() => {
+    const entries: { id: string; text: string; sourceId: string; sourceTitle: string }[] = [];
+    const approvedTextSeen = new Set<string>();
+    documents.forEach((document) => {
+      if (sourceScope(document) !== "evidence") return;
+      document.approved.forEach((text, index) => {
+        approvedTextSeen.add(text.trim().toLowerCase());
+        entries.push({ id: `${document.id}::${index}`, text, sourceId: document.id, sourceTitle: document.title });
+      });
+    });
+    // A fact typed or edited directly in Career profile isn't traced to any
+    // document's approval list -- give it its own provenance label instead
+    // of either dropping it from the audit or borrowing a document's identity.
+    facts.forEach((fact, index) => {
+      if (approvedTextSeen.has(fact.trim().toLowerCase())) return;
+      entries.push({ id: `profile::${index}`, text: fact, sourceId: "career-profile", sourceTitle: "Career profile" });
+    });
+    return entries;
+  }, [documents, facts]);
+  const evidenceAudit: EvidenceAudit = useMemo(() => auditEvidence(evidenceAuditEntries), [evidenceAuditEntries]);
+  // classifyKnowledgeSource already runs for every source (sourceScope uses it
+  // to silently reassign scope on a high-confidence mismatch) -- this is the
+  // same call, memoized once per document list, so the source card can show
+  // the user what it detected instead of only acting on it invisibly.
+  const sourceClassifications = useMemo(
+    () => new Map(documents.map((document) => [document.id, classifyKnowledgeSource({ title: document.title, text: document.text, selectedCategory: document.category })])),
+    [documents],
+  );
   const knowledgeStats = useMemo(() => ({
     evidence: documents.filter((document) => sourceScope(document) === "evidence").length,
     voice: documents.filter((document) => sourceScope(document) === "voice").length,
     guidance: documents.filter((document) => sourceScope(document) === "guidance").length,
     research: documents.filter((document) => sourceScope(document) === "research").length,
   }), [documents]);
+  // LinkedIn blocks automated job-page reading and OpenID grants no job access,
+  // so the user's own official export is the only compliant source for their
+  // saved LinkedIn roles.
+  const linkedInSavedJobs = useMemo(
+    () => documents
+      .filter((document) => document.type === "Official LinkedIn ZIP export" && sourceScope(document) === "research")
+      .flatMap((document) => extractLinkedInSavedJobs(document.text)),
+    [documents],
+  );
   const learnedVoice = useMemo(() => deriveWritingVoice(writingStyle.samples), [writingStyle.samples]);
-  const userPlaybookRules = useMemo(() => documents.filter((document) => sourceScope(document) === "guidance").flatMap((document) => document.approved), [documents]);
+  const cleanedVoice = useMemo(() => cleanWritingSamples(writingStyle.samples), [writingStyle.samples]);
+  const rawUserPlaybookRules = useMemo(() => documents.filter((document) => sourceScope(document) === "guidance").flatMap((document) => document.approved), [documents]);
+  const userPlaybookRules = useMemo(() => preparePlaybookLibrary(rawUserPlaybookRules), [rawUserPlaybookRules]);
+  const prioritizedUserPlaybookRules = useMemo(
+    () => prioritizeResumePlaybookRules(userPlaybookRules, `${selectedTrack.name}\n${selectedTrack.headline}\n${role}\n${jobText}`, PLAYBOOK_GENERATION_RULE_LIMIT),
+    [jobText, role, selectedTrack.headline, selectedTrack.name, userPlaybookRules],
+  );
   const curatedPlaybookRules = useMemo(() => playbookSettings.curatedEnabled ? CURATED_RESUME_PLAYBOOK.rules.map((rule) => rule.text) : [], [playbookSettings.curatedEnabled]);
+  const availableResumeVersions = useMemo(() => generatedDrafts.filter((draft) => draft.type === "resume" && draft.content.trim()).sort((left, right) => Date.parse(right.updatedAt || right.createdAt || "") - Date.parse(left.updatedAt || left.createdAt || "")), [generatedDrafts]);
+  const selectedAutofillResume = useMemo(() => availableResumeVersions.find((draft) => draft.id === autofillResumeVersionId) || null, [autofillResumeVersionId, availableResumeVersions]);
+  // Prior versions strong enough to adapt for this role. Reusing one is the
+  // lower-cost path: no provider call, and a draft already reviewed once.
+  const reusableResumes = useMemo(
+    () => findReusableResumes(generatedDrafts, { role, jobText, trackId: selectedTrack.id }),
+    [generatedDrafts, jobText, role, selectedTrack.id],
+  );
   const approvedPlaybookRules = useMemo(() => [...userPlaybookRules, ...curatedPlaybookRules], [curatedPlaybookRules, userPlaybookRules]);
+  const pipelineCompanyOptions = useMemo(() => [...new Set(applications.map((app) => app.company).filter(Boolean))].sort((left, right) => left.localeCompare(right)), [applications]);
+  const filteredApplications = useMemo(() => applications.filter((app) => {
+    if (pipelineFilters.status !== "all" && app.status !== pipelineFilters.status) return false;
+    if (pipelineFilters.company !== "all" && app.company !== pipelineFilters.company) return false;
+    const search = pipelineFilters.search.trim().toLowerCase();
+    if (search && !`${app.company} ${app.role} ${app.note || ""}`.toLowerCase().includes(search)) return false;
+    return true;
+  }), [applications, pipelineFilters]);
+  const resumeDrafts = useMemo(() => generatedDrafts.filter((draft) => draft.type === "resume"), [generatedDrafts]);
+  const documentCompanyOptions = useMemo(() => [...new Set(resumeDrafts.map((draft) => draft.company).filter(Boolean))].sort((left, right) => left.localeCompare(right)), [resumeDrafts]);
+  const documentProviderOptions = useMemo(() => [...new Set(resumeDrafts.map((draft) => draft.provider || "local"))].sort((left, right) => left.localeCompare(right)), [resumeDrafts]);
+  const documentTrackOptions = useMemo(() => {
+    const present = new Set(resumeDrafts.map((draft) => draft.trackId).filter((id): id is string => Boolean(id)));
+    return normalizedTracks.filter((track) => present.has(track.id));
+  }, [normalizedTracks, resumeDrafts]);
+  const filteredResumeDrafts = useMemo(() => resumeDrafts.filter((draft) => {
+    if (documentFilters.company !== "all" && draft.company !== documentFilters.company) return false;
+    if (documentFilters.trackId !== "all" && draft.trackId !== documentFilters.trackId) return false;
+    if (documentFilters.provider !== "all" && (draft.provider || "local") !== documentFilters.provider) return false;
+    const search = documentFilters.search.trim().toLowerCase();
+    if (search && !`${draft.company} ${draft.role} ${draft.title}`.toLowerCase().includes(search)) return false;
+    return true;
+  }), [documentFilters, resumeDrafts]);
   const learningSteps = useMemo(() => [
     { label: "Career foundation", detail: "Upload current and past résumés", complete: knowledgeStats.evidence > 0 },
     { label: "Verified evidence", detail: "Approve at least 8 reusable career facts", complete: facts.length >= 8 },
@@ -356,10 +555,14 @@ export function JobSeekerApp() {
   const { roleKeywords, requirements, matchedFacts, evidenceMap, counts: evidenceCounts, profileReadiness, evidenceCoverage, sourceQuality, fit, recommendation, firstGap } = analysis;
   const selectedProvider = aiConnection.providers.find((provider) => provider.id === aiPreference.provider) || aiConnection.providers[0] || null;
   const selectedModel = selectedProvider?.models.find((model) => model.key === aiPreference.modelKey) || selectedProvider?.models.find((model) => model.key === selectedProvider.defaultModelKey) || selectedProvider?.models[0] || null;
+  const selectedProviderDiagnostic = aiDiagnostics.providers.find((provider) => provider.id === selectedProvider?.id);
+  const selectedModelDiagnostic = selectedProviderDiagnostic?.models.find((model) => model.key === selectedModel?.key);
   const aiReady = Boolean(selectedProvider?.configured && aiConnection.authenticated && aiConnection.authorized);
+  const selectedModelGenerationBlocked = selectedModelDiagnostic?.generationAvailable === false;
+  const aiUsable = aiReady && !selectedModelGenerationBlocked;
   const aiModel = selectedModel?.id || "gpt-5.6-sol";
   const aiProviderName = selectedProvider?.name || "Cloud AI";
-  const aiConnectionMessage = aiConnection.state === "checking" ? "Checking the secure backend connection…" : aiConnection.state === "error" ? aiConnection.message : !selectedProvider ? "No cloud provider is available. Local analysis remains active." : !selectedProvider.configured ? `${selectedProvider.name} is available but not connected. Add ${selectedProvider.keyName} as a protected Sites secret, or choose another provider.` : !aiConnection.authenticated ? "The provider key is protected, but ChatGPT sign-in is required before cloud review can run." : !aiConnection.authorized ? "Cloud AI is protected, but this signed-in account is not on the allowed-access list." : `${selectedProvider.name} is connected. ${selectedModel?.label || "The selected model"} will run only after your click.`;
+  const aiConnectionMessage = aiConnection.state === "checking" ? "Checking the secure backend connection…" : aiConnection.state === "error" ? aiConnection.message : !selectedProvider ? "No cloud provider is available. Local analysis remains active." : !selectedProvider.configured ? `${selectedProvider.name} is available but not connected. Add ${selectedProvider.keyName} as a protected Sites secret, or choose another provider.` : !aiConnection.authenticated ? "The provider key is protected, but ChatGPT sign-in is required before cloud review can run." : !aiConnection.authorized ? "Cloud AI is protected, but this signed-in account is not on the allowed-access list." : selectedModelGenerationBlocked ? selectedModelDiagnostic?.generationReason || `${selectedProvider.name} lists this model, but a real generation request failed.` : `${selectedProvider.name} is connected. ${selectedModel?.label || "The selected model"} will run only after your click.`;
   const reviewKey = `${jobText}\u0000${facts.join("\u0000")}\u0000${aiPreference.provider}\u0000${selectedModel?.key || aiPreference.modelKey}`;
   const currentCloudReview = cloudReview?.key === reviewKey ? cloudReview : null;
   const activeRecommendation: ApplicationRecommendation = currentCloudReview ? {
@@ -483,13 +686,8 @@ export function JobSeekerApp() {
           setActiveTrackId((current) => locallySaved("v-jobs-active-track-v1") ? current : typeof remote.activeTrackId === "string" ? remote.activeTrackId : current);
           setAiPreference((current) => locallySaved("valeta-ai-preference-v1") ? preferLocalObject(remote.aiPreference, current) : preferLocalObject(current, remote.aiPreference && typeof remote.aiPreference === "object" ? remote.aiPreference as AiPreference : current));
           setPlaybookSettings((current) => locallySaved("valeta-playbook-settings-v1") ? preferLocalObject(remote.playbookSettings, current) : preferLocalObject(current, remote.playbookSettings && typeof remote.playbookSettings === "object" ? remote.playbookSettings as PlaybookSettings : current));
-          if (remote.roleDraft && typeof remote.roleDraft === "object") {
-            const draft = remote.roleDraft as Partial<WorkspaceSnapshot["roleDraft"]>;
-            setJobText((current) => locallySaved("valeta-job-v2") ? current : typeof draft.jobText === "string" ? draft.jobText : current);
-            setCompany((current) => locallySaved("valeta-company-v2") ? current : typeof draft.company === "string" ? draft.company : current);
-            setRole((current) => locallySaved("valeta-role-v2") ? current : typeof draft.role === "string" ? draft.role : current);
-            setRoleUrl((current) => locallySaved("valeta-role-url-v1") ? current : typeof draft.roleUrl === "string" ? draft.roleUrl : current);
-          }
+          // Earlier active role drafts remain preserved inside revision history,
+          // but are not reopened automatically after reload.
         }
         setWorkspaceSync({ state: "ready", message: remote ? "Durable private backup restored" : "Private backup ready", lastSavedAt: data.revision?.createdAt });
         setWorkspaceLoaded(true);
@@ -514,6 +712,11 @@ export function JobSeekerApp() {
     setDocuments((current) => {
       let changed = false;
       const next = current.map((document) => {
+        // A document can be restored (reload, remote-backup merge) while still
+        // marked "reading" -- the in-memory read that would resolve it belonged
+        // to the tab that started the upload and is gone, so it would otherwise
+        // show "Reading this file on your Mac..." forever with no way to retry.
+        if (document.status === "reading") { changed = true; return { ...document, status: "needs-text" as const }; }
         if (sourceScope(document) !== "guidance" || document.status !== "ready" || !document.candidates.length || document.approved.length) return document;
         changed = true;
         return { ...document, approved: [...document.candidates] };
@@ -586,28 +789,77 @@ export function JobSeekerApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobText, company, role, roleUrl, selectedTrack.id]);
 
-  const resumeRequestKey = `${jobText}\u0000${facts.join("\u0000")}\u0000${userPlaybookRules.join("\u0000")}\u0000${curatedPlaybookRules.join("\u0000")}\u0000${selectedTrack.id}\u0000${aiPreference.provider}\u0000${selectedModel?.key || aiPreference.modelKey}`;
+  const resumeRequestKey = `${jobText}\u0000${resumeFacts.join("\u0000")}\u0000${userPlaybookRules.join("\u0000")}\u0000${curatedPlaybookRules.join("\u0000")}\u0000${selectedTrack.id}\u0000${aiPreference.provider}\u0000${selectedModel?.key || aiPreference.modelKey}`;
   const currentResumeGeneration = resumeGeneration?.key === resumeRequestKey ? resumeGeneration : null;
-  const fallbackResume = `${profile.name || "Candidate name"}\n${effectiveProfile.headline || "Project and Operations Manager"}\n${[profile.location, profile.email, profile.phone, profile.linkedin].filter(Boolean).join(" | ")}\n\nPROFESSIONAL SUMMARY\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}\n\nPROFESSIONAL EXPERIENCE\n${matchedFacts.length ? matchedFacts.map((fact) => `• ${fact}`).join("\n") : "• Generate with a connected AI provider after approving career evidence."}\n\nCORE SKILLS\n${roleKeywords.slice(0, 10).join(" • ") || "Add a complete job description to prioritize verified capabilities."}`;
+  const localResumeDocument = useMemo(() => buildLocalResume({
+    facts: resumeFacts,
+    roleText: `${role}\n${jobText}`,
+    headline: effectiveProfile.headline || selectedTrack.headline || "Project and Operations Manager",
+    summary: effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track.",
+  }), [effectiveProfile.headline, effectiveProfile.summary, resumeFacts, jobText, role, selectedTrack.headline]);
+  const fallbackResume = localResumeDocument
+    ? renderStructuredResume(localResumeDocument, profile)
+    : `${profile.name || "Candidate name"}\n${effectiveProfile.headline || "Project and Operations Manager"}\n${[profile.location, profile.email, profile.phone, profile.linkedin].filter(Boolean).join(" | ")}\n\nPROFESSIONAL SUMMARY\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}\n\nPROFESSIONAL EXPERIENCE\n${matchedFacts.length ? matchedFacts.map((fact) => `• ${fact}`).join("\n") : "• Generate with a connected AI provider after approving career evidence."}\n\nCORE SKILLS\n${roleKeywords.slice(0, 10).join(" • ") || "Add a complete job description to prioritize verified capabilities."}`;
   const resume = currentResumeGeneration ? renderStructuredResume(currentResumeGeneration.result, profile) : fallbackResume;
 
-  const cover = `Dear ${company ? `${company} Hiring Team` : "Hiring Team"},\n\nI’m interested in the ${role || "position"} because it connects closely with the work reflected in my verified experience.\n\n${effectiveProfile.summary || "Add an approved professional summary in Career profile or the selected résumé track."}${matchedFacts.length ? ` For this role, the most relevant evidence includes ${matchedFacts.slice(0, 3).join("; ")}.` : " Add approved career facts before using this draft."}\n\nWhat draws me to ${company || "your team"} is the opportunity to contribute with clarity, care, and reliable execution. I would welcome the chance to discuss how my experience could support the team.\n\nThank you for your consideration.\n\nBest,\n${profile.name || "Your name"}\n\nVOICE NOTES USED\nLearned from: ${knowledgeStats.voice} uploaded source${knowledgeStats.voice === 1 ? "" : "s"}\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}`;
+  /*
+   * Build the cover letter from the requirement-to-evidence map rather than a
+   * fixed template. The previous version shipped the same three sentences with
+   * every application — "contribute with clarity, care, and reliable execution"
+   * and "connects closely with the work reflected in my verified experience"
+   * said nothing a reader could check, which is exactly what the résumé
+   * standards reject. Each body line now names a requirement the posting
+   * actually stated and the approved fact that answers it.
+   */
+  const supportedRequirements = evidenceMap.filter((item) => item.strength !== "Gap" && item.evidence.length).slice(0, 3);
+  const openRequirements = evidenceMap.filter((item) => item.strength === "Gap").slice(0, 3);
+  const coverBody = supportedRequirements.length
+    ? supportedRequirements.map((item) => `${item.requirement.replace(/[.\s]+$/, "")} — ${item.evidence[0].fact}`).join("\n\n")
+    : matchedFacts.length
+      ? matchedFacts.slice(0, 3).map((fact) => `• ${fact}`).join("\n")
+      : "Approve career evidence in Career profile before using this draft — there is nothing here to support a claim yet.";
+  const cover = [
+    `Dear ${company ? `${company} Hiring Team` : "Hiring Team"},`,
+    `I am writing about the ${role || "open position"}${company ? ` at ${company}` : ""}.${effectiveProfile.summary ? ` ${effectiveProfile.summary}` : ""}`,
+    supportedRequirements.length ? "Where my background lines up with what the posting asks for:" : "",
+    coverBody,
+    "I would be glad to walk through any of this in more detail.",
+    `Best,\n${profile.name || "Your name"}`,
+    openRequirements.length
+      ? `REVIEW BEFORE SENDING\nThe posting also asks about ${openRequirements.map((item) => item.requirement.replace(/[.\s]+$/, "")).join("; ")}. No approved evidence covers ${openRequirements.length === 1 ? "it" : "these"} — address ${openRequirements.length === 1 ? "it" : "them"} honestly or leave ${openRequirements.length === 1 ? "it" : "them"} out.`
+      : "",
+    `VOICE NOTES USED\nLearned from: ${knowledgeStats.voice} uploaded source${knowledgeStats.voice === 1 ? "" : "s"}\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}`,
+  ].filter(Boolean).join("\n\n");
 
   const answers = `APPLICATION ANSWER KIT\n\nProfessional headline\n${effectiveProfile.headline || "Add an approved headline."}\n\nCurrent location\n${profile.location || "Add your location."}\n\nWhy are you interested in this role?\nI’m interested because the role emphasizes ${roleKeywords.slice(0, 3).join(", ") || "the responsibilities in the posting"}, and I can connect those needs to approved evidence in my career profile.\n\nTell us about yourself\n${effectiveProfile.summary || "Add an approved professional summary before using this answer."}\n\nWhy ${company || "this company"}?\nThe opportunity stands out because of the work described in the posting. Before submitting, add one specific, researched reason for your interest in the company.\n\nCompensation, work authorization, demographic, and legal questions\nREQUIRES USER REVIEW — never infer or autofill these sensitive answers.`;
 
   const generatedText = output === "resume" ? resume : output === "cover" ? cover : output === "answers" ? answers : "";
   const activeText = (output === "resume" || output === "cover") && draftEditorKey === output ? draftEditor : generatedText;
+  // Runs on whatever résumé is on screen — local, cloud, or hand-edited — with
+  // no provider call, so the standards check works with no API key configured.
+  const resumeAudit = useMemo(
+    () => (output === "resume" && activeText.trim() ? auditResume(activeText, { roleText: `${role}\n${jobText}` }) : null),
+    [activeText, jobText, output, role],
+  );
   const autofillData = JSON.stringify({
     version: 1,
-    profile: { fullName: profile.name, email: profile.email, phone: profile.phone, location: profile.location, linkedin: profile.linkedin },
+    profile: { fullName: profile.name, email: profile.email, phone: profile.phone, location: profile.location, linkedin: profile.linkedin, ...splitLocation(profile.location) },
     target: { company, role },
     answers: { headline: profile.headline, summary: profile.summary, interest: `I’m interested in ${role || "this role"} because it combines ${roleKeywords.slice(0, 3).join(", ") || "project leadership, creative operations, and cross-functional delivery"}.` },
+    resumeVersion: selectedAutofillResume ? { id: selectedAutofillResume.id, title: selectedAutofillResume.title, versionNumber: selectedAutofillResume.versionNumber || null, origin: selectedAutofillResume.origin } : null,
     safety: { neverSubmit: true, sensitiveFieldsRequireUser: true },
   }, null, 2);
 
   async function requestResumeAi(action: "generate" | "review") {
     if (jobText.trim().length < 80) throw new Error("Paste the complete job description before using cloud résumé tools.");
-    if (facts.length < 3) throw new Error("Approve at least three career facts before using cloud résumé tools.");
+    // Generation receives the cleaned evidence, so the gate counts that list:
+    // otherwise contact lines or duplicates could satisfy the check here and
+    // still be rejected by the server.
+    if (resumeFacts.length < 3) {
+      throw new Error(facts.length >= 3
+        ? "After removing contact lines, duplicates, and fragments, fewer than three usable career facts remain. Add more specific accomplishments in Career profile."
+        : "Approve at least three career facts before using cloud résumé tools.");
+    }
     if (!aiReady || !selectedProvider || !selectedModel) throw new Error(aiConnectionMessage);
     if (action === "review" && resume.trim().length < 120) throw new Error("Generate or write a complete résumé draft before review.");
     const response = await fetch("/api/ai/resume", {
@@ -620,8 +872,14 @@ export function JobSeekerApp() {
         company,
         role,
         jobText,
-        approvedFacts: facts,
-        userRules: userPlaybookRules,
+        approvedFacts: resumeFacts,
+        // The server expects the role-relevant subset it must check rule by
+        // rule, plus the full cleaned library as supporting guidance. Sending
+        // the whole library as userRules let the server keep whichever 24 were
+        // uploaded first instead of the ones that matter for this role.
+        userRules: prioritizedUserPlaybookRules,
+        userRuleLibrary: userPlaybookRules,
+        userRuleLibraryCount: userPlaybookRules.length,
         curatedRules: curatedPlaybookRules,
         track: { name: selectedTrack.name, headline: selectedTrack.headline || profile.headline, summary: selectedTrack.summary || profile.summary },
         draft: action === "review" ? activeText : undefined,
@@ -653,12 +911,21 @@ export function JobSeekerApp() {
         provider: data.provider || provider.id,
         providerName: data.providerName || provider.name,
         model: data.model || model.id,
+        modelKey: model.key,
         modelLabel: data.modelLabel || model.label,
         result,
         usage: data.usage,
+        quality: data.quality,
       };
       setResumeGeneration(generation);
+      // Generation replaces the draft wholesale. Preserve any manual edits as a
+      // version first — the workspace guarantee is that nothing is overwritten.
+      if (draftEditorKey === "resume" && draftEditor.trim() && draftEditor !== resume) {
+        saveDraftVersion("resume");
+        setNotice("Your edited draft was saved as a version before the new résumé replaced it.");
+      }
       setDraftEditor(renderStructuredResume(result, profile));
+      setDraftIsExternal(false);
       setDraftEditorKey("resume");
       setNotice(`${generation.modelLabel} created a fact-checked résumé using ${userPlaybookRules.length} uploaded rules first and ${curatedPlaybookRules.length} secondary rules.`);
     } catch (cause) {
@@ -688,7 +955,7 @@ export function JobSeekerApp() {
   async function runCloudRecommendation() {
     setOutput("analysis");
     if (jobText.trim().length < 80) { setNotice("Paste the complete job description before running cloud AI"); return; }
-    if (facts.length < 3) { setNotice("Approve at least three career facts before running cloud AI"); return; }
+    if (resumeFacts.length < 3) { setNotice("Approve at least three usable career facts before running cloud AI"); return; }
     if (!aiReady || !selectedProvider || !selectedModel) { setView("ai"); setNotice(aiConnectionMessage); return; }
     setAiRunning(true);
     setOperationProgress({ label: `Reviewing with ${selectedProvider.name}`, detail: `${selectedModel.label} is comparing the role with approved facts only. Raw files and writing samples are not sent.` });
@@ -709,7 +976,7 @@ export function JobSeekerApp() {
     const response = await fetch("/api/ai/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: provider.id, modelKey: model.key, company, role, jobText, approvedFacts: facts, localAnalysis: { decision: recommendation.label, evidenceCoverage, strong: evidenceCounts.strong, partial: evidenceCounts.partial, gaps: evidenceCounts.gaps } }),
+      body: JSON.stringify({ provider: provider.id, modelKey: model.key, company, role, jobText, approvedFacts: resumeFacts, localAnalysis: { decision: recommendation.label, evidenceCoverage, strong: evidenceCounts.strong, partial: evidenceCounts.partial, gaps: evidenceCounts.gaps } }),
     });
     const data = await readJsonResponse<{ ok?: boolean; code?: string; message?: string; provider?: AiProviderId; providerName?: string; model?: string; modelLabel?: string; requestId?: string | null; recommendation?: CloudRecommendation; usage?: CloudUsage; diagnosticCode?: string }>(response, `${provider.name} did not return readable app data.`);
     if (!response.ok || !data.ok || !data.recommendation) {
@@ -722,7 +989,7 @@ export function JobSeekerApp() {
 
   async function compareSelectedModels() {
     if (jobText.trim().length < 80) { setView("workspace"); setNotice("Paste the complete job description before comparing models."); return; }
-    if (facts.length < 3) { setView("documents"); setNotice("Approve at least three career facts before comparing models."); return; }
+    if (resumeFacts.length < 3) { setView("documents"); setNotice("Approve at least three usable career facts before comparing models."); return; }
     if (!selectedProvider?.configured || !aiConnection.authenticated || !aiConnection.authorized) { setNotice(aiConnectionMessage); return; }
     setComparisonRunning(true);
     setComparisonResults([]);
@@ -757,6 +1024,38 @@ export function JobSeekerApp() {
     }
   }
 
+  // Both diagnostics hit the same backend route (app/api/ai/models); `live`
+  // additionally spends one real generation request on the currently
+  // selected model, so it stays a separate, explicitly-labelled action
+  // rather than something the free catalog check does silently.
+  async function runAiDiagnostics(body: Record<string, unknown>, checkingMessage: string) {
+    setAiDiagnostics((current) => ({ ...current, state: "checking", message: checkingMessage }));
+    try {
+      const response = await fetch("/api/ai/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await readJsonResponse<AiDiagnosticsPayload>(response, "The model check could not be read.");
+      if (!response.ok || data.ok === false) {
+        setAiDiagnostics({ state: "error", providers: [], message: data.message || "The model check returned an error." });
+        return;
+      }
+      setAiDiagnostics({ state: "ready", checkedAt: data.checkedAt, providers: data.providers || [], message: data.note || "Model check complete." });
+    } catch (cause) {
+      logError("ai", "model_diagnostics_failed", cause);
+      setAiDiagnostics({ state: "error", providers: [], message: "The model check failed. Try again in a moment." });
+    }
+  }
+
+  function runModelDiagnostics() {
+    return runAiDiagnostics({}, "Checking model catalog access across every connected provider — no résumé text is generated.");
+  }
+
+  function runLiveGenerationCheck() {
+    if (!selectedProvider || !selectedModel) return Promise.resolve();
+    return runAiDiagnostics(
+      { live: true, provider: selectedProvider.id, modelKey: selectedModel.key },
+      `Sending one real, minimal generation request to ${selectedModel.label} to confirm quota and billable access…`,
+    );
+  }
+
   function saveApplication() {
     if (!company.trim() && !role.trim()) { setNotice("Add a company or role first"); return; }
     const jobSnapshotId = saveMarketSnapshot("pasted") || undefined;
@@ -767,10 +1066,44 @@ export function JobSeekerApp() {
     setNotice("Role saved to your application pipeline. It is not marked as submitted.");
   }
 
+  function reusePriorResume(draftId: string) {
+    const prior = generatedDrafts.find((draft) => draft.id === draftId);
+    if (!prior) { setNotice("That saved version could not be found."); return; }
+    // Loaded into the editor, never saved over: the original version stays
+    // untouched in history and this becomes a new draft the user can adapt.
+    setDraftEditor(prior.content);
+    setDraftEditorKey("resume");
+    setDraftIsExternal(prior.origin === "uploaded");
+    setOutput("resume");
+    setNotice(`Loaded ${prior.title} into the draft editor. The saved version is unchanged — edit this copy for ${role || "this role"}, then Save version.`);
+  }
+
   function openDraftEditor(kind: "resume" | "cover") {
     const seed = kind === "resume" ? resume : cover;
     setDraftEditor(seed);
     setDraftEditorKey(kind);
+    setDraftIsExternal(false);
+  }
+
+  /*
+   * Load a résumé or cover letter drafted somewhere else -- most commonly the
+   * resume-tailor Skill run in a separate Claude conversation, for anyone
+   * using their regular Claude subscription instead of configuring a paid API
+   * key here. The pasted text becomes the working draft: it runs through the
+   * same résumé-standards audit and evidence-map cover-letter tooling as any
+   * other draft, and Save Version records it as "uploaded" so its origin
+   * stays honest in the version history.
+   */
+  function applyExternalDraft(kind: "resume" | "cover") {
+    const content = pasteDraftText.trim();
+    if (content.length < 40) { setNotice("Paste the complete drafted text first -- that looked too short to be a real draft."); return; }
+    setDraftEditor(content);
+    setDraftEditorKey(kind);
+    setDraftIsExternal(true);
+    setOutput(kind);
+    setPasteDraftOpen(false);
+    setPasteDraftText("");
+    setNotice(`Pasted ${kind === "resume" ? "résumé" : "cover letter"} loaded as your working draft. ${kind === "resume" ? "Check the standards report below, then " : ""}Save version to keep it.`);
   }
 
   function saveDraftVersion(kind: "resume" | "cover") {
@@ -779,6 +1112,8 @@ export function JobSeekerApp() {
     const jobSnapshotId = saveMarketSnapshot("pasted") || undefined;
     const id = createId();
     const title = `${company || "Untitled company"} — ${role || (kind === "resume" ? "Tailored resume" : "Cover letter")} · ${dateToday()}`;
+    const draftCompany = company || "Unknown company";
+    const draftRole = role || "Untitled role";
     setGeneratedDrafts((current) => [{
       id,
       type: kind,
@@ -786,13 +1121,15 @@ export function JobSeekerApp() {
       content,
       createdAt: dateToday(),
       updatedAt: dateToday(),
-      company: company || "Unknown company",
-      role: role || "Untitled role",
+      company: draftCompany,
+      role: draftRole,
       trackId: selectedTrack.id,
       jobSnapshotId,
-      origin: draftEditorKey === kind && draftEditor !== (kind === "resume" ? resume : cover) ? "edited" : "generated",
+      origin: draftEditorKey === kind && draftIsExternal ? "uploaded" : draftEditorKey === kind && draftEditor !== (kind === "resume" ? resume : cover) ? "edited" : "generated",
       provider: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.provider : "local",
       model: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.model : undefined,
+      modelLabel: kind === "resume" && currentResumeGeneration ? currentResumeGeneration.modelLabel : undefined,
+      versionNumber: Math.max(0, ...current.filter((item) => item.type === kind && item.company === draftCompany && item.role === draftRole).map((item) => item.versionNumber || 0)) + 1,
       playbookRuleCount: kind === "resume" ? approvedPlaybookRules.length : undefined,
       approvedFactCount: kind === "resume" ? facts.length : undefined,
     }, ...current]);
@@ -810,15 +1147,23 @@ export function JobSeekerApp() {
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = name; anchor.click(); URL.revokeObjectURL(url);
   }
 
-  function downloadWordDocument(name: string, title: string, content: string) {
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;max-width:8.5in;margin:.65in auto;color:#111;font-size:11pt;line-height:1.45}h1{font-size:20pt;margin:0 0 6px}pre{white-space:pre-wrap;font:inherit;margin:0}</style></head><body><h1>${escapeHtml(title)}</h1><pre>${escapeHtml(content)}</pre></body></html>`;
-    download(name, html, "application/msword");
+  // Résumés render through the document formatter so the exported file keeps
+  // real headings, entry layout, and bullet lists. Cover letters and answer
+  // kits are prose and render through the prose formatter.
+  function documentHtml(kind: "resume" | "prose", title: string, content: string, autoPrint: boolean) {
+    return kind === "resume"
+      ? resumeToHtml(content, { title, autoPrint })
+      : proseToHtml(content, { title, autoPrint });
   }
 
-  function printDocument(title: string, content: string) {
+  function downloadWordDocument(name: string, title: string, content: string, kind: "resume" | "prose" = "prose") {
+    download(name, documentHtml(kind, title, content, false), "application/msword");
+  }
+
+  function printDocument(title: string, content: string, kind: "resume" | "prose" = "prose") {
     const printWindow = window.open("", "_blank", "noopener,noreferrer");
     if (!printWindow) { setNotice("Allow pop-ups to open the print-ready document"); return; }
-    printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>@page{margin:.6in}body{font-family:Arial,sans-serif;color:#111;font-size:11pt;line-height:1.45}h1{font-size:20pt;margin:0 0 6px}pre{white-space:pre-wrap;font:inherit;margin:0}</style></head><body><h1>${escapeHtml(title)}</h1><pre>${escapeHtml(content)}</pre><script>window.onload=()=>window.print()<\/script></body></html>`);
+    printWindow.document.write(documentHtml(kind, title, content, true));
     printWindow.document.close();
   }
 
@@ -1054,12 +1399,34 @@ export function JobSeekerApp() {
     if (scope !== "evidence" && scope !== "guidance") return;
     const candidates = source.candidates.filter(Boolean);
     if (!candidates.length) { setNotice("There are no candidate items to approve in this source"); return; }
-    setDocuments((current) => current.map((document) => document.id === documentId ? { ...document, approved: [...new Set([...document.approved, ...candidates])] } : document));
-    if (scope === "evidence") {
-      const additions = candidates.filter((candidate) => !isOverlappingFact(candidate, facts));
-      if (additions.length) setProfile({ ...profile, facts: [...facts, ...additions].join("\n") });
+
+    if (scope === "guidance") {
+      setDocuments((current) => current.map((document) => document.id === documentId ? { ...document, approved: [...new Set([...document.approved, ...candidates])] } : document));
+      setNotice(`${candidates.length} résumé playbook rules activated.`);
+      return;
     }
-    setNotice(scope === "evidence" ? `${candidates.length} career facts approved. Review or edit them any time in Career profile.` : `${candidates.length} résumé playbook rules activated.`);
+
+    // Batch approval skips anything that conflicts with an ALREADY-approved
+    // fact from a different source -- those still need the individual
+    // "Approve fact" click, so Approve All can never quietly paper over two
+    // sources disagreeing about a title or a number.
+    const candidateEntries = candidates.map((text, index) => ({ id: `pending::${index}`, text, sourceId: documentId, sourceTitle: source.title }));
+    const audit = auditEvidence([...evidenceAuditEntries, ...candidateEntries]);
+    const heldBackTexts = new Set(
+      audit.conflicts
+        .filter((conflict) => conflict.factA.id.startsWith("pending::") !== conflict.factB.id.startsWith("pending::"))
+        .map((conflict) => (conflict.factA.id.startsWith("pending::") ? conflict.factA.text : conflict.factB.text)),
+    );
+    const cleared = candidates.filter((candidate) => !heldBackTexts.has(candidate));
+    const heldBack = candidates.filter((candidate) => heldBackTexts.has(candidate));
+
+    setDocuments((current) => current.map((document) => document.id === documentId ? { ...document, approved: [...new Set([...document.approved, ...cleared])] } : document));
+    const additions = cleared.filter((candidate) => !isOverlappingFact(candidate, facts));
+    if (additions.length) setProfile({ ...profile, facts: [...facts, ...additions].join("\n") });
+
+    setNotice(heldBack.length
+      ? `${cleared.length} career facts approved. ${heldBack.length} held back for individual review — ${heldBack.length === 1 ? "it" : "they"} may conflict with an already-approved fact from a different source. See the consistency check below.`
+      : `${cleared.length} career facts approved. Review or edit them any time in Career profile.`);
   }
 
   function addCompany() {
@@ -1126,7 +1493,7 @@ export function JobSeekerApp() {
 
       <section className="main-stage">
         <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your daily radar." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : view === "data" ? "Recover and preserve every version." : "Choose and understand your AI."}</h1></div><button className={`status-pill workspace-sync ${workspaceSync.state}`} onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"} title={workspaceSync.message}><i /> {workspaceSync.state === "saving" ? "Saving private revision…" : workspaceSync.state === "error" ? "Browser saved · retry backup" : workspaceSync.lastSavedAt ? "Private backup current" : "Private backup ready"}</button></header>
-        {notice && <button className="notice" onClick={() => setNotice("")}>{notice} ×</button>}
+        {notice && <button className={`notice ${noticeTone(notice)}`} onClick={() => setNotice("")}>{notice} ×</button>}
         {operationProgress && <div className="operation-status global-operation" role="status" aria-live="polite"><i /><div><strong>{operationProgress.label}</strong><span>{operationProgress.detail}</span></div></div>}
 
         {view === "workspace" && <div className="workspace-grid">
@@ -1138,7 +1505,7 @@ export function JobSeekerApp() {
             <div className="track-selector"><label>Résumé direction<select value={activeTrackId} onChange={(event) => setActiveTrackId(event.target.value)}><option value="auto">Auto-select from the role</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label><div><span>{trackSelection.automatic ? "AUTO MATCH" : "MANUAL"}</span><strong>{selectedTrack.name}</strong><small>{selectedTrack.headline || "Add a headline in Career profile → Résumé tracks"}</small></div></div>
             <label>Job description<textarea value={jobText} onBlur={() => { if (jobText.trim().length >= 80) { saveMarketSnapshot("pasted"); setNotice("Job description saved to private market learning."); } }} onChange={(e) => setJobText(e.target.value)} placeholder="Paste the complete job description here, or import it from the public job link above." /></label>
             {(!evidenceSources.length || facts.length < 3) && <button className="knowledge-cta" onClick={() => setView("documents")}><span>YOUR SOURCE OF TRUTH</span><strong>Upload knowledge sources</strong><small>Add your résumé, Custom GPT content, résumé rules, and writing samples. Personal claims require your approval.</small></button>}
-            <div className="input-actions"><button className="primary" onClick={() => setOutput("analysis")}>Analyze locally</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Running secure review…" : aiReady ? `Review with ${aiProviderName}` : "Cloud AI setup"}</button><button onClick={() => { saveMarketSnapshot("pasted"); setNotice("Saved to market learning. This does not create an application."); }}>Save description</button><button onClick={saveApplication}>Save to applications</button><button onClick={() => { setJobText(""); setCompany(""); setRole(""); setRoleUrl(""); setDraftEditor(""); setDraftEditorKey(""); }}>Clear</button></div>
+            <div className="input-actions"><button className="primary" onClick={() => setOutput("analysis")}>Analyze locally</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Running secure review…" : aiReady ? `Review with ${aiProviderName}` : "Cloud AI setup"}</button><button onClick={() => { saveMarketSnapshot("pasted"); setNotice("Saved to market learning. This does not create an application."); }}>Save description</button><button onClick={saveApplication}>Save to applications</button><button onClick={() => { setJobText(""); setCompany(""); setRole(""); setRoleUrl(""); setDraftEditor(""); setDraftEditorKey(""); setDraftIsExternal(false); }}>Clear</button></div>
             <div className="workspace-feedback" aria-live="polite"><strong>{jobSnapshots.length} saved job descriptions</strong><span>Descriptions are preserved for market learning; “Save to applications” creates a separate pipeline record.</span></div>
           </section>
 
@@ -1153,7 +1520,7 @@ export function JobSeekerApp() {
                   <div><span>Priority evidence</span>{currentCloudReview.recommendation.priorityFacts.length ? <ul>{currentCloudReview.recommendation.priorityFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul> : <p>No approved fact was selected as priority evidence.</p>}</div>
                   <div><span>Evidence gaps & cautions</span>{[...currentCloudReview.recommendation.evidenceGaps, ...currentCloudReview.recommendation.cautions].length ? <ul>{[...currentCloudReview.recommendation.evidenceGaps, ...currentCloudReview.recommendation.cautions].map((item) => <li key={item}>{item}</li>)}</ul> : <p>No additional gaps were returned. Human review is still required.</p>}</div>
                   {currentCloudReview.recommendation.evidenceMap?.length ? <div><span>Cloud evidence trace</span><ul>{currentCloudReview.recommendation.evidenceMap.slice(0, 8).map((item) => <li key={item.requirement}><strong>{item.support.toUpperCase()}</strong> · {item.requirement}{item.facts.length ? ` — ${item.facts.join("; ")}` : " — no approved support"}</li>)}</ul></div> : null}
-                  {currentCloudReview.usage && <div><span>Usage audit</span><p>{currentCloudReview.usage.totalTokens.toLocaleString()} total tokens · {currentCloudReview.usage.inputTokens.toLocaleString()} input · {currentCloudReview.usage.outputTokens.toLocaleString()} output{currentCloudReview.usage.cachedTokens ? ` · ${currentCloudReview.usage.cachedTokens.toLocaleString()} cached` : ""}. No prompt or career-fact text is stored in the audit log.</p></div>}
+                  {currentCloudReview.usage && <div><span>Usage audit</span><p>{currentCloudReview.usage.totalTokens.toLocaleString()} total tokens · {currentCloudReview.usage.inputTokens.toLocaleString()} input · {currentCloudReview.usage.outputTokens.toLocaleString()} output{currentCloudReview.usage.cachedTokens ? ` · ${currentCloudReview.usage.cachedTokens.toLocaleString()} cached` : ""}{(() => { const cost = estimateUsageCost(currentCloudReview.provider, currentCloudReview.modelKey, currentCloudReview.usage); return cost != null ? ` · ${formatEstimatedCost(cost)} estimated` : ""; })()}. No prompt or career-fact text is stored in the audit log.</p></div>}
                 </div>}
                 <div className="recommendation-actions"><button className="primary" onClick={() => setOutput("resume")}>Open tailored résumé</button><button onClick={saveApplication}>Save to pipeline</button><button onClick={runCloudRecommendation} disabled={aiRunning}>{aiRunning ? "Checking…" : currentCloudReview ? `Refresh with ${currentCloudReview.providerName}` : aiReady ? `Run ${aiProviderName} review` : "See AI setup"}</button></div>
                 <small>{currentCloudReview ? `${currentCloudReview.modelLabel} (${currentCloudReview.model}) · Structured response validated · Local fallback active` : `${analysis.version} · Deterministic · Works without an internet connection`}. Based only on approved facts and the pasted role. It never invents experience or predicts hiring.</small>
@@ -1165,7 +1532,22 @@ export function JobSeekerApp() {
               <div className="evidence-map"><div className="evidence-head"><h2>Requirement → evidence map</h2><span>{evidenceMap.filter((item) => item.strength !== "Gap").length}/{evidenceMap.length || 0} supported</span></div>{evidenceMap.length ? evidenceMap.map((item) => <article key={item.requirement}><div><span className={`strength ${item.strength.toLowerCase()}`}>{item.strength}</span><p>{item.requirement}</p></div>{item.evidence.length ? <ul>{item.evidence.map((match) => <li key={match.fact}><strong>{match.fact}</strong><small>Source: {match.source}</small></li>)}</ul> : <p className="gap-copy">No approved evidence found. Ask for clarification or leave this claim out.</p>}</article>) : <p className="gap-copy">Paste a complete posting to map its requirements to approved facts.</p>}</div>
               <div className="truth-check"><strong>Truth check</strong><p>The score measures approved evidence coverage and profile readiness—not your chance of being hired. Unknown metrics and experience must be reviewed by you.</p><ul><li>{matchedFacts.length} approved facts are currently relevant to this role.</li><li>{firstGap ? `First unsupported requirement: ${firstGap}` : roleKeywords.length ? "Every detected requirement has at least partial evidence; review quality before using it." : "Paste a complete role description to produce a better check."}</li><li>Final application decisions and all sensitive answers remain yours.</li></ul></div>
             </div> : <div className="document-view">
-              <div className="document-actions"><span>{output === "resume" ? currentResumeGeneration ? `AI résumé · ${currentResumeGeneration.modelLabel} · evidence validated` : "Local résumé scaffold · generate with a connected model for full tailoring" : output === "cover" ? "Editable working draft — based on approved facts" : "Generated from approved facts"}</span>{(output === "resume" || output === "cover") && <button onClick={() => openDraftEditor(output)}>Edit draft</button>}{(output === "resume" || output === "cover") && <button onClick={() => saveDraftVersion(output)}>Save version</button>}<button onClick={() => copyText(activeText, setNotice)}>Copy</button><button onClick={() => download(`tailored-${output}.txt`, activeText)}>Text</button><button onClick={() => downloadWordDocument(`tailored-${output}.doc`, `${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Word</button><button className="primary" onClick={() => printDocument(`${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText)}>Save as PDF</button></div>
+              <div className="document-actions"><span>{output === "resume" ? currentResumeGeneration ? `AI résumé · ${currentResumeGeneration.modelLabel} · evidence validated` : "Local résumé scaffold · generate with a connected model for full tailoring" : output === "cover" ? "Editable working draft — based on approved facts" : "Generated from approved facts"}</span>{(output === "resume" || output === "cover") && <button onClick={() => openDraftEditor(output)}>Edit draft</button>}{(output === "resume" || output === "cover") && <button onClick={() => saveDraftVersion(output)}>Save version</button>}<button onClick={() => copyText(activeText, setNotice)}>Copy</button><button onClick={() => download(`tailored-${output}.txt`, activeText)}>Text</button><button onClick={() => downloadWordDocument(`tailored-${output}.doc`, `${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText, output === "resume" ? "resume" : "prose")}>Word</button><button className="primary" onClick={() => printDocument(`${profile.name || "Candidate"} — ${output === "resume" ? "Tailored Resume" : output === "cover" ? "Cover Letter" : "Application Answers"}`, activeText, output === "resume" ? "resume" : "prose")}>Save as PDF</button></div>
+              {(output === "resume" || output === "cover") && <div className="paste-external-draft">
+                {pasteDraftOpen ? <>
+                  <textarea
+                    aria-label={`Paste a drafted ${output === "resume" ? "résumé" : "cover letter"}`}
+                    placeholder={`Paste the complete ${output === "resume" ? "résumé" : "cover letter"} text here — for example, output from the resume-tailor Skill run in a separate Claude conversation.`}
+                    value={pasteDraftText}
+                    onChange={(event) => setPasteDraftText(event.target.value)}
+                  />
+                  <div className="paste-external-draft-actions">
+                    <button className="primary" onClick={() => applyExternalDraft(output as "resume" | "cover")}>Use this draft</button>
+                    <button onClick={() => { setPasteDraftOpen(false); setPasteDraftText(""); }}>Cancel</button>
+                  </div>
+                </> : <button onClick={() => setPasteDraftOpen(true)}>Paste a drafted {output === "resume" ? "résumé" : "cover letter"}</button>}
+                <small>For drafting with your regular Claude subscription instead of a paid API key: run the resume-tailor Skill in a normal conversation, then paste its output here. It becomes your working draft — scored the same way as any other, exported the same way, saved to version history as “uploaded”.</small>
+              </div>}
               {output === "resume" && <div className="resume-ai-toolbar">
                 <div><span>RÉSUMÉ ENGINE</span><strong>{selectedProvider?.name || "Choose a provider"} · {selectedModel?.label || "Choose a model"}</strong><small>Generation writes the résumé. Review audits the current draft without changing it.</small></div>
                 <label>Provider<select value={aiPreference.provider} onChange={(event) => { const next = aiConnection.providers.find((item) => item.id === event.target.value); if (next) setAiPreference({ provider: next.id, modelKey: next.defaultModelKey }); }}>{aiConnection.providers.map((provider) => <option key={provider.id} value={provider.id} disabled={!provider.configured}>{provider.name}{provider.configured ? "" : " · not connected"}</option>)}</select></label>
@@ -1175,32 +1557,79 @@ export function JobSeekerApp() {
               </div>}
               {output === "resume" && <div className={`playbook-banner ${approvedPlaybookRules.length ? "active" : "empty"}`}><div><span>RÉSUMÉ PLAYBOOK</span><strong>{userPlaybookRules.length} uploaded rules first · {curatedPlaybookRules.length} curated rules second</strong><small>{approvedPlaybookRules.length ? "Generation receives your uploaded rules as the highest-priority editorial instructions. Every candidate claim still requires approved evidence." : "Upload a Résumé playbook source. Detected guidance is activated automatically."}</small></div><button onClick={() => setView("documents")}>{approvedPlaybookRules.length ? "Review rules" : "Add playbook"}</button>{approvedPlaybookRules.length > 0 && <ul>{approvedPlaybookRules.slice(0, 3).map((rule) => <li key={rule}>{rule}</li>)}</ul>}</div>}
               {output === "cover" && knowledgeStats.voice > 0 && <div className="playbook-banner active"><div><span>WRITING VOICE</span><strong>{knowledgeStats.voice} uploaded voice {knowledgeStats.voice === 1 ? "source" : "sources"}</strong><small>Voice affects phrasing only; approved career facts remain the truth boundary.</small></div><button onClick={() => setView("voice")}>Review voice</button></div>}
-              {(output === "resume" || output === "cover") && draftEditorKey === output ? <textarea className="draft-editor" aria-label={`Editable ${output} draft`} value={draftEditor} onChange={(event) => setDraftEditor(event.target.value)} /> : output === "resume" ? <div className="resume-paper"><pre>{activeText}</pre></div> : <pre>{activeText}</pre>}
-              {output === "resume" && currentResumeGeneration && <div className="resume-provenance"><strong>Generated by {currentResumeGeneration.modelLabel}</strong><span>{facts.length} approved facts · {userPlaybookRules.length} uploaded rules · {curatedPlaybookRules.length} secondary rules · {currentResumeGeneration.usage?.totalTokens ? `${currentResumeGeneration.usage.totalTokens.toLocaleString()} tokens` : "usage unavailable"}</span><small>{currentResumeGeneration.result.omissions.length ? `Omitted as unsupported: ${currentResumeGeneration.result.omissions.join("; ")}` : "No unsupported requirement was inserted into the draft."}</small></div>}
+              {(output === "resume" || output === "cover") && draftEditorKey === output ? <textarea className="draft-editor" aria-label={`Editable ${output} draft`} value={draftEditor} onChange={(event) => setDraftEditor(event.target.value)} /> : output === "resume" ? <ResumePaper text={activeText} /> : <pre>{activeText}</pre>}
+              {output === "resume" && reusableResumes.length > 0 && draftEditorKey !== "resume" && <div className="resume-reuse">
+                <div><span>REUSE A PRIOR VERSION</span><strong>{reusableResumes.length} saved {reusableResumes.length === 1 ? "résumé looks" : "résumés look"} close to this role</strong><small>Adapting one costs nothing and starts from a draft you have already reviewed. The saved version stays unchanged.</small></div>
+                <ul>{reusableResumes.map((item) => <li key={item.draft.id}>
+                  <div><b>{item.draft.title}</b><i>{item.score}% match</i></div>
+                  <span>{item.draft.company || "No company recorded"} · {item.draft.role || "No role recorded"}{item.draft.versionNumber ? ` · v${item.draft.versionNumber}` : ""}</span>
+                  <em>{item.reasons.length ? `Matched on ${item.reasons.join(", ")}.` : "Matched on overall similarity."}</em>
+                  <button onClick={() => reusePriorResume(item.draft.id)}>Adapt this version</button>
+                </li>)}</ul>
+              </div>}
+              {output === "resume" && resumeAudit && <div className="resume-standards">
+                <div className="resume-standards-head">
+                  <div><span>RÉSUMÉ STANDARDS</span><strong>{resumeAudit.score}<i>/10</i></strong><small>Your résumé-tailor rules, checked on this draft. Runs offline — no model, no API key, no cost. It reports; every wording change stays yours.</small></div>
+                  <div className="resume-standards-grid">{RESUME_STANDARD_DIMENSIONS.map((dimension) => <div key={dimension.key} className={`tier-${resumeAudit.scores[dimension.key]}`}><span>{dimension.label}</span><strong>{resumeAudit.scores[dimension.key]}<i>/2</i></strong><small>{dimension.detail}</small></div>)}</div>
+                </div>
+                <div className="resume-standards-stats">
+                  <span>{resumeAudit.stats.words} words</span>
+                  <span>{resumeAudit.stats.quantifiedBullets}/{resumeAudit.stats.bullets} bullets with a number</span>
+                  <span>{resumeAudit.stats.skills} skills</span>
+                  {resumeAudit.stats.keywordCoverage !== null && <span>{resumeAudit.stats.keywordCoverage}% of the posting&rsquo;s repeated terms used</span>}
+                </div>
+                {resumeAudit.findings.length > 0
+                  ? <ul>{resumeAudit.findings.slice(0, 12).map((finding, index) => <li key={`${finding.dimension}-${index}`} className={finding.severity}><b>{finding.dimension}</b>{finding.message}{finding.line && <em>{finding.line.length > 120 ? `${finding.line.slice(0, 120)}…` : finding.line}</em>}</li>)}</ul>
+                  : <p className="resume-standards-clear">Every standard passed on this draft.</p>}
+                {resumeAudit.findings.length > 12 && <p className="resume-standards-more">{resumeAudit.findings.length - 12} further findings are not listed.</p>}
+              </div>}
+              {output === "resume" && !currentResumeGeneration && localResumeDocument && localResumeDocument.omissions.length > 0 && <div className="resume-provenance"><strong>{localResumeDocument.omissions.length} approved {localResumeDocument.omissions.length === 1 ? "fact was" : "facts were"} not placed automatically</strong><span>Nothing was deleted — these facts stay in your career profile. Edit the draft to add any that matter for this role, or connect a model for full tailoring.</span><ul className="resume-omissions">{localResumeDocument.omissions.map((omission) => <li key={omission}>{omission.replace(/^Approved fact not placed automatically: /, "")}</li>)}</ul></div>}
+              {output === "resume" && currentResumeGeneration?.quality && <div className="resume-quality">
+                <div className="resume-quality-head">
+                  <div><span>DRAFT REPORT</span><strong>{currentResumeGeneration.quality.score}<i>/100</i></strong><small>Measures how much approved evidence this draft uses and how completely it is built — not your chance of being hired.</small></div>
+                  <div className="resume-quality-grid">
+                    <div><span>Evidence used</span><strong>{currentResumeGeneration.quality.evidenceUsed}/{currentResumeGeneration.quality.evidenceAvailable}</strong></div>
+                    <div><span>Playbook rules followed</span><strong>{currentResumeGeneration.quality.playbookEvaluated ? `${currentResumeGeneration.quality.playbookFollowed}/${currentResumeGeneration.quality.playbookEvaluated}` : "—"}</strong></div>
+                    <div><span>Bullets</span><strong>{currentResumeGeneration.quality.bulletCount}</strong></div>
+                    <div><span>Words</span><strong>{currentResumeGeneration.quality.wordCount}</strong></div>
+                  </div>
+                </div>
+                {currentResumeGeneration.quality.checks.length > 0
+                  ? <ul>{currentResumeGeneration.quality.checks.map((note) => <li key={note}>{note}</li>)}</ul>
+                  : <p className="resume-quality-clear">Nothing was flagged for review in this draft.</p>}
+              </div>}
+              {output === "resume" && currentResumeGeneration && <div className="resume-provenance"><strong>Generated by {currentResumeGeneration.modelLabel}</strong><span>{facts.length} approved facts · {userPlaybookRules.length} uploaded rules · {curatedPlaybookRules.length} secondary rules · {currentResumeGeneration.usage?.totalTokens ? `${currentResumeGeneration.usage.totalTokens.toLocaleString()} tokens` : "usage unavailable"}{currentResumeGeneration.modelKey && currentResumeGeneration.usage ? (() => { const cost = estimateUsageCost(currentResumeGeneration.provider, currentResumeGeneration.modelKey, currentResumeGeneration.usage); return cost != null ? ` · ${formatEstimatedCost(cost)} estimated` : ""; })() : ""}</span><small>{currentResumeGeneration.result.omissions.length ? `Omitted as unsupported: ${currentResumeGeneration.result.omissions.join("; ")}` : "No unsupported requirement was inserted into the draft."}</small></div>}
               {output === "resume" && resumeReview && <div className={`resume-review-card ${resumeReview.result.verdict}`}><div><span>{resumeReview.providerName.toUpperCase()} REVIEW · {resumeReview.modelLabel}</span><strong>{resumeReview.result.score}/100 · {resumeReview.result.verdict.replaceAll("_", " ")}</strong></div>{resumeReview.result.unsupported_claims.length > 0 && <section><b>Unsupported or overstated claims</b><ul>{resumeReview.result.unsupported_claims.map((item) => <li key={item}>{item}</li>)}</ul></section>}<section><b>Recommended improvements</b><ul>{resumeReview.result.improvements.map((item) => <li key={item}>{item}</li>)}</ul></section><small>This review did not edit the résumé. Apply only the changes you approve.</small></div>}
             </div>}
           </section>
         </div>}
 
-        {view === "radar" && <RadarWorkspace onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
+        {view === "radar" && <RadarWorkspace savedLinkedInJobs={linkedInSavedJobs} onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
 
         {view === "ai" && <section className="ai-reliability">
           <div className="ai-status-card">
             <div className="step"><b>AI</b><span>CONNECTION & RELIABILITY</span></div>
             <div className="connection-heading"><div><span className={`connection-dot ${aiConnection.state === "loaded" && aiReady ? "ready" : aiConnection.state}`} /><div><small>SELECTED CLOUD CONNECTION</small><h2>{aiConnection.state === "checking" ? "Checking…" : aiReady ? "Connected" : !selectedProvider?.configured ? "Setup required" : !aiConnection.authenticated ? "Sign-in required" : "Access not allowed"}</h2></div></div><button onClick={recheckAiConnection} disabled={aiConnection.state === "checking"}>Recheck</button></div>
             <p>{aiConnectionMessage}</p>
+            <div className="model-diagnostics-actions">
+              <button onClick={runModelDiagnostics} disabled={aiDiagnostics.state === "checking"}>{aiDiagnostics.state === "checking" ? "Checking…" : "Check model catalog access"}</button>
+              {selectedProvider?.configured && selectedModel && <button onClick={runLiveGenerationCheck} disabled={aiDiagnostics.state === "checking"}>Test real generation with {selectedModel.label}</button>}
+              <small>{aiDiagnostics.state === "idle" ? "Catalog check validates the key and exact model access without generating résumé text. The generation test also spends one small, real request." : null}</small>
+            </div>
+            {aiDiagnostics.state !== "idle" && <div className={`ai-model-diagnostics ${aiDiagnostics.state}`}><div><strong>Live model-access check</strong><span>{aiDiagnostics.checkedAt ? `Checked ${new Date(aiDiagnostics.checkedAt).toLocaleString()}` : aiDiagnostics.message}</span></div>{aiDiagnostics.providers.map((provider) => <article key={provider.id}><strong>{provider.name}</strong><span>{provider.message}</span><ul>{provider.models.map((model) => <li key={model.key} className={model.generationAvailable === false || !model.available ? "unavailable" : "available"}>{model.id} · {model.generationAvailable === true ? "generation verified" : model.generationAvailable === false ? model.generationReason || "generation failed" : model.available ? "catalog available" : "unavailable"}</li>)}</ul></article>)}</div>}
 
             <div className="provider-picker"><span>1 · Choose a provider</span><div>{aiConnection.providers.map((provider) => <button key={provider.id} className={selectedProvider?.id === provider.id ? "selected" : ""} onClick={() => setAiPreference({ provider: provider.id, modelKey: provider.defaultModelKey })}><strong>{provider.name}</strong><small>{provider.configured ? "Connected secret" : `Needs ${provider.keyName}`}</small></button>)}</div></div>
             {selectedProvider && <div className="model-picker"><span>2 · Choose a model</span><div>{selectedProvider.models.map((model) => <button key={model.key} className={selectedModel?.key === model.key ? "selected" : ""} aria-pressed={selectedModel?.key === model.key} onClick={() => setAiPreference({ provider: selectedProvider.id, modelKey: model.key })}><span>{model.tier}</span><strong>{model.label}</strong><small>{model.description}</small><code>{model.id}</code></button>)}</div></div>}
 
-            <div className="engine-status"><div><span>Local evidence engine</span><strong>Always active</strong><small>Instant, deterministic, private to this browser</small></div><div><span>Selected cloud review</span><strong>{aiReady ? "Ready" : selectedProvider?.configured ? !aiConnection.authenticated ? "Sign-in required" : "Access restricted" : "Setup required"}</strong><small>{aiProviderName} · {selectedModel?.label || aiModel} · only after your click</small></div></div>
+            <div className="engine-status"><div><span>Local evidence engine</span><strong>Always active</strong><small>Instant, deterministic, private to this browser</small></div><div><span>Selected cloud review</span><strong>{selectedModelGenerationBlocked ? "Generation blocked" : aiReady ? "Ready" : selectedProvider?.configured ? !aiConnection.authenticated ? "Sign-in required" : "Access restricted" : "Setup required"}</strong><small>{aiProviderName} · {selectedModel?.label || aiModel} · only after your click</small></div></div>
             {selectedProvider && !selectedProvider.configured && <div className="setup-note"><strong>Connect {selectedProvider.name}</strong><p>Open ChatGPT Sites, find <em>V&apos;s Job Seeker</em>, choose <b>More actions → Settings</b>, and add <code>{selectedProvider.keyName}</code> as a secret. Then redeploy the saved version. Create the key in that provider&apos;s developer console; API access and billing are separate from consumer chat subscriptions. Never paste a key into chat or this app, commit it to GitHub, or store it in browser data.</p><a href="https://chatgpt.com/sites" target="_blank" rel="noreferrer">Open ChatGPT Sites ↗</a></div>}
             {selectedProvider?.configured && !aiReady && <div className="setup-note"><strong>Access protection is working</strong><p>{aiConnection.authenticated ? "Add this account to the optional AI_ALLOWED_EMAILS deployment allowlist, or remove the allowlist restriction." : "Open V’s through your signed-in ChatGPT account. Protected provider keys are never exposed to anonymous visitors."}</p></div>}
-            {aiReady && <div className="ready-note"><strong>{selectedModel?.label} is ready</strong><span>V’s sends one protected request only when you click a cloud-review button. Switching the selector changes the next review, not the local engine.</span></div>}
+            {aiReady && !selectedModelGenerationBlocked && <div className="ready-note"><strong>{selectedModel?.label} is ready</strong><span>V’s sends one protected request only when you click a cloud-review button. Switching the selector changes the next review, not the local engine.</span></div>}
+            {selectedModelGenerationBlocked && <div className="setup-note"><strong>{selectedModel?.label} is listed but cannot generate</strong><p>{selectedModelDiagnostic?.generationReason} Fix that provider project or choose another verified model, then rerun the selected-generation test.</p></div>}
             <div className="model-comparison">
               <div><span>OPTIONAL MODEL LAB</span><strong>Compare one, two, or three {selectedProvider?.name || "provider"} models</strong><p>Each model receives the same current role and approved facts. Every selected model uses one API request and runs only after your click.</p></div>
               <label>Number of models<select value={comparisonCount} onChange={(event) => setComparisonCount(Number(event.target.value) as 1 | 2 | 3)}><option value={1}>1 model</option><option value={2}>2 models</option><option value={3}>3 models</option></select></label>
-              <button className="primary" onClick={compareSelectedModels} disabled={!aiReady || comparisonRunning}>{comparisonRunning ? "Comparing models…" : `Run ${comparisonCount}-model comparison`}</button>
+              <button className="primary" onClick={compareSelectedModels} disabled={!aiUsable || comparisonRunning}>{comparisonRunning ? "Comparing models…" : `Run ${comparisonCount}-model comparison`}</button>
               {comparisonResults.length > 0 && <div className="comparison-results">{comparisonResults.map((review) => <article key={`${review.provider}-${review.model}`}><div><span>{review.modelLabel}</span><code>{review.model}</code></div><strong>{review.recommendation.decision.replaceAll("_", " ")}</strong><p>{review.recommendation.summary}</p><small>{review.recommendation.confidence} confidence · {review.recommendation.evidenceGaps.length} evidence gaps</small><button onClick={() => { setAiPreference({ provider: review.provider, modelKey: review.modelKey }); setCloudReview(review); setOutput("analysis"); setView("workspace"); setNotice(`${review.modelLabel} selected for the current recommendation.`); }}>Use this review</button></article>)}</div>}
             </div>
           </div>
@@ -1270,10 +1699,17 @@ export function JobSeekerApp() {
             <label className="track-default">Role workspace selection<select value={activeTrackId} onChange={(event) => setActiveTrackId(event.target.value)}><option value="auto">Auto-select from each role</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>
             <div className="resume-track-list">{normalizedTracks.map((track) => <article key={track.id} className={selectedTrack.id === track.id ? "selected" : ""}><div className="track-card-head"><span>{selectedTrack.id === track.id ? trackSelection.automatic ? "CURRENT AUTO MATCH" : "CURRENT TRACK" : "RÉSUMÉ TRACK"}</span><small>Preserved with its linked sources and versions</small></div><label>Name<input value={track.name} onChange={(event) => updateResumeTrack(track.id, { name: event.target.value })} /></label><label>Headline<input value={track.headline} onChange={(event) => updateResumeTrack(track.id, { headline: event.target.value })} /></label><label>Track summary<textarea value={track.summary} onChange={(event) => updateResumeTrack(track.id, { summary: event.target.value })} placeholder="Use a truthful summary tailored to this career direction." /></label><label>Matching role terms<textarea value={track.focus.join(", ")} onChange={(event) => updateResumeTrack(track.id, { focus: event.target.value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) })} placeholder="brand, campaign, creative, agency" /></label></article>)}</div>
           </div>
-          <div className="profile-footer"><span>{facts.length} approved facts · {normalizedTracks.length} résumé tracks · {workspaceSync.message}</span><div><button onClick={() => download("v-jobs-career-profile.json", JSON.stringify({ profile, resumeTracks: normalizedTracks },null,2), "application/json")}>Export profile</button><button onClick={exportWorkspace}>Download backup</button><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"}>Save durable revision</button></div></div>
+          <div className="profile-footer"><span>{facts.length} approved facts · {normalizedTracks.length} résumé tracks · {workspaceSync.message}</span><div><button onClick={() => download("v-jobs-career-profile.json", JSON.stringify({ profile, resumeTracks: normalizedTracks },null,2), "application/json")}>Export profile</button><button onClick={exportWorkspace}>Download backup</button><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving" || !workspaceLoaded}>Save durable revision</button></div></div>
         </section>}
 
-        {view === "voice" && <section className="profile-workspace voice-workspace"><div className="section-head"><div className="step"><b>VOICE</b><span>COVER LETTER STYLE BANK</span></div><p>Upload or paste writing that genuinely sounds like you. V’s derives a deterministic style profile from those samples without changing verified facts.</p></div><div className={`voice-learning-status ${learnedVoice.ready ? "ready" : "learning"}`}><div><span>{learnedVoice.ready ? "VOICE PROFILE READY" : "MORE WRITING NEEDED"}</span><strong>{learnedVoice.stats.words} words · {learnedVoice.stats.sentences} sentences · {learnedVoice.stats.averageSentenceWords || 0} words per sentence</strong><small>{knowledgeStats.voice} uploaded writing {knowledgeStats.voice === 1 ? "source" : "sources"}. You can still edit every learned instruction.</small></div><button onClick={() => relearnWritingVoice()}>{learnedVoice.ready ? "Relearn from samples" : "Check samples"}</button></div><div className="profile-form"><label className="wide">Learned tone<textarea value={writingStyle.tone} onChange={(event) => setWritingStyle({...writingStyle,tone:event.target.value})} /></label><label>Prefer<textarea value={writingStyle.prefer} onChange={(event) => setWritingStyle({...writingStyle,prefer:event.target.value})} /></label><label>Avoid<textarea value={writingStyle.avoid} onChange={(event) => setWritingStyle({...writingStyle,avoid:event.target.value})} /></label><label className="wide">Approved writing samples<textarea className="voice-samples" value={writingStyle.samples} onChange={(event) => setWritingStyle({...writingStyle,samples:event.target.value})} placeholder="Paste emails, introductions, cover letters, articles, or messages that genuinely sound like you." /></label></div><div className="profile-footer"><span>Voice changes style only—never career facts.</span><div><button onClick={() => { setSourceCategory("Writing sample"); setView("documents"); }}>Upload more writing</button><button onClick={() => { setView("workspace"); setOutput("cover"); }}>Preview cover-letter voice</button></div></div></section>}
+        {view === "voice" && <section className="profile-workspace voice-workspace">
+          <div className="section-head"><div className="step"><b>VOICE</b><span>COVER LETTER STYLE BANK</span></div><p>V’s learns only from substantial writing that sounds like you. Source files are preserved, but export columns, URLs, code, dates, and quick social replies do not shape your voice.</p></div>
+          <div className={`voice-learning-status ${learnedVoice.ready ? "ready" : "learning"}`}><div><span>{learnedVoice.ready ? "VOICE PROFILE READY" : "MORE WRITING NEEDED"}</span><strong>{learnedVoice.stats.words} useful words · {learnedVoice.stats.sentences} sentences · {learnedVoice.stats.averageSentenceWords || 0} words per sentence</strong><small>{cleanedVoice.kept} meaningful samples used · {cleanedVoice.dropped} low-signal export entries ignored · {knowledgeStats.voice} original source{knowledgeStats.voice === 1 ? "" : "s"} preserved.</small></div><button onClick={() => relearnWritingVoice()}>{learnedVoice.ready ? "Relearn from clean samples" : "Check clean samples"}</button></div>
+          <div className="profile-form"><label className="wide">Learned tone<textarea value={writingStyle.tone} onChange={(event) => setWritingStyle({...writingStyle,tone:event.target.value})} /></label><label>Prefer<textarea value={writingStyle.prefer} onChange={(event) => setWritingStyle({...writingStyle,prefer:event.target.value})} /></label><label>Avoid<textarea value={writingStyle.avoid} onChange={(event) => setWritingStyle({...writingStyle,avoid:event.target.value})} /></label></div>
+          <section className="voice-sample-review"><div><span>WRITING USED FOR LEARNING</span><strong>{cleanedVoice.kept ? "Clean, readable sample set" : "No substantial prose found yet"}</strong><p>{cleanedVoice.kept ? "This is the exact text used to learn phrasing. It is read-only so imported originals are never overwritten." : "Upload a longer email, post, article, or cover letter. One-line replies and data exports stay out of the voice profile."}</p></div><textarea className="voice-samples" value={cleanedVoice.text} readOnly aria-label="Writing samples used for learning" placeholder="Your cleaned writing samples will appear here." /></section>
+          <details className="voice-source-archive"><summary>View preserved original imported writing</summary><pre>{writingStyle.samples || "No writing source has been added yet."}</pre></details>
+          <div className="profile-footer"><span>Voice changes style only—never career facts. Original imports are kept separately from the clean learning set.</span><div><button onClick={() => { setSourceCategory("Writing sample"); setView("documents"); }}>Upload more writing</button><button onClick={() => { setView("workspace"); setOutput("cover"); }}>Preview cover-letter voice</button></div></div>
+        </section>}
 
         {view === "documents" && <section className="documents-workspace knowledge-workspace">
           <div className="document-import">
@@ -1296,13 +1732,45 @@ export function JobSeekerApp() {
 
           <div className="fact-review">
             <div className="review-heading"><div><span>SOURCE LIBRARY</span><h2>{documents.length} imported sources</h2></div><strong>{facts.length} approved facts</strong></div>
-            <div className="knowledge-summary"><div><strong>{knowledgeStats.evidence}</strong><span>Career evidence</span></div><div><strong>{knowledgeStats.guidance + 1}</strong><span>Playbook sources</span></div><div><strong>{knowledgeStats.voice}</strong><span>Voice sources</span></div><div><strong>{knowledgeStats.research}</strong><span>Research sources</span></div><div><strong>{approvedPlaybookRules.length}</strong><span>Active résumé rules</span></div></div>
+            <div className="knowledge-summary"><div><strong>{knowledgeStats.evidence}</strong><span>Career evidence</span></div><div><strong>{knowledgeStats.guidance + (playbookSettings.curatedEnabled ? 1 : 0)}</strong><span>Playbook sources</span></div><div><strong>{knowledgeStats.voice}</strong><span>Voice sources</span></div><div><strong>{knowledgeStats.research}</strong><span>Research sources</span></div><div><strong>{approvedPlaybookRules.length}</strong><span>Active résumé rules</span></div></div>
+
+            <section className={`consistency-panel ${evidenceAudit.conflicts.length ? "has-conflicts" : evidenceAudit.duplicates.some((cluster) => cluster.crossSource) ? "has-overlap" : "clean"}`}>
+              <div className="consistency-head">
+                <span>CONSISTENCY CHECK</span>
+                <h3>{evidenceAudit.conflicts.length === 0 && !evidenceAudit.duplicates.some((cluster) => cluster.crossSource)
+                  ? "No conflicts or repeated facts across your approved sources"
+                  : [
+                    evidenceAudit.conflicts.length ? `${evidenceAudit.conflicts.length} possible conflict${evidenceAudit.conflicts.length === 1 ? "" : "s"}` : "",
+                    evidenceAudit.duplicates.some((cluster) => cluster.crossSource) ? `${evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).length} fact${evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).length === 1 ? "" : "s"} repeated across sources` : "",
+                  ].filter(Boolean).join(" · ")}</h3>
+                <small>Checked across every approved career-evidence source, regardless of résumé track. Nothing here is ever deleted automatically.</small>
+              </div>
+              {evidenceAudit.conflicts.length > 0 && <div className="conflict-list">{evidenceAudit.conflicts.map((conflict, index) => <article key={index} className={`conflict-card ${conflict.kind}`}>
+                <span className="conflict-kind">{conflict.kind === "title" ? "Different role, same employer & years" : "Different number for the same claim"}</span>
+                <p>{conflict.detail}</p>
+                <div className="conflict-sides">
+                  <div><strong>{conflict.factA.sourceTitle}</strong><span>{conflict.factA.text}</span></div>
+                  <div><strong>{conflict.factB.sourceTitle}</strong><span>{conflict.factB.text}</span></div>
+                </div>
+                <small>Both stay in your library. Edit or remove the outdated one in Career profile once you know which is correct.</small>
+              </article>)}</div>}
+              {evidenceAudit.duplicates.some((cluster) => cluster.crossSource) && <details className="duplicate-list">
+                <summary>{evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).length} fact{evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).length === 1 ? "" : "s"} approved from more than one source</summary>
+                {evidenceAudit.duplicates.filter((cluster) => cluster.crossSource).map((cluster, index) => <div key={index} className="duplicate-cluster">
+                  <strong>{cluster.canonical}</strong>
+                  <span>Also approved from: {cluster.members.filter((member) => member.id !== cluster.canonicalId).map((member) => member.sourceTitle).join(", ")}</span>
+                </div>)}
+              </details>}
+            </section>
+
             <article className={`curated-playbook-card ${playbookSettings.curatedEnabled ? "enabled" : "disabled"}`}><div className="curated-title"><div><span>BUILT-IN · CURATED GUIDANCE</span><strong>{CURATED_RESUME_PLAYBOOK.name}</strong><small>Version {CURATED_RESUME_PLAYBOOK.version} · reviewed {CURATED_RESUME_PLAYBOOK.lastReviewed}</small></div><button onClick={() => setPlaybookSettings({ curatedEnabled: !playbookSettings.curatedEnabled })}>{playbookSettings.curatedEnabled ? "Disable" : "Enable"}</button></div><p>{CURATED_RESUME_PLAYBOOK.summary}</p><div className="curated-meta"><span>{CURATED_RESUME_PLAYBOOK.rules.length} paraphrased do/don’t rules</span><span>{CURATED_RESUME_PLAYBOOK.sources.length} authoritative sources</span><span>Updates with V’s releases</span></div><details><summary>Review sources</summary><div>{CURATED_RESUME_PLAYBOOK.sources.map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><strong>{source.title}</strong><small>{source.authority} ↗</small></a>)}</div></details></article>
             {documents.length === 0 ? <div className="empty-state compact"><strong>Your knowledge library is empty.</strong><span>Start with your current résumé for evidence. Then add “Résumé playbook” sources containing tips, do’s, don’ts, templates, or best practices.</span></div> : <div className="source-list">{documents.map((doc) => {
               const scope = sourceScope(doc);
+              const detected = sourceClassifications.get(doc.id);
+              const detectedMismatch = detected && detected.confidence !== "low" && detected.category !== (doc.category || "Other evidence");
               return <article key={doc.id} className={`source-card ${doc.status} ${scope}`}>
-                <header><div><div className="source-badges"><span className="source-category">{doc.category || "Imported source"}</span><span className={`source-scope ${scope}`}>{sourceScopeLabel(scope)}</span><span className="source-track">{doc.trackId && doc.trackId !== "all" ? normalizedTracks.find((track) => track.id === doc.trackId)?.name || "Specific track" : "All tracks"}</span></div><strong>{doc.title}</strong><span>{doc.type} · {doc.importedAt}{doc.truncated ? " · first 300,000 characters stored" : ""}</span>{doc.sourceUrl && /^https?:\/\//i.test(doc.sourceUrl) && <a href={doc.sourceUrl} target="_blank" rel="noreferrer">Open original source ↗</a>}</div><div className="source-controls"><span className={`source-status ${doc.status}`}>{doc.status === "reading" ? "Reading…" : doc.status === "ready" ? scope === "evidence" || scope === "guidance" ? "Ready for review" : "Stored safely" : "Needs text"}</span><small>Preserved in your library</small></div></header>
-                {doc.status === "reading" ? <p className="needs-text">Reading this file on your Mac…</p> : doc.status === "needs-text" ? <p className="needs-text">This file could not be read. It may be unsupported or over 10 MB. Save it as PDF, Word .docx, text, or JSON, or open it and paste its text on the left.</p> : scope === "voice" ? <div className="scope-result"><strong>Added to Writing voice</strong><span>This source shapes tone and phrasing only. It cannot create career facts.</span><button onClick={() => setView("voice")}>Review writing voice</button></div> : scope === "research" ? <div className="scope-result"><strong>Saved as research context</strong><span>This information stays separate from your experience and is not sent in fit reviews.</span></div> : <div className="candidate-list">{doc.candidates.length ? <><div className="candidate-batch"><strong>{doc.approved.length}/{doc.candidates.length} {scope === "evidence" ? "facts" : "rules"} active</strong><button onClick={() => approveAllCandidates(doc.id)}>Approve all</button></div>{doc.candidates.map((candidate) => <div key={candidate}><p>{candidate}</p><button className={doc.approved.includes(candidate) ? "approved" : ""} onClick={() => scope === "evidence" ? approveCandidate(doc.id, candidate) : approvePlaybookRule(doc.id, candidate)}>{doc.approved.includes(candidate) ? scope === "evidence" ? "Approved fact" : "Active rule" : scope === "evidence" ? "Approve fact" : "Use rule"}</button></div>)}</> : <p className="needs-text">{scope === "evidence" ? "No useful fact candidates were found. You can add facts directly in Career profile." : "No clear tip or rule was detected. Paste shorter do/don’t statements for the playbook."}</p>}</div>}
+                <header><div><div className="source-badges"><span className="source-category">{doc.category || "Imported source"}</span><span className={`source-scope ${scope}`}>{sourceScopeLabel(scope)}</span><span className="source-track">{doc.trackId && doc.trackId !== "all" ? normalizedTracks.find((track) => track.id === doc.trackId)?.name || "Specific track" : "All tracks"}</span>{detectedMismatch && <span className={`source-detected ${detected!.confidence}`} title={detected!.reasons.join("; ") || "Detected from the source's own content"}>Reads like: {detected!.category} ({detected!.confidence})</span>}</div><strong>{doc.title}</strong><span>{doc.type} · {doc.importedAt}{doc.truncated ? " · first 300,000 characters stored" : ""}</span>{doc.sourceUrl && /^https?:\/\//i.test(doc.sourceUrl) && <a href={doc.sourceUrl} target="_blank" rel="noreferrer">Open original source ↗</a>}</div><div className="source-controls"><span className={`source-status ${doc.status}`}>{doc.status === "reading" ? "Reading…" : doc.status === "ready" ? scope === "evidence" || scope === "guidance" ? "Ready for review" : "Stored safely" : "Needs text"}</span><small>Preserved in your library</small></div></header>
+                {doc.status === "reading" ? <p className="needs-text">Reading this file on your Mac…</p> : doc.status === "needs-text" ? <p className="needs-text">This file could not be read, or the read was interrupted (e.g. by a reload). It may also be unsupported or over 10 MB. Save it as PDF, Word .docx, text, or JSON, re-upload it, or paste its text on the left.</p> : scope === "voice" ? <div className="scope-result"><strong>Added to Writing voice</strong><span>This source shapes tone and phrasing only. It cannot create career facts.</span><button onClick={() => setView("voice")}>Review writing voice</button></div> : scope === "research" ? <div className="scope-result"><strong>Saved as research context</strong><span>This information stays separate from your experience and is not sent in fit reviews.</span></div> : <div className="candidate-list">{doc.candidates.length ? <><div className="candidate-batch"><strong>{doc.approved.length}/{doc.candidates.length} {scope === "evidence" ? "facts" : "rules"} active</strong><button onClick={() => approveAllCandidates(doc.id)}>Approve all</button></div>{doc.candidates.map((candidate) => <div key={candidate}><p>{candidate}</p><button className={doc.approved.includes(candidate) ? "approved" : ""} onClick={() => scope === "evidence" ? approveCandidate(doc.id, candidate) : approvePlaybookRule(doc.id, candidate)}>{doc.approved.includes(candidate) ? scope === "evidence" ? "Approved fact" : "Active rule" : scope === "evidence" ? "Approve fact" : "Use rule"}</button></div>)}</> : <p className="needs-text">{scope === "evidence" ? "No useful fact candidates were found. You can add facts directly in Career profile." : "No clear tip or rule was detected. Paste shorter do/don’t statements for the playbook."}</p>}</div>}
               </article>;
             })}</div>}
           </div>
@@ -1310,16 +1778,20 @@ export function JobSeekerApp() {
 
         {view === "companies" && <section className="companies-workspace"><div className="target-form"><div className="step"><b>03</b><span>ADD A TARGET</span></div><h2>Companies, brands, and agencies — in one list.</h2><p>Keep only targets you want to follow. Career links and notes are optional, so this works even before you have every detail.</p><label>Company or agency name<input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Agency, brand, or sports organization" /></label><div className="field-row"><label>Type<select value={companyKind} onChange={(event) => setCompanyKind(event.target.value as CompanyTarget["kind"])}><option>Brand</option><option>Agency</option><option>Sports</option><option>Tech</option></select></label><label>Focus<input value={companyFocus} onChange={(event) => setCompanyFocus(event.target.value)} /></label></div><label>Website<input value={companyWebsite} onChange={(event) => setCompanyWebsite(event.target.value)} placeholder="https://" /></label><label>Careers page<input value={companyCareers} onChange={(event) => setCompanyCareers(event.target.value)} placeholder="https://" /></label><button className="primary" onClick={addCompany}>Add to directory</button></div><div className="target-directory"><div className="review-heading"><div><span>TARGET DIRECTORY</span><h2>{companies.length} saved targets</h2></div><strong>Bay Area first</strong></div>{companies.length === 0 ? <div className="empty-state compact"><strong>Your target list starts here.</strong><span>Add brands, agencies, sports organizations, or tech teams. Nothing is marked as an open role until you verify it.</span></div> : <div className="company-list">{companies.map((target) => <article key={target.id}><div className="company-title"><span>{target.kind}</span><strong>{target.name}</strong><small>{target.market} · {target.focus || "No focus set"}</small></div><div className="company-links">{target.website && <a href={target.website} target="_blank" rel="noreferrer">Website</a>}{target.careers && <a href={target.careers} target="_blank" rel="noreferrer">Careers</a>}<button onClick={() => loadCompanyForRole(target)}>Use for role</button></div><div className="company-actions"><label>Status<select value={target.status} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: event.target.value as CompanyTarget["status"] } : item))}><option>Researching</option><option>Monitoring</option><option>Applied</option><option>Paused</option></select></label><label>Notes<input value={target.notes} onChange={(event) => setCompanies(companies.map((item) => item.id === target.id ? { ...item, notes: event.target.value } : item))} placeholder="Contact, role, or next step" /></label><button onClick={() => setCompanies(companies.map((item) => item.id === target.id ? { ...item, status: "Paused" } : item))}>Pause</button></div></article>)}</div>}</div></section>}
 
-        {view === "applications" && <section className="table-card"><div className="table-head"><div><span>PIPELINE</span><h2>{applications.length} saved applications</h2></div><button onClick={() => download("v-jobs-applications.json", JSON.stringify({ applications, generatedDrafts, jobSnapshots },null,2), "application/json")}>Export</button></div>{applications.length === 0 ? <div className="empty-state"><strong>No applications saved yet.</strong><span>Prepare a role in the workspace, then choose “Save to applications.”</span><button className="primary" onClick={() => setView("workspace")}>Prepare first role</button></div> : <div className="application-list">{applications.map((app) => { const resumeDraft = generatedDrafts.find((draft) => draft.id === app.resumeVersionId); const coverDraft = generatedDrafts.find((draft) => draft.id === app.coverVersionId); return <article key={app.id}><div className="application-main"><strong>{app.role}</strong><span>{app.company}</span>{app.url && <a href={app.url} target="_blank" rel="noreferrer">Original role ↗</a>}<small>{app.note || "Saved opportunity — not submitted"}</small></div><label>Application date<input type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(app.date) ? app.date : ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,date:e.target.value}:item))} /></label><label>Status<select value={app.status} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:e.target.value as ApplicationStatus}:item))}><option>Saved opportunity</option><option>Preparing</option><option>Applied</option><option>Interview</option><option>Closed</option></select></label><label>Note<input value={app.note || ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,note:e.target.value}:item))} placeholder="Follow-up, contact, or reminder" /></label><div className="application-document-links"><span>Résumé: {resumeDraft ? resumeDraft.title : "Not linked"}</span><span>Cover letter: {coverDraft ? coverDraft.title : "Not linked"}</span></div><div className="application-actions"><button onClick={() => { setCompany(app.company); setRole(app.role); setRoleUrl(app.url || ""); setView("workspace"); setNotice("Role reopened. Its saved history remains intact."); }}>Open role</button><button onClick={() => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:"Closed"}:item))}>Archive as closed</button></div>{generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role && !draft.applicationId).length > 0 && <div className="application-draft-picker">{generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role && !draft.applicationId).map((draft) => <button key={draft.id} onClick={() => attachDraftToApplication(app.id, draft)}>Link {draft.type === "resume" ? "résumé" : "cover letter"}: {draft.updatedAt}</button>)}</div>}</article>; })}</div>}</section>}
-        {view === "applications" && <section className="resume-library"><div className="table-head"><div><span>DOCUMENT LIBRARY</span><h2>{generatedDrafts.filter((draft) => draft.type === "resume").length} saved résumé versions</h2></div><small>Every version is preserved and can be linked to an application.</small></div>{generatedDrafts.filter((draft) => draft.type === "resume").length === 0 ? <div className="empty-state compact"><strong>No résumé version saved yet.</strong><span>Generate or edit a résumé in Role workspace, then choose Save version.</span></div> : <div className="resume-version-list">{generatedDrafts.filter((draft) => draft.type === "resume").map((draft) => <article key={draft.id}><div><strong>{draft.title}</strong><span>{draft.company} · {draft.role}</span><small>{draft.updatedAt} · {draft.provider === "local" || !draft.provider ? "Local draft" : `${draft.provider} · ${draft.model || "model recorded"}`} · {draft.playbookRuleCount ?? 0} playbook rules</small></div><button onClick={() => { setCompany(draft.company); setRole(draft.role); setDraftEditor(draft.content); setDraftEditorKey("resume"); setOutput("resume"); setView("workspace"); setNotice("Saved résumé version opened for editing. The original version remains preserved."); }}>Open copy</button><button onClick={() => download(`${draft.company}-${draft.role}-resume.txt`.replace(/[^a-z0-9.-]+/gi, "-"), draft.content)}>Download</button></article>)}</div>}</section>}
+        {view === "applications" && <section className="table-card"><div className="table-head"><div><span>PIPELINE</span><h2>{filteredApplications.length} of {applications.length} saved applications</h2></div><button onClick={() => download("v-jobs-applications.json", JSON.stringify({ applications, generatedDrafts, jobSnapshots },null,2), "application/json")}>Export</button></div>{applications.length > 0 && <div className="radar-inbox-controls"><div className="radar-filters">{(["all", "Saved opportunity", "Preparing", "Applied", "Interview", "Closed"] as const).map((status) => <button key={status} className={pipelineFilters.status === status ? "selected" : ""} onClick={() => setPipelineFilters({ ...pipelineFilters, status })}>{status === "all" ? "All statuses" : status}</button>)}</div><label>Company<select value={pipelineFilters.company} onChange={(event) => setPipelineFilters({ ...pipelineFilters, company: event.target.value })}><option value="all">All companies</option>{pipelineCompanyOptions.map((name) => <option key={name} value={name}>{name}</option>)}</select></label><label>Search<input value={pipelineFilters.search} onChange={(event) => setPipelineFilters({ ...pipelineFilters, search: event.target.value })} placeholder="Role, company, or note" /></label></div>}{applications.length === 0 ? <div className="empty-state"><strong>No applications saved yet.</strong><span>Prepare a role in the workspace, then choose “Save to applications.”</span><button className="primary" onClick={() => setView("workspace")}>Prepare first role</button></div> : filteredApplications.length === 0 ? <div className="empty-state compact"><strong>No applications match these filters.</strong><span>Change the status, company, or search text.</span></div> : <div className="application-list">{filteredApplications.map((app) => { const resumeDraft = generatedDrafts.find((draft) => draft.id === app.resumeVersionId); const coverDraft = generatedDrafts.find((draft) => draft.id === app.coverVersionId); const matchingDrafts = generatedDrafts.filter((draft) => draft.company === app.company && draft.role === app.role); return <article key={app.id}><div className="application-main"><strong>{app.role}</strong><span>{app.company}</span>{app.url && <a href={app.url} target="_blank" rel="noreferrer">Original role ↗</a>}<small>{app.note || "Saved opportunity — not submitted"}</small></div><label>Application date<input type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(app.date) ? app.date : ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,date:e.target.value}:item))} /></label><label>Status<select value={app.status} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:e.target.value as ApplicationStatus}:item))}><option>Saved opportunity</option><option>Preparing</option><option>Applied</option><option>Interview</option><option>Closed</option></select></label><label>Note<input value={app.note || ""} onChange={(e) => setApplications((current) => current.map((item) => item.id === app.id ? {...item,note:e.target.value}:item))} placeholder="Follow-up, contact, or reminder" /></label><div className="application-document-links"><span>Résumé: {resumeDraft ? resumeDraft.title : "Not linked"}</span><span>Cover letter: {coverDraft ? coverDraft.title : "Not linked"}</span></div><div className="application-actions"><button onClick={() => { setCompany(app.company); setRole(app.role); setRoleUrl(app.url || ""); setView("workspace"); setNotice("Role reopened. Its saved history remains intact."); }}>Open role</button><button onClick={() => setApplications((current) => current.map((item) => item.id === app.id ? {...item,status:"Closed"}:item))}>Archive as closed</button></div>{matchingDrafts.length > 0 && <div className="application-draft-picker">{matchingDrafts.map((draft) => <button key={draft.id} onClick={() => attachDraftToApplication(app.id, draft)}>Link {draft.type === "resume" ? "résumé" : "cover letter"}: {draft.updatedAt}</button>)}</div>}</article>; })}</div>}</section>}
+        {view === "applications" && <section className="resume-library"><div className="table-head"><div><span>DOCUMENT LIBRARY</span><h2>{filteredResumeDrafts.length} of {resumeDrafts.length} saved résumé versions</h2></div><small>Every version is preserved and can be linked to an application.</small></div>{resumeDrafts.length > 0 && <div className="radar-inbox-controls"><label>Company<select value={documentFilters.company} onChange={(event) => setDocumentFilters({ ...documentFilters, company: event.target.value })}><option value="all">All companies</option>{documentCompanyOptions.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>{documentTrackOptions.length > 0 && <label>Track<select value={documentFilters.trackId} onChange={(event) => setDocumentFilters({ ...documentFilters, trackId: event.target.value })}><option value="all">All tracks</option>{documentTrackOptions.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>}<label>Provider<select value={documentFilters.provider} onChange={(event) => setDocumentFilters({ ...documentFilters, provider: event.target.value })}><option value="all">All providers</option>{documentProviderOptions.map((provider) => <option key={provider} value={provider}>{provider === "local" ? "Local draft" : provider}</option>)}</select></label><label>Search<input value={documentFilters.search} onChange={(event) => setDocumentFilters({ ...documentFilters, search: event.target.value })} placeholder="Role, company, or title" /></label></div>}{resumeDrafts.length === 0 ? <div className="empty-state compact"><strong>No résumé version saved yet.</strong><span>Generate or edit a résumé in Role workspace, then choose Save version.</span></div> : filteredResumeDrafts.length === 0 ? <div className="empty-state compact"><strong>No résumé versions match these filters.</strong><span>Change the company, track, provider, or search text.</span></div> : <div className="resume-version-list">{filteredResumeDrafts.map((draft) => <article key={draft.id}><div><strong>{draft.title}</strong><span>{draft.company} · {draft.role}</span><small>{draft.updatedAt} · {draft.provider === "local" || !draft.provider ? "Local draft" : `${draft.provider} · ${draft.model || "model recorded"}`} · {draft.playbookRuleCount ?? 0} playbook rules</small></div><button onClick={() => { setCompany(draft.company); setRole(draft.role); setDraftEditor(draft.content); setDraftEditorKey("resume"); setDraftIsExternal(draft.origin === "uploaded"); setOutput("resume"); setView("workspace"); setNotice("Saved résumé version opened for editing. The original version remains preserved."); }}>Open copy</button><button onClick={() => download(`${draft.company}-${draft.role}-resume.txt`.replace(/[^a-z0-9.-]+/gi, "-"), draft.content)}>Download</button></article>)}</div>}</section>}
 
         {view === "data" && <section className="data-workspace">
-          <div className="data-safety-card"><span>APPEND-ONLY PRIVATE HISTORY</span><h2>Recover records without deleting the current workspace.</h2><p>Every durable save creates an immutable private revision. “Merge preserved records” adds missing applications, sources, résumé versions, job descriptions, and companies to the current workspace. Current records win when the same ID exists.</p><div><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"}>Save revision now</button><button onClick={() => void loadWorkspaceHistory()} disabled={workspaceHistoryState === "loading"}>{workspaceHistoryState === "loading" ? "Refreshing…" : "Refresh history"}</button><button onClick={exportWorkspace}>Download complete backup</button></div></div>
+          <div className="data-safety-card"><span>APPEND-ONLY PRIVATE HISTORY</span><h2>Recover records without deleting the current workspace.</h2><p>Every durable save creates an immutable private revision. “Merge preserved records” adds missing applications, sources, résumé versions, job descriptions, and companies to the current workspace. Current records win when the same ID exists.</p><div><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving" || !workspaceLoaded}>Save revision now</button><button onClick={() => void loadWorkspaceHistory()} disabled={workspaceHistoryState === "loading"}>{workspaceHistoryState === "loading" ? "Refreshing…" : "Refresh history"}</button><button onClick={exportWorkspace}>Download complete backup</button></div></div>
           <div className="version-history-card"><div className="table-head"><div><span>PRIVATE VERSION HISTORY</span><h2>{workspaceRevisions.length} recent revisions</h2></div><strong>Nothing is deleted here</strong></div>{workspaceHistoryState === "loading" && !workspaceRevisions.length ? <div className="empty-state compact"><strong>Opening preserved versions…</strong></div> : workspaceRevisions.length ? <div className="version-history-list">{workspaceRevisions.map((revision) => <article key={revision.id} className={revision.isCurrent ? "current" : ""}><div><strong>{revision.isCurrent ? "Current private revision" : new Date(revision.createdAt).toLocaleString()}</strong><span>{revision.sourceBuild}</span><small>{Math.max(1, Math.round(revision.sizeBytes / 1024)).toLocaleString()} KB · {revision.id.slice(0, 8)}</small></div>{revision.isCurrent ? <b>ACTIVE</b> : <button onClick={() => void mergeWorkspaceRevision(revision.id)} disabled={workspaceHistoryState === "loading"}>Merge preserved records</button>}</article>)}</div> : <div className="empty-state compact"><strong>No durable revisions are visible yet.</strong><span>Your browser copy remains untouched. Choose Save revision now to create the first durable version.</span></div>}</div>
         </section>}
 
-        {view === "autofill" && <section className="autofill-grid"><div className="autofill-intro"><div className="step"><b>04</b><span>ASSISTED AUTOFILL</span></div><h2>Your data, ready for application forms.</h2><p>The browser companion scans visible fields, previews what it can map, and fills only approved profile answers after your click. Sensitive questions, dropdowns, uploads, and unknown fields remain for your review.</p><div className="safety-list"><span>✓ Preview mapped fields before filling</span><span>✓ Never presses Submit</span><span>✓ Never guesses legal or demographic answers</span><span>✓ Works from your approved profile</span></div></div><div className="autofill-package"><span>AUTOFILL PACKAGE</span><pre>{autofillData}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load this package into the Chrome companion in the GitHub project. On an application page, choose Scan page, review the field map, then choose Fill ready fields.</small></div></section>}
+        {view === "autofill" && <section className="autofill-grid">
+          <div className="autofill-intro"><div className="step"><b>04</b><span>ASSISTED AUTOFILL</span></div><h2>Continue an application without starting over.</h2><p>Choose the exact résumé version you want to use, then load one reusable package into the companion. It scans the page again each time and fills only blank, approved fields after your click.</p><div className="safety-list"><span>✓ Keeps the selected résumé version visible</span><span>✓ Skips already-completed fields</span><span>✓ Never presses Submit or guesses sensitive answers</span><span>✓ File uploads stay manual because browsers protect them</span></div></div>
+          <div className="autofill-package"><span>AUTOFILL PACKAGE</span><label>Résumé for this application<select value={selectedAutofillResume?.id || ""} onChange={(event) => setAutofillResumeVersionId(event.target.value)}><option value="">Choose a preserved résumé</option>{availableResumeVersions.map((draft) => <option key={draft.id} value={draft.id}>{draft.origin === "uploaded" ? "Uploaded" : `v${draft.versionNumber || "saved"}`} · {draft.title}</option>)}</select></label>{selectedAutofillResume ? <div className="autofill-resume-choice"><strong>{selectedAutofillResume.title}</strong><span>Selected for this package. The original is preserved.</span><button onClick={() => downloadWordDocument(`${selectedAutofillResume.title.replace(/[^a-z0-9.-]+/gi, "-")}.doc`, selectedAutofillResume.title, selectedAutofillResume.content, "resume")}>Download selected résumé</button></div> : <p className="autofill-empty-choice">Choose or upload a résumé version first. The companion will identify it for the form; you manually select the file when a website requires an upload.</p>}<pre>{autofillData}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load once in the Chrome companion, then use Scan page and Fill ready fields. Reload the extension after updating it from the companion folder.</small></div>
+        </section>}
       </section>
     </main>
   );
 }
+
