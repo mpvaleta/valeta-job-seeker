@@ -23,13 +23,13 @@ bucket_name = "valeta-job-seeker-files"
 crons = ["0 13 * * *", "0 1 * * *"]
 
 [vars]
-# Non-secret Cloudflare Access identifiers, filled in once the Access
-# Application is created (Zero Trust > Access > Applications). These are
-# public identifiers, not credentials, so they are safe as plain vars.
-CF_ACCESS_TEAM_DOMAIN = "REPLACE_WITH_TEAM_DOMAIN" # e.g. https://your-team.cloudflareaccess.com
-CF_ACCESS_AUD = "REPLACE_WITH_ACCESS_APPLICATION_AUD"
+# Owner identity for the single shared-secret login (see lib/access-auth.ts).
+# Not a credential; safe as a plain var. The real credential is the
+# APP_TOKEN secret, pushed with `wrangler secret put APP_TOKEN`.
+APP_OWNER_EMAIL = "REPLACE_WITH_YOUR_EMAIL"
 
-# Secrets (OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, AI_ALLOWED_EMAILS,
-# LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REDIRECT_URI,
-# LINKEDIN_SESSION_SECRET, RADAR_CRON_SECRET) are never set here. They are
-# pushed with `wrangler secret put <NAME>` by the deploy workflow instead.
+# Secrets (APP_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY,
+# AI_ALLOWED_EMAILS, LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET,
+# LINKEDIN_REDIRECT_URI, LINKEDIN_SESSION_SECRET, RADAR_CRON_SECRET) are never
+# set here. They are pushed with `wrangler secret put <NAME>` by the deploy
+# workflow instead.
