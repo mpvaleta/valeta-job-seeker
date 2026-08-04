@@ -137,14 +137,22 @@ label{font-weight:600;color:#57575d}
 input,textarea,select{font-weight:400}
 .step span,.chips span,.company-title>span{font-weight:700}
 
-button{border-radius:999px;font-weight:700;padding:11px 17px}
-button.primary,.primary-link{border:0;background:var(--grad-cta);color:#fff!important;padding:13px 22px;font-size:14px;box-shadow:0 10px 26px #7c4dff3d}
+/* Pill radius is reserved for short, single-line action controls — the
+   primary CTA, tab bars, filter chips, nav items. Card-shaped buttons that
+   hold a title + description (provider/model pickers, list-row actions)
+   keep a normal rounded-rect radius, or `border-radius:999px` turns their
+   box into a circle/oval instead of a pill. */
+button{font-weight:700;padding:11px 17px;border-radius:14px}
+button.primary,.primary-link{border:0;border-radius:999px;background:var(--grad-cta);color:#fff!important;padding:13px 22px;font-size:14px;box-shadow:0 10px 26px #7c4dff3d}
 button.primary:hover,.primary-link:hover{box-shadow:0 16px 34px #7c4dff52;transform:translateY(-2px)}
 .output-tabs{border-radius:999px;overflow:hidden;border:2px solid #1d1d1f}
 .output-tabs button{border-radius:0;padding:16px 10px;font-size:13px}
 .output-tabs button.selected{background:var(--grad-cta);box-shadow:none}
-.radar-filters button.selected,.provider-picker button.selected,.model-picker button.selected{background:var(--grad-cta);border-color:transparent;color:#fff!important}
-.provider-picker button.selected strong,.provider-picker button.selected small,.model-picker button.selected strong,.model-picker button.selected small,.model-picker button.selected span{color:#fff!important}
+.radar-filters button{border-radius:999px}
+.radar-filters button.selected{background:var(--grad-cta);border-color:transparent;color:#fff}
+.provider-picker button,.model-picker button{border-radius:18px}
+.provider-picker button.selected,.model-picker button.selected{background:var(--grad-cta);border-color:transparent;color:#fff!important;box-shadow:none}
+.provider-picker button.selected strong,.provider-picker button.selected small,.model-picker button.selected strong,.model-picker button.selected small,.model-picker button.selected span,.model-picker button.selected code{color:#fff!important}
 input,textarea,select{border-radius:12px}
 
 .wordmark span{font-weight:950;font-size:34px}
@@ -156,11 +164,22 @@ input,textarea,select{border-radius:12px}
 .step b{background:var(--grad-cta);color:#fff}
 .connection-flow b{background:var(--grad-cta);color:#fff}
 
+.notice{border:0;border-radius:16px;background:linear-gradient(135deg,#eef1ff,#fdf0f7);box-shadow:0 10px 30px #1d1d1f14}
+.notice,.notice strong{color:#3d2d63;font-weight:700}
+
+/* Hero gradient panels: only recolor text elements, not every descendant —
+   forcing white on `*` also whited-out text sitting on the light buttons
+   nested inside (making them unreadable). Those buttons get an explicit
+   frosted-glass treatment instead so they read against the gradient. */
 .radar-hero,.connections-hero,.data-safety-card{background:var(--grad-hero)!important;border:0!important;color:#fff;box-shadow:0 24px 60px #7c4dff33!important}
-.radar-hero *,.connections-hero *,.data-safety-card *{color:#fff!important}
-.radar-hero span,.connections-hero span,.data-safety-card>span{color:#fff!important;opacity:.92}
+.radar-hero h2,.radar-hero p,.radar-hero span,.radar-hero>div>span,
+.connections-hero h2,.connections-hero p,.connections-hero span,
+.data-safety-card h2,.data-safety-card p,.data-safety-card>span{color:#fff!important}
+.radar-hero p,.connections-hero p,.data-safety-card p{opacity:.92}
+.radar-hero button:not(.primary),.connections-hero button:not(.primary),.data-safety-card button:not(.primary){background:#ffffff26;border-color:#ffffff55;color:#fff}
+.radar-hero button:not(.primary):hover,.connections-hero button:not(.primary):hover,.data-safety-card button:not(.primary):hover{background:#ffffff3d;border-color:#ffffff80}
 .radar-hero .radar-connection,.connections-hero .connection-verdict{background:#ffffff26!important;border-color:#ffffff40!important;backdrop-filter:blur(6px)}
-.radar-hero .radar-connection strong,.connections-hero .connection-verdict strong{color:#fff!important}
+.radar-hero .radar-connection strong,.radar-hero .radar-connection span,.connections-hero .connection-verdict strong,.connections-hero .connection-verdict span{color:#fff!important}
 
 .recommendation-card.start{border-left-width:8px;border-left-color:var(--accent-a)}
 .evidence-map,.evidence-head{border-radius:24px;overflow:hidden}
