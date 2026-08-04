@@ -117,32 +117,55 @@ input,textarea,select{border-color:#d1d1d6;border-radius:11px;background:#ffffff
 .radar-startup-bridge{display:flex;align-items:flex-start;gap:12px;margin-top:4px;border:1px solid #d9e3d4;border-radius:14px;background:#f6fbf3;padding:13px 15px}.radar-startup-bridge strong{font-size:11px;color:#2d6a1f}.radar-startup-bridge span{display:block;margin-top:3px;color:#3f4a3c;font-size:9.5px;line-height:1.5}.radar-startup-bridge span a{color:#2d6a1f;text-decoration:underline}.radar-startup-bridge small{display:block;margin-top:6px;color:#6b7566;font-size:8.5px;line-height:1.45}
 
 /* ==========================================================================
-   2026 identity refinement, take two: back to the light canvas, with a
-   clearer type hierarchy — display headings stay bold and oversized, but
-   labels, running copy, and anything you type into a field go back to a
-   normal reading weight. Buttons keep the pill shape; the primary CTA gets
-   a restrained gradient accent instead of shouting everywhere.
+   2026 identity refinement, take three: same light canvas and normal-weight
+   field text as before, but pushed harder everywhere the earlier pass was
+   timid — bigger display type, the gradient accent used throughout instead
+   of just the primary button, and a bold gradient treatment on hero/summary
+   panels like the reference. Labels/inputs stay untouched from take two.
    ========================================================================== */
 :root{
-  --accent-a:#7c4dff;--accent-b:#ff5c8a;
+  --accent-a:#7c4dff;--accent-b:#ff5c8a;--accent-c:#ff9d4d;
   --grad-cta:linear-gradient(135deg,var(--accent-a),var(--accent-b));
+  --grad-hero:linear-gradient(120deg,var(--accent-a) 0%,var(--accent-b) 55%,var(--accent-c) 100%);
 }
-h1,h2,h3{letter-spacing:-.045em}
-.topbar h1{font-size:clamp(36px,4.2vw,60px);font-weight:900;color:var(--ink)}
-.kicker{color:var(--accent-a);font-weight:900}
+h1,h2,h3{letter-spacing:-.05em}
+.topbar h1{font-size:clamp(44px,5.6vw,84px);font-weight:950;line-height:.94;color:var(--ink)}
+.kicker{color:var(--accent-a);font-weight:950;font-size:12px;letter-spacing:.2em}
+.card-heading h3,.review-heading h2,.diagnostic-head h2,.radar-section-head h2,.table-head h2,.evidence-head h2{letter-spacing:-.05em;font-weight:900}
 
 label{font-weight:600;color:#57575d}
 input,textarea,select{font-weight:400}
 .step span,.chips span,.company-title>span{font-weight:700}
 
-button{border-radius:999px;font-weight:700}
-button.primary,.primary-link{border:0;background:var(--grad-cta);color:#fff!important;box-shadow:0 8px 22px #7c4dff2e}
-button.primary:hover,.primary-link:hover{box-shadow:0 12px 28px #7c4dff40;transform:translateY(-1px)}
-.output-tabs{border-radius:999px;overflow:hidden}
-.output-tabs button{border-radius:0}
+button{border-radius:999px;font-weight:700;padding:11px 17px}
+button.primary,.primary-link{border:0;background:var(--grad-cta);color:#fff!important;padding:13px 22px;font-size:14px;box-shadow:0 10px 26px #7c4dff3d}
+button.primary:hover,.primary-link:hover{box-shadow:0 16px 34px #7c4dff52;transform:translateY(-2px)}
+.output-tabs{border-radius:999px;overflow:hidden;border:2px solid #1d1d1f}
+.output-tabs button{border-radius:0;padding:16px 10px;font-size:13px}
 .output-tabs button.selected{background:var(--grad-cta);box-shadow:none}
-.radar-filters button.selected{background:var(--grad-cta);border-color:transparent;color:#fff}
+.radar-filters button.selected,.provider-picker button.selected,.model-picker button.selected{background:var(--grad-cta);border-color:transparent;color:#fff!important}
+.provider-picker button.selected strong,.provider-picker button.selected small,.model-picker button.selected strong,.model-picker button.selected small,.model-picker button.selected span{color:#fff!important}
 input,textarea,select{border-radius:12px}
 
-.wordmark span{font-weight:900}
+.wordmark span{font-weight:950;font-size:34px}
+.wordmark small{color:var(--accent-b)}
 .nav-item{border-radius:999px}
+.nav-item.active{background:var(--grad-cta)!important;color:#fff!important;box-shadow:0 6px 18px #7c4dff40!important}
+
+.status-pill i{background:var(--accent-a)}
+.step b{background:var(--grad-cta);color:#fff}
+.connection-flow b{background:var(--grad-cta);color:#fff}
+
+.radar-hero,.connections-hero,.data-safety-card{background:var(--grad-hero)!important;border:0!important;color:#fff;box-shadow:0 24px 60px #7c4dff33!important}
+.radar-hero *,.connections-hero *,.data-safety-card *{color:#fff!important}
+.radar-hero span,.connections-hero span,.data-safety-card>span{color:#fff!important;opacity:.92}
+.radar-hero .radar-connection,.connections-hero .connection-verdict{background:#ffffff26!important;border-color:#ffffff40!important;backdrop-filter:blur(6px)}
+.radar-hero .radar-connection strong,.connections-hero .connection-verdict strong{color:#fff!important}
+
+.recommendation-card.start{border-left-width:8px;border-left-color:var(--accent-a)}
+.evidence-map,.evidence-head{border-radius:24px;overflow:hidden}
+.input-card,.output-card,.profile-workspace,.table-card,.autofill-intro,.autofill-package,.document-import,.fact-review,.target-form,.target-directory,.ai-status-card,.ai-explainer,.guardrail-grid article,.diagnostic-card,
+.resume-library,.data-safety-card,.version-history-card,.radar-config-grid>article,.radar-targets-section,.radar-inbox,.connections-grid>article,.linkedin-next-step{
+  border-radius:26px;transition:box-shadow .2s ease,transform .2s ease
+}
+.chips span,.company-title>span,.source-detected{background:linear-gradient(135deg,#f1ebff,#ffe9f1)!important;border-color:#e6d9ff!important;color:#5a3ea8!important}
