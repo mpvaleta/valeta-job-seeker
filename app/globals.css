@@ -117,91 +117,32 @@ input,textarea,select{border-color:#d1d1d6;border-radius:11px;background:#ffffff
 .radar-startup-bridge{display:flex;align-items:flex-start;gap:12px;margin-top:4px;border:1px solid #d9e3d4;border-radius:14px;background:#f6fbf3;padding:13px 15px}.radar-startup-bridge strong{font-size:11px;color:#2d6a1f}.radar-startup-bridge span{display:block;margin-top:3px;color:#3f4a3c;font-size:9.5px;line-height:1.5}.radar-startup-bridge span a{color:#2d6a1f;text-decoration:underline}.radar-startup-bridge small{display:block;margin-top:6px;color:#6b7566;font-size:8.5px;line-height:1.45}
 
 /* ==========================================================================
-   2026 bold identity redesign: dark canvas, oversized display type, pill
-   controls, and a signature gradient treatment on hero/summary surfaces.
-   Tokens below are new (not reusing --ink/--white, which older rules still
-   read as text/background in a few spots) so this layers on top cleanly.
-   Resume/document preview surfaces (.resume-paper, .structured-resume) stay
-   light on purpose — they represent a printable page, not app chrome.
+   2026 identity refinement, take two: back to the light canvas, with a
+   clearer type hierarchy — display headings stay bold and oversized, but
+   labels, running copy, and anything you type into a field go back to a
+   normal reading weight. Buttons keep the pill shape; the primary CTA gets
+   a restrained gradient accent instead of shouting everywhere.
    ========================================================================== */
 :root{
-  --surface-0:#0a0a0d;--surface-1:#151519;--surface-2:#1e1e24;
-  --text-hi:#f6f6f8;--text-lo:#9a99a6;--edge:#2a2a32;
-  --pop-a:#ff6b57;--pop-b:#c04cff;--pop-c:#4d7cff;--pop-green:#d9ff66;
-  --grad-hero:linear-gradient(135deg,#2a1240 0%,#5a1f4e 38%,#ff7a45 100%);
-  --grad-cta:linear-gradient(135deg,var(--pop-b),var(--pop-a));
-  --muted:var(--text-lo);--line:var(--edge);
+  --accent-a:#7c4dff;--accent-b:#ff5c8a;
+  --grad-cta:linear-gradient(135deg,var(--accent-a),var(--accent-b));
 }
-html{background:var(--surface-0)}
-body{background:radial-gradient(circle at 85% -10%,#3a1f5c33 0,transparent 40%),radial-gradient(circle at -5% 40%,#1f2f5c33 0,transparent 45%),var(--surface-0);color:var(--text-hi)}
-::selection{background:var(--pop-green);color:#141414}
-.main-stage{color:var(--text-hi)}
-h1,h2,h3{font-weight:900;letter-spacing:-.055em}
-.topbar h1{font-size:clamp(40px,4.8vw,74px);background:linear-gradient(135deg,#fff 30%,#c7b8ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.kicker{color:var(--pop-green);font-weight:900}
-.status-pill{border-color:var(--edge);background:var(--surface-2)ee;color:var(--text-hi);border-radius:999px}
-.status-pill i{background:var(--pop-green)}
+h1,h2,h3{letter-spacing:-.045em}
+.topbar h1{font-size:clamp(36px,4.2vw,60px);font-weight:900;color:var(--ink)}
+.kicker{color:var(--accent-a);font-weight:900}
 
-button{border-radius:999px;border-color:var(--edge);background:var(--surface-2);color:var(--text-hi);font-weight:800;box-shadow:none}
-button:hover{border-color:#4a4a56;background:#26262e;transform:translateY(-1px)}
-button.primary,.primary-link{border:0;background:var(--grad-cta);color:#fff!important;box-shadow:0 10px 30px #c04cff33}
-button.primary:hover,.primary-link:hover{box-shadow:0 14px 38px #c04cff4d;transform:translateY(-2px)}
-.output-tabs{border-radius:999px;overflow:hidden;border:1px solid var(--edge);background:var(--surface-1)}
-.output-tabs button{border:0;border-right:1px solid var(--edge);border-radius:0;background:transparent;color:var(--text-lo)}
-.output-tabs button.selected{background:var(--grad-cta);color:#fff;box-shadow:none}
+label{font-weight:600;color:#57575d}
+input,textarea,select{font-weight:400}
+.step span,.chips span,.company-title>span{font-weight:700}
+
+button{border-radius:999px;font-weight:700}
+button.primary,.primary-link{border:0;background:var(--grad-cta);color:#fff!important;box-shadow:0 8px 22px #7c4dff2e}
+button.primary:hover,.primary-link:hover{box-shadow:0 12px 28px #7c4dff40;transform:translateY(-1px)}
+.output-tabs{border-radius:999px;overflow:hidden}
+.output-tabs button{border-radius:0}
+.output-tabs button.selected{background:var(--grad-cta);box-shadow:none}
 .radar-filters button.selected{background:var(--grad-cta);border-color:transparent;color:#fff}
+input,textarea,select{border-radius:12px}
 
-input,textarea,select{background:var(--surface-2);border-color:var(--edge);color:var(--text-hi);border-radius:14px}
-input::placeholder,textarea::placeholder{color:var(--text-lo)}
-input:focus,textarea:focus,select:focus{border-color:var(--pop-c);box-shadow:0 0 0 4px #4d7cff26}
-label{color:var(--text-lo)}
-
-.nav-panel{background:linear-gradient(180deg,#0a0a0d 0,#141418 100%);border-right:1px solid var(--edge)}
-.wordmark span{background:linear-gradient(135deg,#fff,#c7b8ff);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:33px}
-.wordmark small{color:var(--pop-green)}
-.nav-item{border-radius:999px;color:var(--text-lo)}
-.nav-item:hover,.nav-item.active{background:var(--surface-2);color:var(--text-hi);box-shadow:none}
-.nav-item.active{box-shadow:inset 0 0 0 1px var(--pop-green)}
-.nav-note{border-top-color:var(--edge)}.nav-note strong{color:var(--pop-green)}.nav-note span{color:var(--text-lo)}
-
-.input-card,.output-card,.profile-workspace,.table-card,.autofill-intro,.autofill-package,.document-import,.fact-review,.target-form,.target-directory,.ai-status-card,.ai-explainer,.guardrail-grid article,.diagnostic-card,
-.resume-library,.data-safety-card,.version-history-card,.evidence-map,.evidence-head,
-.radar-config-grid>article,.radar-targets-section,.radar-inbox,.connections-grid>article,.linkedin-next-step,
-.radar-metrics,.radar-connection,.connection-verdict,
-.upload-zone,.paste-fallback,.source-card header,.source-card,
-.role-history,.voice-source-archive,.knowledge-summary,
-.resume-history-panel,.resume-usage-grid,.similar-resumes article,
-.model-diagnostic-strip,.ai-model-diagnostics{
-  background:var(--surface-1)!important;border-color:var(--edge)!important;color:var(--text-hi);
-  box-shadow:0 24px 60px #00000066!important;border-radius:22px
-}
-.radar-hero,.connections-hero,.data-safety-card{
-  background:var(--grad-hero)!important;border:0!important;color:#fff;border-radius:26px
-}
-.radar-hero p,.connections-hero p,.data-safety-card p{color:#f0e6ff!important}
-.radar-hero .radar-connection,.connections-hero .connection-verdict{background:#00000030!important;border-color:#ffffff30!important;color:#fff}
-.radar-hero .radar-connection span,.connections-hero .connection-verdict span{color:#f0e6ff!important}
-
-.recommendation-card,.consistency-panel,.playbook-banner,.curated-playbook-card,.conflict-card,.conflict-sides>div,.duplicate-cluster,
-.scope-preview,.link-intake,.link-source-import,.setup-note,.ready-note,.knowledge-cta,.privacy-strip,
-.resume-ai-toolbar,.resume-provenance,.resume-review-card,.workspace-feedback,.voice-sample-review,
-.autofill-resume-choice,.autofill-empty-choice,.evidence-cleanup-banner,.radar-import,.radar-linkedin-bridge,
-.resume-quality,.resume-standards,.resume-reuse,.paste-external-draft,.radar-startup-bridge,.candidate-batch,
-.integration-safety,.api-capability,.radar-safety-note,.scheduler-note{
-  background:var(--surface-2)!important;border-color:var(--edge)!important;color:var(--text-hi);border-radius:16px
-}
-.chips span,.company-title>span,.source-category,.strength,.source-status,.source-scope,.opportunity-tags em,
-.curated-meta span,.source-detected,.resume-standards-stats span,.ai-model-diagnostics li,.opportunity-score,
-.track-card-head span,.knowledge-summary strong,.step b,.connection-flow b{
-  background:#ffffff14!important;border-color:#ffffff22!important;color:var(--text-hi)!important
-}
-.notice{background:var(--surface-2)!important;border-color:var(--edge)!important;color:var(--text-hi)!important;border-radius:16px}
-.notice.success{color:#8ce6ab!important}.notice.error{color:#ff9a90!important}.notice.info{color:#8fb3ff!important}.notice.pending{color:#ffd479!important}
-
-.evidence-map article,.radar-target-list article,.radar-opportunity-list article,.application-list article,.company-list>article,
-.resume-version-list article,.version-history-list article,.candidate-list>div{border-top-color:var(--edge)!important}
-.table-head,.review-heading,.diagnostic-head,.card-heading,.radar-section-head{border-bottom-color:var(--edge)!important}
-.empty-state{color:var(--text-lo)}.empty-state strong{color:var(--text-hi)}
-.fatal-error{background:var(--surface-0)}.fatal-error>section{background:var(--surface-1);border-color:var(--edge);box-shadow:0 24px 70px #00000080}
-.draft-editor{background:var(--surface-2);color:var(--text-hi)}
-
+.wordmark span{font-weight:900}
+.nav-item{border-radius:999px}
