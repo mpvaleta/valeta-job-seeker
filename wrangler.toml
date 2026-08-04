@@ -3,13 +3,10 @@ main = "./worker/index.ts"
 compatibility_date = "2026-05-22"
 compatibility_flags = ["nodejs_compat"]
 
-# TODO(cloudflare-migration): replace with the real database_id once
-# `wrangler d1 create valeta-job-seeker-db` has been run against the real
-# Cloudflare account (see docs/mvp-roadmap.md deployment notes).
 [[d1_databases]]
 binding = "DB"
 database_name = "valeta-job-seeker-db"
-database_id = "REPLACE_WITH_REAL_D1_DATABASE_ID"
+database_id = "1fd787e4-4af7-4076-a3db-dea726b31940"
 
 # TODO(cloudflare-migration): create with `wrangler r2 bucket create
 # valeta-job-seeker-files` first; the bucket name below must match exactly.
@@ -26,7 +23,7 @@ crons = ["0 13 * * *", "0 1 * * *"]
 # Owner identity for the single shared-secret login (see lib/access-auth.ts).
 # Not a credential; safe as a plain var. The real credential is the
 # APP_TOKEN secret, pushed with `wrangler secret put APP_TOKEN`.
-APP_OWNER_EMAIL = "REPLACE_WITH_YOUR_EMAIL"
+APP_OWNER_EMAIL = "marcos.valeta@gmail.com"
 
 # Secrets (APP_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY,
 # AI_ALLOWED_EMAILS, LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET,
