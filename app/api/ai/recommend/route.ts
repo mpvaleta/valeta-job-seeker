@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { beginAiReview, finishAiReview } from "@/lib/ai-security-store";
 import { isTrustedSameOriginMutation } from "@/lib/request-security";
+import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
 
 export const dynamic = "force-dynamic";
 
 const MAX_BODY_BYTES = 120_000;
 const MAX_JOB_TEXT = 40_000;
 const MAX_FACTS = 250;
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
 
 type ProviderId = "openai" | "anthropic" | "google";
 type ModelKey = "reliable" | "balanced" | "fast";
@@ -129,7 +129,7 @@ function providerRegistry(): ProviderDefinition[] {
 }
 
 export async function GET(request: Request) {
-  const identity = authenticatedIdentity(request);
+  const identity = await authenticatedIdentity(request);
   const authorized = Boolean(identity && isAllowedIdentity(identity));
   const providers = providerRegistry().map((provider) => ({
     id: provider.id,
@@ -172,8 +172,15 @@ export async function POST(request: Request) {
   const provider = providerRegistry().find((item) => item.id === input.provider)!;
   const model = provider.models.find((item) => item.key === input.modelKey)!;
   if (!provider.apiKey) return error(503, "provider_not_configured", `${provider.name} is not connected yet. The verified local recommendation remains available.`, { localFallback: true, provider: provider.id, model: model.id });
-  const identity = authenticatedIdentity(request);
-  if (!identity) return error(401, "authentication_required", "Sign in through ChatGPT before using cloud AI. The verified local recommendation remains active.", { localFallback: true, provider: provider.id, model: model.id });
+  let identity: string;
+  try {
+    identity = (await resolveAccessIdentity(request)).email;
+  } catch (cause) {
+    const code = cause instanceof AccessAuthError ? cause.code : "authentication_required";
+    const status = cause instanceof AccessAuthError && cause.code === "not_configured" ? 503 : 401;
+    const message = cause instanceof AccessAuthError ? cause.message : "Sign in before using cloud AI. The verified local recommendation remains active.";
+    return error(status, code, message, { localFallback: true, provider: provider.id, model: model.id });
+  }
   if (!isAllowedIdentity(identity)) return error(403, "access_not_allowed", "This account is not on the cloud AI access list. The verified local recommendation remains active.", { localFallback: true, provider: provider.id, model: model.id });
   let audit: Awaited<ReturnType<typeof beginAiReview>>;
   try {
@@ -302,8 +309,12 @@ function boundedNumber(value: unknown, minimum: number, maximum: number) {
   return Math.max(minimum, Math.min(maximum, Math.round(value)));
 }
 
-function authenticatedIdentity(request: Request) {
-  return request.headers.get(USER_EMAIL_HEADER)?.trim().toLowerCase() || null;
+async function authenticatedIdentity(request: Request) {
+  try {
+    return (await resolveAccessIdentity(request)).email;
+  } catch {
+    return null;
+  }
 }
 
 function isAllowedIdentity(identity: string) {

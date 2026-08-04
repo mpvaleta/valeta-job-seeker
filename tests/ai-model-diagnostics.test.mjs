@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+
+await installAccessEnv();
+const ACCESS_HEADER = await accessHeaders("owner@example.com");
 
 async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -14,7 +18,7 @@ test("model diagnostics require same-origin authenticated access", async () => {
   const worker = await loadWorker();
   const anonymous = await worker.fetch(new Request("http://localhost/api/ai/models", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }), env, context);
   assert.equal(anonymous.status, 401);
-  const crossSite = await worker.fetch(new Request("http://localhost/api/ai/models", { method: "POST", headers: { "content-type": "application/json", origin: "https://attacker.example", "sec-fetch-site": "cross-site", "oai-authenticated-user-email": "owner@example.com" }, body: "{}" }), env, context);
+  const crossSite = await worker.fetch(new Request("http://localhost/api/ai/models", { method: "POST", headers: { "content-type": "application/json", origin: "https://attacker.example", "sec-fetch-site": "cross-site", ...ACCESS_HEADER }, body: "{}" }), env, context);
   assert.equal(crossSite.status, 403);
 });
 
@@ -40,7 +44,7 @@ test("model diagnostics verify exact configured IDs without generating content",
   };
   try {
     const worker = await loadWorker();
-    const response = await worker.fetch(new Request("http://localhost/api/ai/models", { method: "POST", headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" }, body: "{}" }), env, context);
+    const response = await worker.fetch(new Request("http://localhost/api/ai/models", { method: "POST", headers: { "content-type": "application/json", ...ACCESS_HEADER }, body: "{}" }), env, context);
     const data = await response.json();
     assert.equal(response.status, 200);
     assert.equal(data.ok, true);
@@ -76,7 +80,7 @@ test("selected-model diagnostics distinguish catalog access from billable genera
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/models", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ live: true, provider: "openai", modelKey: "fast" }),
     }), env, context);
     const data = await response.json();

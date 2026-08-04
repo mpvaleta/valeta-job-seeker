@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+
+await installAccessEnv();
+const ACCESS_HEADER = await accessHeaders("owner@example.com");
 
 async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -65,7 +69,7 @@ test("resume generation requires same-origin authentication and a configured pro
   const worker = await loadWorker();
   const crossSite = await worker.fetch(new Request("http://localhost/api/ai/resume", {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "https://attacker.example", "sec-fetch-site": "cross-site", "oai-authenticated-user-email": "owner@example.com" },
+    headers: { "content-type": "application/json", origin: "https://attacker.example", "sec-fetch-site": "cross-site", ...ACCESS_HEADER },
     body: JSON.stringify(body),
   }), env, context);
   assert.equal(crossSite.status, 403);
@@ -87,7 +91,7 @@ test("resume generation validates every candidate claim against approved fact in
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify(body),
     }), env, context);
     const data = await response.json();
@@ -120,7 +124,7 @@ test("resume generation rejects any out-of-range evidence citation", async () =>
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify(body),
     }), env, context);
     const data = await response.json();
@@ -142,7 +146,7 @@ test("resume generation rejects an invented claim even when it cites a valid but
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify(body),
     }), env, context);
     const data = await response.json();
@@ -170,7 +174,7 @@ test("resume generation automatically repairs one guardrail failure and returns 
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ ...body, userRuleLibraryCount: 47 }),
     }), env, context);
     const data = await response.json();
@@ -196,7 +200,7 @@ test("resume generation preserves a useful draft and flags a missing provider pl
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify(body),
     }), env, context);
     const data = await response.json();
@@ -227,7 +231,7 @@ test("Gemini adapter uses generateContent so free-tier API projects can use supp
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ ...body, provider: "google", modelKey: "fast" }),
     }), env, context);
     assert.equal(response.status, 200);
@@ -259,7 +263,7 @@ test("resume generation refuses keyword stems and fragments even when a provider
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ ...body, approvedFacts: keywordFacts }),
     }), env, context);
     const data = await response.json();
@@ -286,7 +290,7 @@ test("Gemini unavailable models fall back once to the stable compatibility model
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ ...body, provider: "google", modelKey: "balanced" }),
     }), env, context);
     const data = await response.json();
@@ -322,7 +326,7 @@ test("an invented metric is rejected even when its digits appear inside a cited 
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify(body),
     }), env, context);
     assert.equal(response.status, 503);
@@ -354,7 +358,7 @@ test("a metric that genuinely appears in the cited evidence is still accepted", 
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ ...body, approvedFacts: supportedFacts }),
     }), env, context);
     const data = await response.json();
@@ -388,7 +392,7 @@ test("a reasoning item's id is never mistaken for the résumé document", async 
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify(body),
     }), env, context);
     const data = await response.json();
@@ -419,7 +423,7 @@ test("a response truncated at the output limit names the real cause", async () =
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify(body),
     }), env, context);
     assert.equal(response.status, 503);
@@ -448,7 +452,7 @@ test("a transient rate limit is retried before the request is failed", async () 
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ ...body, provider: "anthropic", modelKey: "balanced" }),
     }), env, context);
     const data = await response.json();
@@ -478,7 +482,7 @@ test("JSON wrapped in prose is recovered instead of failing the request", async 
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ ...body, provider: "google", modelKey: "balanced" }),
     }), env, context);
     const data = await response.json();
@@ -511,7 +515,7 @@ test("the draft report scores a thin résumé low and names what to review", asy
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/resume", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ ...body, approvedFacts: spareFacts }),
     }), env, context);
     const data = await response.json();

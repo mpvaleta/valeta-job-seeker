@@ -15,6 +15,7 @@ import {
 } from "@/lib/radar-store";
 import { isLinkedInUrl, validatePublicUrl } from "@/lib/public-link-reader.mjs";
 import { getRuntimeDatabase } from "@/lib/runtime-bindings";
+import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +26,6 @@ function automationState() {
   };
 }
 
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
-const USER_NAME_HEADER = "oai-authenticated-user-full-name";
-const USER_NAME_ENCODING_HEADER = "oai-authenticated-user-full-name-encoding";
 const MAX_BODY_BYTES = 30_000;
 const SCAN_WINDOW_MS = 30 * 60 * 1_000;
 const SCAN_LIMIT = 8;
@@ -35,7 +33,7 @@ const scanRequests = new Map<string, number[]>();
 
 export async function GET(request: Request) {
   try {
-    const identity = requireIdentity(request);
+    const identity = await requireIdentity(request);
     const db = getRuntimeDatabase();
     const user = await ensureRadarUser(db, identity.email, identity.name);
     const dashboard = await readRadarDashboard(db, user.id);
@@ -53,7 +51,7 @@ export async function POST(request: Request) {
   if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) return error(413, "request_too_large", "The radar request is too large.");
 
   try {
-    const identity = requireIdentity(request);
+    const identity = await requireIdentity(request);
     const db = getRuntimeDatabase();
     const user = await ensureRadarUser(db, identity.email, identity.name);
     const input = JSON.parse(raw) as Record<string, unknown>;
@@ -146,15 +144,17 @@ export async function POST(request: Request) {
   }
 }
 
-function requireIdentity(request: Request) {
-  const email = request.headers.get(USER_EMAIL_HEADER)?.trim().toLowerCase();
-  if (!email) throw new RadarHttpError(401, "authentication_required", "Open V’s Job Seeker through your signed-in ChatGPT account to use the private radar.");
-  const encodedName = request.headers.get(USER_NAME_HEADER);
-  let name: string | null = null;
-  if (encodedName && request.headers.get(USER_NAME_ENCODING_HEADER) === "percent-encoded-utf-8") {
-    try { name = decodeURIComponent(encodedName); } catch { name = null; }
+async function requireIdentity(request: Request) {
+  try {
+    const identity = await resolveAccessIdentity(request);
+    return { email: identity.email, name: null as string | null };
+  } catch (cause) {
+    if (cause instanceof AccessAuthError) {
+      const status = cause.code === "not_configured" ? 503 : 401;
+      throw new RadarHttpError(status, cause.code, cause.message);
+    }
+    throw cause;
   }
-  return { email, name };
 }
 
 function publicScanUrl(value: string) {

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { isTrustedSameOriginMutation } from "@/lib/request-security";
 import { PublicLinkError, readPublicLink } from "@/lib/public-link-reader.mjs";
+import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
 
 export const dynamic = "force-dynamic";
 
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
 const MAX_BODY_BYTES = 12_000;
 const RATE_WINDOW_MS = 10 * 60 * 1_000;
 const RATE_LIMIT = 30;
@@ -14,8 +14,13 @@ type LinkPurpose = "knowledge" | "radar" | "role";
 
 export async function POST(request: Request) {
   if (!isTrustedSameOriginMutation(request)) return NextResponse.json({ ok: false, code: "cross_site_request_blocked", message: "This protected action must start inside V’s Job Seeker." }, { status: 403 });
-  const identity = request.headers.get(USER_EMAIL_HEADER)?.trim().toLowerCase();
-  if (!identity) return error(401, "authentication_required", "Open V’s Job Seeker through your signed-in ChatGPT account before reading a public link.");
+  let identity: string;
+  try {
+    identity = (await resolveAccessIdentity(request)).email;
+  } catch (cause) {
+    if (cause instanceof AccessAuthError) return error(cause.code === "not_configured" ? 503 : 401, cause.code, cause.message);
+    throw cause;
+  }
   const retryAfterSeconds = rateLimitRetryAfter(identity);
   if (retryAfterSeconds > 0) return error(429, "rate_limited", `Too many links were requested. Try again in about ${Math.ceil(retryAfterSeconds / 60)} minutes, or paste the text instead.`, { "Retry-After": String(retryAfterSeconds) });
 

@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   if (!code || !returnedState || returnedState !== storedState) return fail("invalid-state");
   const state = await verifyPayload<StatePayload>(returnedState, config.sessionSecret);
   if (!state?.owner) return fail("expired-state");
-  const currentOwner = authenticatedEmail(request);
+  const currentOwner = await authenticatedEmail(request);
   if (!currentOwner || currentOwner !== state.owner) return fail("account-mismatch");
   try {
     const user = await exchangeLinkedInCode(config, code);

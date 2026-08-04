@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { Miniflare } from "miniflare";
+import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+
+await installAccessEnv();
 
 async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -27,7 +30,7 @@ async function createDatabase() {
 }
 
 const context = { waitUntil() {}, passThroughOnException() {} };
-const headers = { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" };
+const headers = { "content-type": "application/json", ...(await accessHeaders("owner@example.com")) };
 
 test("private radar persists goals, targets, discoveries, and approval state", async () => {
   const { mf, db } = await createDatabase();

@@ -1,0 +1,32 @@
+name = "valeta-job-seeker"
+main = "./worker/index.ts"
+compatibility_date = "2026-05-22"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "valeta-job-seeker-db"
+database_id = "1fd787e4-4af7-4076-a3db-dea726b31940"
+
+# TODO(cloudflare-migration): create with `wrangler r2 bucket create
+# valeta-job-seeker-files` first; the bucket name below must match exactly.
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "valeta-job-seeker-files"
+
+# Twice-daily background radar scan, now that a real Cloudflare account can
+# configure a native Cron Trigger (ChatGPT Sites hosting did not expose this).
+[triggers]
+crons = ["0 13 * * *", "0 1 * * *"]
+
+[vars]
+# Owner identity for the single shared-secret login (see lib/access-auth.ts).
+# Not a credential; safe as a plain var. The real credential is the
+# APP_TOKEN secret, pushed with `wrangler secret put APP_TOKEN`.
+APP_OWNER_EMAIL = "marcos.valeta@gmail.com"
+
+# Secrets (APP_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY,
+# AI_ALLOWED_EMAILS, LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET,
+# LINKEDIN_REDIRECT_URI, LINKEDIN_SESSION_SECRET, RADAR_CRON_SECRET) are never
+# set here. They are pushed with `wrangler secret put <NAME>` by the deploy
+# workflow instead.

@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+
+await installAccessEnv();
+const ACCESS_HEADER = await accessHeaders("owner@example.com");
 
 async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -34,7 +38,7 @@ test("authenticated public-link import returns bounded readable content", async 
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/link/read", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ url: "https://career.example/resume-guidance", purpose: "knowledge" }),
     }), env, context);
     const data = await response.json();
@@ -57,7 +61,7 @@ test("authenticated LinkedIn URLs are refused before network access", async () =
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/link/read", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({ url: "https://www.linkedin.com/jobs/view/123", purpose: "role" }),
     }), env, context);
     const data = await response.json();

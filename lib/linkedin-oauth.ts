@@ -1,3 +1,5 @@
+import { resolveAccessIdentity } from "./access-auth.ts";
+
 const AUTHORIZATION_ENDPOINT = "https://www.linkedin.com/oauth/v2/authorization";
 const TOKEN_ENDPOINT = "https://www.linkedin.com/oauth/v2/accessToken";
 const USERINFO_ENDPOINT = "https://api.linkedin.com/v2/userinfo";
@@ -37,8 +39,12 @@ export function getLinkedInConfig(): LinkedInConfig {
   return { clientId, clientSecret, redirectUri, sessionSecret, configured: missing.length === 0, missing };
 }
 
-export function authenticatedEmail(request: Request) {
-  return request.headers.get("oai-authenticated-user-email")?.trim().toLowerCase() || "";
+export async function authenticatedEmail(request: Request) {
+  try {
+    return (await resolveAccessIdentity(request)).email;
+  } catch {
+    return "";
+  }
 }
 
 export function authorizationUrl(config: LinkedInConfig, state: string) {

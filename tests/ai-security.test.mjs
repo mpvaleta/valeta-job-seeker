@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import { Miniflare } from "miniflare";
+import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+
+await installAccessEnv();
+const ACCESS_HEADER = await accessHeaders("owner@example.com");
 
 async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -51,7 +55,7 @@ test("cloud AI records a durable usage audit without storing prompts or career f
   try {
     const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
       method: "POST",
-      headers: { "content-type": "application/json", "oai-authenticated-user-email": "owner@example.com" },
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify({
         provider: "openai",
         modelKey: "reliable",
