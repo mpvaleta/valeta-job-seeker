@@ -660,6 +660,22 @@ export function JobSeekerApp() {
   }
 
   useEffect(() => {
+    // The access token normally arrives once, in the URL (?token=...). Every
+    // API call after this one is a plain same-origin fetch with no token
+    // attached, so without this the first request works and everything
+    // after it 401s. Storing it as a cookie here makes the browser resend it
+    // automatically on every subsequent fetch; the token is then stripped
+    // from the visible URL so it doesn't linger in history or get shared.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+      if (token) {
+        document.cookie = `vjobs_token=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+        params.delete("token");
+        const nextSearch = params.toString();
+        window.history.replaceState(null, "", window.location.pathname + (nextSearch ? `?${nextSearch}` : "") + window.location.hash);
+      }
+    } catch {}
     const timer = window.setTimeout(() => setBrowserStateReady(true), 0);
     return () => window.clearTimeout(timer);
   }, []);
