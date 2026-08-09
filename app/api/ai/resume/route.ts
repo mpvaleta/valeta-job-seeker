@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { beginAiReview, finishAiReview } from "@/lib/ai-security-store";
 import { isTrustedSameOriginMutation } from "@/lib/request-security";
-import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
+import { AccessAuthError, isAllowedIdentity, resolveAccessIdentity } from "@/lib/access-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -828,11 +828,6 @@ function text(value: unknown, maxLength: number) {
 
 function optionalText(value: unknown, maxLength: number) {
   return value == null ? "" : text(value, maxLength).trim();
-}
-
-function isAllowedIdentity(identity: string) {
-  const allowlist = process.env.AI_ALLOWED_EMAILS?.split(",").map((item) => item.trim().toLowerCase()).filter(Boolean) || [];
-  return allowlist.length === 0 || allowlist.includes(identity);
 }
 
 function extractText(provider: ProviderId, payload: Record<string, unknown>) {
