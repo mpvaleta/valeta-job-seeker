@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isTrustedSameOriginMutation } from "@/lib/request-security";
-import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
+import { AccessAuthError, isAllowedIdentity, resolveAccessIdentity } from "@/lib/access-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -205,11 +205,6 @@ function diagnosticMessage(provider: string, code: string) {
   if (/quota|billing|resource_exhausted|rate_limit/i.test(code)) return `${provider} reports no available quota for this API project.`;
   if (/key|auth|permission|forbidden|unauth/i.test(code)) return `${provider} rejected this API key or its permissions.`;
   return `${provider} rejected the model catalog check (${code || "unknown error"}).`;
-}
-
-function isAllowedIdentity(identity: string) {
-  const allowlist = process.env.AI_ALLOWED_EMAILS?.split(",").map((item) => item.trim().toLowerCase()).filter(Boolean) || [];
-  return !allowlist.length || allowlist.includes(identity);
 }
 
 function safeCode(value: unknown) {

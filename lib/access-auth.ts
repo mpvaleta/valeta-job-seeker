@@ -13,6 +13,29 @@ export class AccessAuthError extends Error {
   }
 }
 
+function timingSafeEqual(a: string, b: string): boolean {
+  const bufA = new TextEncoder().encode(a);
+  const bufB = new TextEncoder().encode(b);
+  if (bufA.length !== bufB.length) return false;
+  let diff = 0;
+  for (let i = 0; i < bufA.length; i++) diff |= bufA[i] ^ bufB[i];
+  return diff === 0;
+}
+
+/**
+ * Gates cloud AI usage (separate from resolveAccessIdentity, which only
+ * checks the shared token). When AI_ALLOWED_EMAILS is unset, only the
+ * configured owner is allowed — not every token holder — so a deployment
+ * that never set the allowlist doesn't silently open paid AI calls to
+ * anyone who has the app token.
+ */
+export function isAllowedIdentity(identity: string): boolean {
+  const configured = process.env.AI_ALLOWED_EMAILS?.split(",").map((item) => item.trim().toLowerCase()).filter(Boolean) || [];
+  if (configured.length > 0) return configured.includes(identity);
+  const ownerEmail = process.env.APP_OWNER_EMAIL?.trim().toLowerCase();
+  return Boolean(ownerEmail) && identity === ownerEmail;
+}
+
 export function extractAccessToken(request: Request): string | null {
   const header = request.headers.get(ACCESS_TOKEN_HEADER);
   if (header?.trim()) {
@@ -51,7 +74,7 @@ export async function resolveAccessIdentity(request: Request): Promise<AccessIde
   if (!token) {
     throw new AccessAuthError("authentication_required", "Add your access token to continue.");
   }
-  if (token !== expectedToken) {
+  if (!timingSafeEqual(token, expectedToken)) {
     throw new AccessAuthError("invalid_token", "Your access token is invalid.");
   }
   const url = new URL(request.url);
