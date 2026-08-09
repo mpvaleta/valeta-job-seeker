@@ -272,7 +272,11 @@ test("a configured server key is not usable by anonymous requests", async () => 
   }
 });
 
-test("the optional account allowlist blocks an authenticated but unapproved visitor", async () => {
+test("a valid token cannot claim an identity outside the allowlist", async () => {
+  // resolveAccessIdentity only honors a claimed email that is the owner or
+  // on AI_ALLOWED_EMAILS, so an unapproved visitor is rejected before any
+  // route-level check runs — holding the shared token lets you claim to be
+  // someone this deployment was shared with, not anyone you can think of.
   const originalKey = process.env.OPENAI_API_KEY;
   const originalAllowed = process.env.AI_ALLOWED_EMAILS;
   process.env.OPENAI_API_KEY = "test-key-that-is-never-sent";
@@ -282,6 +286,35 @@ test("the optional account allowlist blocks an authenticated but unapproved visi
     const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
       method: "POST",
       headers: { "content-type": "application/json", ...VISITOR_ACCESS_HEADER },
+      body: JSON.stringify(validRequestBody),
+    }), env, context);
+    const data = await response.json();
+
+    assert.equal(response.status, 401);
+    assert.equal(data.code, "identity_not_allowed");
+    assert.equal(data.localFallback, true);
+  } finally {
+    if (originalKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = originalKey;
+    if (originalAllowed === undefined) delete process.env.AI_ALLOWED_EMAILS;
+    else process.env.AI_ALLOWED_EMAILS = originalAllowed;
+  }
+});
+
+test("the AI-specific allowlist still blocks an approved-identity owner who isn't listed for AI", async () => {
+  // Edge case where the two checks diverge: resolveAccessIdentity always
+  // trusts the owner, but isAllowedIdentity requires explicit membership
+  // once AI_ALLOWED_EMAILS is non-empty, so an owner left off a
+  // deliberately curated AI allowlist still can't use paid AI calls.
+  const originalKey = process.env.OPENAI_API_KEY;
+  const originalAllowed = process.env.AI_ALLOWED_EMAILS;
+  process.env.OPENAI_API_KEY = "test-key-that-is-never-sent";
+  process.env.AI_ALLOWED_EMAILS = "friend@example.com";
+  try {
+    const worker = await loadWorker();
+    const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...ACCESS_HEADER },
       body: JSON.stringify(validRequestBody),
     }), env, context);
     const data = await response.json();
