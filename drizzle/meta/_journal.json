@@ -15,6 +15,13 @@
       "when": 1784773715772,
       "tag": "0001_wandering_jetstream",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786322910492,
+      "tag": "0002_blue_squadron_supreme",
+      "breakpoints": true
     }
   ]
 }
