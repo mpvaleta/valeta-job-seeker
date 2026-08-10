@@ -28,18 +28,13 @@ async function createDatabase() {
 
 test("LinkedIn callback creates an opaque revocable server session and never stores its access token", async () => {
   const originalFetch = globalThis.fetch;
-  const original = Object.fromEntries(["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "LINKEDIN_REDIRECT_URI", "LINKEDIN_SESSION_SECRET", "AI_ALLOWED_EMAILS"].map((name) => [name, process.env[name]]));
+  const original = Object.fromEntries(["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "LINKEDIN_REDIRECT_URI", "LINKEDIN_SESSION_SECRET"].map((name) => [name, process.env[name]]));
   const secret = "test-linkedin-session-secret-longer-than-thirty-two-characters";
   Object.assign(process.env, {
     LINKEDIN_CLIENT_ID: "client-id",
     LINKEDIN_CLIENT_SECRET: "client-secret",
     LINKEDIN_REDIRECT_URI: "https://example.com/api/linkedin/callback",
     LINKEDIN_SESSION_SECRET: secret,
-    // resolveAccessIdentity only honors a claimed identity other than the
-    // owner when it's on this allowlist; "other@example.com" here is a
-    // second *legitimate* identity used to prove session isolation, not an
-    // unauthorized one.
-    AI_ALLOWED_EMAILS: "owner@example.com,other@example.com",
   });
   globalThis.fetch = async (url) => {
     if (String(url).includes("accessToken")) return Response.json({ access_token: "linkedin-access-token-must-not-be-stored" });
