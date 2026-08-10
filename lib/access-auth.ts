@@ -3,7 +3,7 @@ const ACCESS_TOKEN_COOKIE = "vjobs_token";
 
 export type AccessIdentity = { email: string };
 
-export type AccessAuthErrorCode = "authentication_required" | "not_configured" | "invalid_token" | "identity_not_allowed";
+export type AccessAuthErrorCode = "authentication_required" | "not_configured" | "invalid_token";
 
 export class AccessAuthError extends Error {
   code: AccessAuthErrorCode;
@@ -24,6 +24,21 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 function configuredAllowedEmails(): string[] {
   return process.env.AI_ALLOWED_EMAILS?.split(",").map((item) => item.trim().toLowerCase()).filter(Boolean) || [];
+}
+
+/**
+ * Additional per-person tokens beyond the owner's APP_TOKEN, formatted as
+ * "email:token,email:token". Each entry is a distinct secret — knowing one
+ * proves you are that specific email, unlike a claimed identity.
+ */
+function extraAccessTokens(): Array<{ email: string; token: string }> {
+  return (process.env.EXTRA_ACCESS_TOKENS || "").split(",").map((entry) => {
+    const separator = entry.indexOf(":");
+    if (separator < 0) return null;
+    const email = entry.slice(0, separator).trim().toLowerCase();
+    const token = entry.slice(separator + 1).trim();
+    return email && token ? { email, token } : null;
+  }).filter((entry): entry is { email: string; token: string } => entry !== null);
 }
 
 /**
@@ -61,14 +76,12 @@ export function extractAccessToken(request: Request): string | null {
 }
 
 /**
- * Verifies a private shared-secret token (set via the APP_TOKEN Worker
- * secret) instead of Cloudflare Access, since Access applications require a
- * domain registered as a Cloudflare zone. Anyone holding the token is
- * authenticated; the caller identifies which user they are via an `email`
- * query param / `x-user-email` header (defaulting to APP_OWNER_EMAIL). That
- * claim is only honored when it names the owner or an email on
- * AI_ALLOWED_EMAILS — a valid token lets you claim to be one of the people
- * this deployment was explicitly shared with, not anyone you can think of.
+ * Verifies a private shared-secret token instead of Cloudflare Access, since
+ * Access applications require a domain registered as a Cloudflare zone. The
+ * owner's APP_TOKEN and each EXTRA_ACCESS_TOKENS entry are distinct secrets;
+ * identity is whichever one the presented token matches, not a claim the
+ * caller makes about themselves. A token that matches nothing is rejected —
+ * there is no self-declared email fallback.
  */
 export async function resolveAccessIdentity(request: Request): Promise<AccessIdentity> {
   const expectedToken = process.env.APP_TOKEN?.trim();
@@ -80,13 +93,13 @@ export async function resolveAccessIdentity(request: Request): Promise<AccessIde
   if (!token) {
     throw new AccessAuthError("authentication_required", "Add your access token to continue.");
   }
-  if (!timingSafeEqual(token, expectedToken)) {
-    throw new AccessAuthError("invalid_token", "Your access token is invalid.");
+  if (timingSafeEqual(token, expectedToken)) {
+    return { email: ownerEmail };
   }
-  const url = new URL(request.url);
-  const email = (request.headers.get("x-user-email") || url.searchParams.get("email") || ownerEmail).trim().toLowerCase();
-  if (email !== ownerEmail && !configuredAllowedEmails().includes(email)) {
-    throw new AccessAuthError("identity_not_allowed", "This account is not on the allowed-access list.");
+  for (const entry of extraAccessTokens()) {
+    if (timingSafeEqual(token, entry.token)) {
+      return { email: entry.email };
+    }
   }
-  return { email };
+  throw new AccessAuthError("invalid_token", "Your access token is invalid.");
 }

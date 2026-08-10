@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+import { accessHeaders, installAccessEnv, unrecognizedAccessHeaders } from "./helpers/access-token.mjs";
 
 await installAccessEnv();
 const ACCESS_HEADER = await accessHeaders("owner@example.com");
-const VISITOR_ACCESS_HEADER = await accessHeaders("visitor@example.com");
 
 async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -272,32 +271,28 @@ test("a configured server key is not usable by anonymous requests", async () => 
   }
 });
 
-test("a valid token cannot claim an identity outside the allowlist", async () => {
-  // resolveAccessIdentity only honors a claimed email that is the owner or
-  // on AI_ALLOWED_EMAILS, so an unapproved visitor is rejected before any
-  // route-level check runs — holding the shared token lets you claim to be
-  // someone this deployment was shared with, not anyone you can think of.
+test("a token that matches no configured identity is rejected outright", async () => {
+  // resolveAccessIdentity derives identity from which secret you present, so
+  // there's no "valid token, unapproved claimed email" state to test anymore
+  // — a token that isn't the owner's or a known EXTRA_ACCESS_TOKENS entry
+  // simply doesn't resolve to anyone.
   const originalKey = process.env.OPENAI_API_KEY;
-  const originalAllowed = process.env.AI_ALLOWED_EMAILS;
   process.env.OPENAI_API_KEY = "test-key-that-is-never-sent";
-  process.env.AI_ALLOWED_EMAILS = "owner@example.com,friend@example.com";
   try {
     const worker = await loadWorker();
     const response = await worker.fetch(new Request("http://localhost/api/ai/recommend", {
       method: "POST",
-      headers: { "content-type": "application/json", ...VISITOR_ACCESS_HEADER },
+      headers: { "content-type": "application/json", ...unrecognizedAccessHeaders() },
       body: JSON.stringify(validRequestBody),
     }), env, context);
     const data = await response.json();
 
     assert.equal(response.status, 401);
-    assert.equal(data.code, "identity_not_allowed");
+    assert.equal(data.code, "invalid_token");
     assert.equal(data.localFallback, true);
   } finally {
     if (originalKey === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = originalKey;
-    if (originalAllowed === undefined) delete process.env.AI_ALLOWED_EMAILS;
-    else process.env.AI_ALLOWED_EMAILS = originalAllowed;
   }
 });
 
