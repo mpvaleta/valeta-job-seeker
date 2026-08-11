@@ -415,7 +415,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
         </article>;
       })}</div>}
       <p className="scheduler-note"><strong>Twice-daily behavior:</strong> V’s treats recommended targets as due every 12 hours and catches them up when you open the private app. {schedulerEnabled
-        ? "The background scheduler is connected, so due targets are also scanned while the app is closed; each run summary says whether it came from the background scheduler, an app-open catch-up, or a manual scan."
+        ? "The background scheduler checks for due targets every 2 hours (not just at two fixed times a day) and scans them while the app is closed; each run summary says whether it came from the background scheduler, an app-open catch-up, or a manual scan."
         : "Connecting to the background scheduler…"}</p>
     </section>
 
