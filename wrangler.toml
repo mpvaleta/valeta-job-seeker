@@ -14,10 +14,14 @@ database_id = "1fd787e4-4af7-4076-a3db-dea726b31940"
 binding = "BUCKET"
 bucket_name = "valeta-job-seeker-files"
 
-# Twice-daily background radar scan, now that a real Cloudflare account can
-# configure a native Cron Trigger (ChatGPT Sites hosting did not expose this).
+# The Worker checks for due radar work every 2 hours (not just at two fixed
+# times a day), so a monitor becomes eligible for its next scan much closer
+# to when its own cadence (twice-daily/daily) actually elapses, instead of
+# waiting for the next of only two daily windows. scanAllDueRadars still only
+# scans a monitor when it is actually due per its own cadence — this just
+# shortens how long a newly-due monitor waits to be picked up.
 [triggers]
-crons = ["0 13 * * *", "0 1 * * *"]
+crons = ["0 */2 * * *"]
 
 [vars]
 # Owner identity for the single shared-secret login (see lib/access-auth.ts).
