@@ -379,7 +379,8 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     </div>
 
     <section className="radar-targets-section">
-      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div>
+      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target below, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div>
+      {monitors.length > 0 && !monitors.some((item) => item.active) && <div className="empty-state compact"><strong>Every target is paused.</strong><span>“Run radar now” stays disabled until at least one target below is resumed.</span></div>}
       {!monitors.length ? <div className="empty-state compact"><strong>Add the first company you want V’s to watch.</strong><span>Add the website and let V’s find the careers page, or paste an official careers URL. Targets catch up when the app opens, and you can run the radar anytime.</span></div> : <div className="radar-target-list">{monitors.map((monitor) => {
         const coverage = monitorCoverage(monitor);
         return <article key={monitor.id} className={`${!monitor.active ? "paused" : ""} scan-${coverage.tone}`}>
