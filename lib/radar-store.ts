@@ -441,6 +441,10 @@ function companyFromUrl(value: string) {
 
 export async function scanRadar(db: D1Database, userId: string, options: { monitorId?: string; dueOnly?: boolean; trigger?: RadarScanTrigger } = {}) {
   const triggerLabel = SCAN_TRIGGER_LABELS[options.trigger || "manual"];
+  // Runs on every trigger — manual, app-open catch-up, and the twice-daily
+  // background cron — so the general V's Job Watch list stays current
+  // without depending on someone opening the app or clicking a button.
+  const watchBatch = await importJobWatchBatch(db, userId);
   // Self-heal rows an earlier build duplicated before reading the current state.
   const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
   const dashboard = await readRadarDashboard(db, userId);
@@ -654,7 +658,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       ]);
     }
   }
-  return { checked: selected.length, found, discovered, belowThreshold, added, matchedAdded, repairedSources, mergedDuplicates, failures };
+  return { checked: selected.length, found, discovered, belowThreshold, added, matchedAdded, repairedSources, mergedDuplicates, failures, watchBatch };
 }
 
 export async function scanAllDueRadars(db: D1Database) {
