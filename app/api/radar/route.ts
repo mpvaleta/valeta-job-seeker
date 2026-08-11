@@ -101,14 +101,12 @@ export async function POST(request: Request) {
     } else if (action === "scan") {
       if (isScanRateLimited(identity.email)) return error(429, "scan_rate_limited", "The radar has run several times recently. Wait a little before scanning again.");
       if (input.profile) await saveRadarProfile(db, user.id, object(input.profile));
-      const watchBatch = await importJobWatchBatch(db, user.id);
-      const scan = await scanRadar(db, user.id, {
+      result = await scanRadar(db, user.id, {
         monitorId: typeof input.monitorId === "string" ? input.monitorId.slice(0, 100) : undefined,
         dueOnly: Boolean(input.dueOnly),
         // "background" is reserved for the secret-protected cron route.
         trigger: input.trigger === "catch_up" ? "catch_up" : "manual",
       });
-      result = { ...scan, watchBatch };
     } else if (action === "import_watch_batch") {
       result = await importJobWatchBatch(db, user.id);
     } else if (action === "import_job_links") {
