@@ -20,9 +20,14 @@ import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
 export const dynamic = "force-dynamic";
 
 function automationState() {
+  // wrangler.toml checks in a native Cloudflare Cron Trigger (twice daily)
+  // wired to the Worker's scheduled() handler, so background scans run
+  // whenever this app is deployed to Cloudflare — independent of
+  // RADAR_CRON_SECRET, which only guards the separate /api/radar/cron HTTP
+  // fallback for hosts without native cron support.
   return {
     dailyCatchUp: true,
-    backgroundScheduler: process.env.RADAR_CRON_SECRET?.trim() ? "enabled" : "prepared",
+    backgroundScheduler: "enabled",
   };
 }
 

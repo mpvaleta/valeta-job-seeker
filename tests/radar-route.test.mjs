@@ -130,7 +130,7 @@ test("private radar persists goals, targets, discoveries, and approval state", a
     assert.equal(scannedData.monitors[0].careersUrl, "https://boards.greenhouse.io/example");
     assert.ok(Number.isFinite(new Date(scannedData.monitors[0].nextDueAt).getTime()), `nextDueAt missing: ${scannedData.monitors[0].nextDueAt}`);
     assert.equal(scannedData.monitors[0].due, false);
-    assert.equal(scannedData.automation.backgroundScheduler, "prepared");
+    assert.equal(scannedData.automation.backgroundScheduler, "enabled");
 
     const catchUp = await worker.fetch(new Request("http://localhost/api/radar", {
       method: "POST", headers,

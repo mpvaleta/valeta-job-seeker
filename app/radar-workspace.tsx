@@ -286,7 +286,15 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     const data = await mutate({ action: "add_monitor", monitor: { company, kind, websiteUrl, careersUrl, referenceUrl, sourceKind, focus, targetPosition, cadence, market: "San Francisco Bay Area / United States" } }, "target", "Saving the target. If its official source returns no real roles, V’s will search the public web and validate direct job pages…");
     if (!data) return;
     setCompany(""); setWebsiteUrl(""); setCareersUrl(""); setReferenceUrl(""); setSourceKind("None");
-    onNotice("Radar target added. V’s catches up when it opens; you can also scan now. Background timing activates once the hosting scheduler is connected.");
+    const newMonitorId = typeof data.result === "string" ? data.result : "";
+    const scanned = newMonitorId ? await runScan({ monitorId: newMonitorId }) : null;
+    if (scanned) {
+      onNotice("Radar target added and scanned right away. It will also be checked automatically by the twice-daily background scheduler.");
+    } else if (!newMonitorId) {
+      onNotice("Radar target added. It will be checked by the next scheduled or manual scan.");
+    }
+    // If the scan itself failed (e.g. rate limited), runScan's own mutate()
+    // call already surfaced the reason — don't overwrite that notice here.
   }
 
   async function runScan(options: { monitorId?: string; dueOnly?: boolean; automatic?: boolean } = {}) {
@@ -379,7 +387,8 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     </div>
 
     <section className="radar-targets-section">
-      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div>
+      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target below, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div>
+      {monitors.length > 0 && !monitors.some((item) => item.active) && <div className="empty-state compact"><strong>Every target is paused.</strong><span>“Run radar now” stays disabled until at least one target below is resumed.</span></div>}
       {!monitors.length ? <div className="empty-state compact"><strong>Add the first company you want V’s to watch.</strong><span>Add the website and let V’s find the careers page, or paste an official careers URL. Targets catch up when the app opens, and you can run the radar anytime.</span></div> : <div className="radar-target-list">{monitors.map((monitor) => {
         const coverage = monitorCoverage(monitor);
         return <article key={monitor.id} className={`${!monitor.active ? "paused" : ""} scan-${coverage.tone}`}>
@@ -407,7 +416,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
       })}</div>}
       <p className="scheduler-note"><strong>Twice-daily behavior:</strong> V’s treats recommended targets as due every 12 hours and catches them up when you open the private app. {schedulerEnabled
         ? "The background scheduler is connected, so due targets are also scanned while the app is closed; each run summary says whether it came from the background scheduler, an app-open catch-up, or a manual scan."
-        : "Runs while the app is closed are prepared but not yet active: set RADAR_CRON_SECRET on the server and point the hosting scheduler at /api/radar/cron twice daily to enable them."}</p>
+        : "Connecting to the background scheduler…"}</p>
     </section>
 
     <section className="radar-import">
