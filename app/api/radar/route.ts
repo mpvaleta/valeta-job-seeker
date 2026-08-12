@@ -10,6 +10,7 @@ import {
   readRadarDashboard,
   saveRadarProfile,
   scanRadar,
+  seedDefaultRadarMonitors,
   setRadarOpportunityStatus,
   updateRadarMonitor,
 } from "@/lib/radar-store";
@@ -96,6 +97,8 @@ export async function POST(request: Request) {
       });
     } else if (action === "delete_monitor") {
       await deleteRadarMonitor(db, user.id, text(input.monitorId, 100));
+    } else if (action === "seed_default_monitors") {
+      result = await seedDefaultRadarMonitors(db, user.id);
     } else if (action === "set_opportunity_status") {
       result = await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40));
     } else if (action === "scan") {

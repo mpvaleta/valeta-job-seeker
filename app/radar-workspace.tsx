@@ -205,6 +205,10 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
         if (!data.opportunities?.some((opportunity) => opportunity.sourceType === "v-watch")) {
           await mutate({ action: "import_watch_batch" }, "watch-import", "Adding the verified V’s Job Watch opportunities to this private Radar inbox without changing any existing decisions…");
         }
+        if (!data.monitors?.length) {
+          const seeded = await mutate({ action: "seed_default_monitors" }, "seed-monitors", "Adding a starter set of companies matching your profile, so the real scan engine has something to search instead of relying only on the fixed V’s Job Watch list…");
+          if (seeded) onNotice("Added a starter set of companies to the radar. They will be scanned automatically within the next couple of hours, or you can press “Run radar now.”");
+        }
         if ((data.dueCount || 0) > 0 && !autoScanStarted.current && !sessionStorage.getItem(autoScanKey())) {
           autoScanStarted.current = true;
           sessionStorage.setItem(autoScanKey(), "started");

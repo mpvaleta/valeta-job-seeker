@@ -1,6 +1,7 @@
 import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
+import { DEFAULT_RADAR_MONITORS } from "./default-radar-monitors";
 import type { RadarProfile } from "./radar.mjs";
 
 type UserRow = { id: string; email: string; display_name: string };
@@ -186,6 +187,32 @@ export async function addRadarMonitor(db: D1Database, userId: string, input: Rad
       .bind(monitorId, userId, companyId, query, input.cadence === "manual" ? "manual" : input.cadence === "daily" ? "daily" : "twice_daily", 1),
   ]);
   return monitorId;
+}
+
+// One-time starter set so the real scan engine (direct board scraping, with
+// an AI web-search fallback when no board URL is known) has something to
+// run against, instead of the user depending on the frozen V's Job Watch
+// list. Skips any company the user already monitors, so it is safe to call
+// repeatedly — it only ever fills gaps, never duplicates or overrides.
+export async function seedDefaultRadarMonitors(db: D1Database, userId: string) {
+  const existing = await db.prepare(
+    "SELECT c.name AS name FROM company_monitors m JOIN companies c ON c.id = m.company_id WHERE m.user_id = ?"
+  ).bind(userId).all<{ name: string }>();
+  const existingNames = new Set((existing.results || []).map((row) => row.name.trim().toLowerCase()));
+  let added = 0;
+  for (const monitor of DEFAULT_RADAR_MONITORS) {
+    if (existingNames.has(monitor.company.toLowerCase())) continue;
+    await addRadarMonitor(db, userId, {
+      company: monitor.company,
+      kind: monitor.kind,
+      careersUrl: monitor.careersUrl,
+      websiteUrl: monitor.websiteUrl,
+      focus: monitor.focus,
+      cadence: "twice_daily",
+    });
+    added += 1;
+  }
+  return { added, skipped: DEFAULT_RADAR_MONITORS.length - added };
 }
 
 export async function updateRadarMonitor(db: D1Database, userId: string, monitorId: string, patch: { active?: boolean; cadence?: string; focus?: string; targetPosition?: string }) {
