@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { Miniflare } from "miniflare";
 import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+import { DEFAULT_RADAR_MONITORS } from "../lib/default-radar-monitors.ts";
 
 await installAccessEnv();
 
@@ -482,6 +483,44 @@ test("V’s Job Watch import is idempotent and preserves the user’s opportunit
     assert.equal(secondData.result.updated, 21);
     assert.equal(secondData.opportunities.length, 21);
     assert.equal(secondData.opportunities.find((role) => role.id === chosen.id).status, "shortlisted");
+  } finally {
+    await mf.dispose();
+  }
+});
+
+test("seeding default monitors fills the radar once and skips a company already monitored", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  try {
+    const manual = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: { company: "anthropic", careersUrl: "https://job-boards.greenhouse.io/anthropic-custom" } }),
+    }), env, context);
+    assert.equal(manual.status, 200);
+
+    const first = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "seed_default_monitors" }),
+    }), env, context);
+    const firstData = await first.json();
+    assert.equal(first.status, 200);
+    assert.ok(firstData.result.added >= 15, `expected most defaults to be added, got ${firstData.result.added}`);
+    assert.equal(firstData.result.skipped, DEFAULT_RADAR_MONITORS.length - firstData.result.added);
+    // Case-insensitive match against the manually added "anthropic" means the
+    // seed's own "Anthropic" entry is skipped, not duplicated.
+    assert.equal(firstData.monitors.filter((monitor) => monitor.company.toLowerCase() === "anthropic").length, 1);
+    const totalAfterFirst = firstData.monitors.length;
+    assert.equal(totalAfterFirst, DEFAULT_RADAR_MONITORS.length);
+
+    const second = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "seed_default_monitors" }),
+    }), env, context);
+    const secondData = await second.json();
+    assert.equal(second.status, 200);
+    assert.equal(secondData.result.added, 0);
+    assert.equal(secondData.monitors.length, totalAfterFirst);
   } finally {
     await mf.dispose();
   }

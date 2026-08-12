@@ -1,0 +1,126 @@
+// Starter set of company monitors for the live radar engine (real scraping of
+// Greenhouse/Lever/Ashby boards, falling back to AI web search when no board
+// URL is known). These are the same companies that were previously only
+// present as a frozen, one-time list in job-watch-batch.ts — moving them
+// here lets the real, recurring scan engine cover them instead.
+export const DEFAULT_RADAR_MONITORS = [
+  {
+    company: "Anthropic",
+    kind: "Technology",
+    careersUrl: "https://job-boards.greenhouse.io/anthropic",
+    websiteUrl: "",
+    focus: "Marketing Events Lead, Brand and Enterprise event marketing",
+  },
+  {
+    company: "Google",
+    kind: "Technology",
+    careersUrl: "",
+    websiteUrl: "",
+    focus: "Creative Solutions and YouTube Ads GTM, marketing program leadership",
+  },
+  {
+    company: "OpenAI",
+    kind: "Technology",
+    careersUrl: "https://jobs.ashbyhq.com/openai",
+    websiteUrl: "",
+    focus: "Growth Marketing creative systems, Business Affairs Manager",
+  },
+  {
+    company: "Highwire",
+    kind: "Creative / Advertising Agency",
+    careersUrl: "https://job-boards.greenhouse.io/highwire",
+    websiteUrl: "",
+    focus: "Director of Creative Production, agency production leadership",
+  },
+  {
+    company: "George P. Johnson",
+    kind: "Creative / Advertising Agency",
+    careersUrl: "",
+    websiteUrl: "https://www.gpj.com/who-we-are/careers/",
+    focus: "Senior Producer, live and experiential production",
+  },
+  {
+    company: "e.l.f. Cosmetics",
+    kind: "Brand / Consumer",
+    careersUrl: "https://jobs.lever.co/elfbeauty",
+    websiteUrl: "",
+    focus: "Senior Manager, Brand Marketing",
+  },
+  {
+    company: "Attentive",
+    kind: "Technology",
+    careersUrl: "https://job-boards.greenhouse.io/attentive",
+    websiteUrl: "",
+    focus: "Senior Specialist, Marketing Program Operations",
+  },
+  {
+    company: "Inizio Evoke",
+    kind: "Creative / Advertising Agency",
+    careersUrl: "",
+    websiteUrl: "https://www.inizioevoke.com/",
+    focus: "Project Manager, agency creative delivery",
+  },
+  {
+    company: "Tubi",
+    kind: "Media",
+    careersUrl: "https://job-boards.greenhouse.io/tubitv",
+    websiteUrl: "",
+    focus: "Live Event Program and Integrated Project Manager",
+  },
+  {
+    company: "Aventon",
+    kind: "Brand / Consumer",
+    careersUrl: "https://jobs.lever.co/aventon",
+    websiteUrl: "",
+    focus: "Creative Producer, campaigns and branded content",
+  },
+  {
+    company: "Hinge Health",
+    kind: "Technology",
+    careersUrl: "https://jobs.ashbyhq.com/hinge-health",
+    websiteUrl: "",
+    focus: "Lead Creative Program Manager, Sr. Lead Creative Ops",
+  },
+  {
+    company: "Perplexity",
+    kind: "Technology",
+    careersUrl: "https://jobs.ashbyhq.com/perplexity",
+    websiteUrl: "",
+    focus: "Member of Creative Studio, Producer, Brand & Creative",
+  },
+  {
+    company: "Snap",
+    kind: "Technology",
+    careersUrl: "",
+    websiteUrl: "https://careers.snap.com/",
+    focus: "Senior Project Manager, Creative & Marketing",
+  },
+  {
+    company: "Whatnot",
+    kind: "Technology",
+    careersUrl: "https://jobs.ashbyhq.com/whatnot",
+    websiteUrl: "",
+    focus: "Program Manager, In-house Performance Creative",
+  },
+  {
+    company: "Jack Morton Worldwide",
+    kind: "Creative / Advertising Agency",
+    careersUrl: "https://job-boards.greenhouse.io/jackmortonworldwide",
+    websiteUrl: "",
+    focus: "Executive Producer, Conferences and experiential production",
+  },
+  {
+    company: "The Athletic",
+    kind: "Sports / Entertainment",
+    careersUrl: "https://jobs.lever.co/theathletic",
+    websiteUrl: "",
+    focus: "Senior Manager, Video Production Operations",
+  },
+  {
+    company: "Gantri",
+    kind: "Brand / Consumer",
+    careersUrl: "https://jobs.lever.co/Gantri",
+    websiteUrl: "",
+    focus: "Director of Marketing, brand strategy and launches",
+  },
+] as const;
