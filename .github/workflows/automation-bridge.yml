@@ -1,0 +1,93 @@
+name: Automation bridge
+
+# The hands of the scheduled Claude session (which runs on the owner's
+# subscription in a network-restricted sandbox and cannot reach the app
+# directly). Each mode is one narrow, authenticated action against the
+# deployed Worker, using the same APP_TOKEN secret the deploy workflow
+# already stores. No secret ever appears in inputs, logs, or artifacts.
+#
+#   scan    — run a radar scan, then publish a job-listings-only artifact
+#             (public job postings + fit scores; never profile or documents).
+#   deliver — deposit one finished draft (base64 JSON for POST /api/drafts)
+#             into the owner's workspace version history.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "What the bridge should do"
+        required: true
+        type: choice
+        options:
+          - scan
+          - deliver
+      draft_b64:
+        description: "deliver mode only: base64-encoded JSON body for POST /api/drafts"
+        required: false
+        type: string
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run radar scan
+        if: inputs.mode == 'scan'
+        env:
+          APP_TOKEN: ${{ secrets.APP_TOKEN }}
+        run: |
+          set -euo pipefail
+          scan=$(curl -sS --max-time 240 -X POST "https://valeta-job-seeker.marcos-valeta.workers.dev/api/radar" \
+            -H "Authorization: Bearer $APP_TOKEN" -H "Content-Type: application/json" \
+            -d '{"action":"scan","trigger":"manual"}')
+          ok=$(echo "$scan" | jq -r '.ok')
+          if [ "$ok" != "true" ]; then
+            # A recent scan already covered this window; the dashboard fetch
+            # below still returns current data, so only a hard failure stops us.
+            code=$(echo "$scan" | jq -r '.code // "unknown"')
+            if [ "$code" != "scan_rate_limited" ]; then
+              echo "Scan failed: $code"; echo "$scan" | jq -c '{ok, code, message}'; exit 1
+            fi
+            echo "Scan skipped: rate limited (a recent scan already ran)."
+          else
+            echo "$scan" | jq -c '.result | {checked, discovered, found, added, matchedAdded, failures: (.failures | length)}'
+          fi
+
+      - name: Publish job-listings artifact
+        if: inputs.mode == 'scan'
+        env:
+          APP_TOKEN: ${{ secrets.APP_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl -sS --max-time 60 "https://valeta-job-seeker.marcos-valeta.workers.dev/api/radar" \
+            -H "Authorization: Bearer $APP_TOKEN" \
+            | jq '{
+                fetchedAt: (now | todate),
+                lastRunAt,
+                dueCount,
+                monitors: [(.monitors // [])[] | {company, active, lastRunStatus, lastRunFoundCount, lastCheckedAt}],
+                opportunities: [(.opportunities // [])[] | {id, title, company, location, sourceUrl, sourceType, fitScore, fitSummary, status, alignmentPasses, origin}]
+              }' > radar-inbox.json
+          jq -r '"\(.opportunities | length) opportunities in inbox"' radar-inbox.json
+
+      - uses: actions/upload-artifact@v4
+        if: inputs.mode == 'scan'
+        with:
+          name: radar-inbox
+          path: radar-inbox.json
+          retention-days: 1
+
+      - name: Deliver draft
+        if: inputs.mode == 'deliver'
+        env:
+          APP_TOKEN: ${{ secrets.APP_TOKEN }}
+          DRAFT_B64: ${{ inputs.draft_b64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DRAFT_B64" ]; then echo "deliver mode requires draft_b64"; exit 1; fi
+          echo "$DRAFT_B64" | base64 -d > draft.json
+          jq -e '.type and .content' draft.json > /dev/null || { echo "draft_b64 is not valid draft JSON"; exit 1; }
+          response=$(curl -sS --max-time 60 -X POST "https://valeta-job-seeker.marcos-valeta.workers.dev/api/drafts" \
+            -H "Authorization: Bearer $APP_TOKEN" -H "Content-Type: application/json" \
+            --data-binary @draft.json)
+          echo "$response" | jq -c '{ok, changed, draftId, versionNumber, code, message}'
+          [ "$(echo "$response" | jq -r '.ok')" = "true" ]
