@@ -1112,6 +1112,31 @@ export function JobSeekerApp() {
    * other draft, and Save Version records it as "uploaded" so its origin
    * stays honest in the version history.
    */
+  /*
+   * The zero-API-key path. A Claude Max/Pro subscription cannot be used as an
+   * API key, so instead of wiring the subscription into the server, this
+   * bundles everything the cloud route would have sent — role, approved
+   * facts, playbook rules, track positioning, writing voice — into one
+   * prompt the user pastes into a regular Claude conversation. The reply
+   * comes back through the existing "Paste a drafted…" flow and is scored,
+   * versioned, and exported exactly like a cloud-generated draft.
+   */
+  function claudeSubscriptionPrompt(kind: "resume" | "cover") {
+    const rules = [...prioritizedUserPlaybookRules, ...curatedPlaybookRules].slice(0, 24);
+    return [
+      `You are tailoring a US-market ${kind === "resume" ? "résumé" : "cover letter"} for the role below. Use ONLY the approved career facts listed — never invent employers, titles, dates, metrics, or skills. If a requirement has no supporting fact, leave it unaddressed instead of guessing.`,
+      `ROLE\nCompany: ${company.trim() || "Not specified"}\nTitle: ${role.trim() || "Not specified"}\n\nJob description:\n${jobText.trim() || "(Not pasted yet — ask me for it before drafting.)"}`,
+      `APPROVED CAREER FACTS — the only claims allowed\n${resumeFacts.length ? resumeFacts.map((fact) => `- ${fact}`).join("\n") : "(None approved yet — ask me for real experience before drafting.)"}`,
+      `POSITIONING\nRésumé direction: ${selectedTrack.name}\nHeadline: ${selectedTrack.headline || profile.headline || "None saved"}\nSummary: ${selectedTrack.summary || profile.summary || "None saved"}`,
+      rules.length ? `EDITORIAL RULES — uploaded rules first, curated second\n${rules.map((rule) => `- ${rule}`).join("\n")}` : "",
+      kind === "cover" ? `WRITING VOICE — affects phrasing only, never facts\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}` : "",
+      kind === "resume"
+        ? "OUTPUT\nReturn only the finished résumé as plain text: name on the first line, headline on the second, one contact line, then ALL-CAPS section headers (SUMMARY, EXPERIENCE, SKILLS, EDUCATION) with hyphen bullets. No commentary before or after the résumé."
+        : "OUTPUT\nReturn only the finished cover letter as plain text, ready to send. No commentary before or after it.",
+      "I will paste your output back into V's Job Seeker, which scores it against these same rules.",
+    ].filter(Boolean).join("\n\n");
+  }
+
   function applyExternalDraft(kind: "resume" | "cover") {
     const content = pasteDraftText.trim();
     if (content.length < 40) { setNotice("Paste the complete drafted text first -- that looked too short to be a real draft."); return; }
@@ -1563,8 +1588,8 @@ export function JobSeekerApp() {
                     <button className="primary" onClick={() => applyExternalDraft(output as "resume" | "cover")}>Use this draft</button>
                     <button onClick={() => { setPasteDraftOpen(false); setPasteDraftText(""); }}>Cancel</button>
                   </div>
-                </> : <button onClick={() => setPasteDraftOpen(true)}>Paste a drafted {output === "resume" ? "résumé" : "cover letter"}</button>}
-                <small>For drafting with your regular Claude subscription instead of a paid API key: run the resume-tailor Skill in a normal conversation, then paste its output here. It becomes your working draft — scored the same way as any other, exported the same way, saved to version history as “uploaded”.</small>
+                </> : <div className="paste-external-draft-actions"><button className="primary" onClick={() => copyText(claudeSubscriptionPrompt(output as "resume" | "cover"), setNotice)}>Copy Claude prompt</button><button onClick={() => setPasteDraftOpen(true)}>Paste a drafted {output === "resume" ? "résumé" : "cover letter"}</button></div>}
+                <small>Use your regular Claude subscription instead of a paid API key: <b>Copy Claude prompt</b> bundles this role, your approved facts, playbook rules{output === "cover" ? ", and writing voice" : ", and positioning"} into one message. Paste it into a normal Claude conversation, then paste Claude&rsquo;s reply back here with <b>Paste a drafted {output === "resume" ? "résumé" : "cover letter"}</b> — it is scored, versioned, and exported exactly like a cloud-generated draft.</small>
               </div>}
               {output === "resume" && <div className="resume-ai-toolbar">
                 <div><span>RÉSUMÉ ENGINE</span><strong>{selectedProvider?.name || "Choose a provider"} · {selectedModel?.label || "Choose a model"}</strong><small>Generation writes the résumé. Review audits the current draft without changing it.</small></div>
@@ -1629,6 +1654,7 @@ export function JobSeekerApp() {
             <div className="step"><b>AI</b><span>CONNECTION & RELIABILITY</span></div>
             <div className="connection-heading"><div><span className={`connection-dot ${aiConnection.state === "loaded" && aiReady ? "ready" : aiConnection.state}`} /><div><small>SELECTED CLOUD CONNECTION</small><h2>{aiConnection.state === "checking" ? "Checking…" : aiReady ? "Connected" : !selectedProvider?.configured ? "Setup required" : !aiConnection.authenticated ? "Sign-in required" : "Access not allowed"}</h2></div></div><button onClick={recheckAiConnection} disabled={aiConnection.state === "checking"}>Recheck</button></div>
             <p>{aiConnectionMessage}</p>
+            <div className="setup-note"><strong>No API key? Use your Claude subscription</strong><p>A Claude Max or Pro plan cannot be plugged in as an API key — consumer subscriptions and API billing are separate on purpose. But every drafting feature here works without one: on the Résumé and Cover letter tabs, <b>Copy Claude prompt</b> packages the role, your approved facts, and your playbook into one message for a normal Claude conversation, and <b>Paste a drafted…</b> brings the reply back as a scored, versioned draft. Job Radar scanning, fit analysis, the standards report, and the autofill companion never call a paid model at all.</p></div>
             <div className="model-diagnostics-actions">
               <button onClick={runModelDiagnostics} disabled={aiDiagnostics.state === "checking"}>{aiDiagnostics.state === "checking" ? "Checking…" : "Check model catalog access"}</button>
               {selectedProvider?.configured && selectedModel && <button onClick={runLiveGenerationCheck} disabled={aiDiagnostics.state === "checking"}>Test real generation with {selectedModel.label}</button>}

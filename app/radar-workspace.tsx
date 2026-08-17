@@ -207,7 +207,15 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
         }
         if (!data.monitors?.length) {
           const seeded = await mutate({ action: "seed_default_monitors" }, "seed-monitors", "Adding a starter set of companies matching your profile, so the real scan engine has something to search instead of relying only on the fixed V’s Job Watch list…");
-          if (seeded) onNotice("Added a starter set of companies to the radar. They will be scanned automatically within the next couple of hours, or you can press “Run radar now.”");
+          if (seeded) {
+            // Scan right away: the dueCount check below still holds the
+            // pre-seed payload (zero monitors), so without this the freshly
+            // added companies would sit unscanned until the next cron pass.
+            autoScanStarted.current = true;
+            sessionStorage.setItem(autoScanKey(), "started");
+            onNotice("Added a starter set of companies to the radar — scanning their career pages now.");
+            await runScan({ dueOnly: true, automatic: true });
+          }
         }
         if ((data.dueCount || 0) > 0 && !autoScanStarted.current && !sessionStorage.getItem(autoScanKey())) {
           autoScanStarted.current = true;
