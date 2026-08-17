@@ -4,12 +4,21 @@ name: Automation bridge
 # subscription in a network-restricted sandbox and cannot reach the app
 # directly). Each mode is one narrow, authenticated action against the
 # deployed Worker, using the same APP_TOKEN secret the deploy workflow
-# already stores. No secret ever appears in inputs, logs, or artifacts.
+# already stores. No secret ever appears in inputs, logs, results, or
+# artifacts.
 #
-#   scan    — run a radar scan, then publish a job-listings-only artifact
-#             (public job postings + fit scores; never profile or documents).
-#   deliver — deposit one finished draft (base64 JSON for POST /api/drafts)
-#             into the owner's workspace version history.
+# Two ways in, same actions:
+#   - workflow_dispatch (manual runs, or sessions that have GitHub API
+#     tools): mode=scan publishes a job-listings artifact; mode=deliver
+#     posts a base64 draft payload.
+#   - push to automation/request/** (the scheduled session's path — it only
+#     has git): the pushed branch carries request/scan.json or
+#     request/draft.json; the workflow commits results/ back onto the same
+#     branch, which the session polls with git fetch. The result commit is
+#     tagged [bridge-result] so it does not re-trigger this workflow.
+#
+# scan results contain public job listings and fit scores only — never the
+# profile, documents, or drafts.
 
 on:
   workflow_dispatch:
@@ -25,13 +34,34 @@ on:
         description: "deliver mode only: base64-encoded JSON body for POST /api/drafts"
         required: false
         type: string
+  push:
+    branches:
+      - "automation/request/**"
+
+permissions:
+  contents: write
 
 jobs:
   bridge:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[bridge-result]')
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine request
+        id: request
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ]; then
+            if [ -f request/draft.json ]; then echo "mode=deliver" >> "$GITHUB_OUTPUT";
+            elif [ -f request/scan.json ]; then echo "mode=scan" >> "$GITHUB_OUTPUT";
+            else echo "mode=none" >> "$GITHUB_OUTPUT"; echo "No request file on this branch."; fi
+          else
+            echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run radar scan
-        if: inputs.mode == 'scan'
+        if: steps.request.outputs.mode == 'scan'
         env:
           APP_TOKEN: ${{ secrets.APP_TOKEN }}
         run: |
@@ -51,13 +81,7 @@ jobs:
           else
             echo "$scan" | jq -c '.result | {checked, discovered, found, added, matchedAdded, failures: (.failures | length)}'
           fi
-
-      - name: Publish job-listings artifact
-        if: inputs.mode == 'scan'
-        env:
-          APP_TOKEN: ${{ secrets.APP_TOKEN }}
-        run: |
-          set -euo pipefail
+          mkdir -p results
           curl -sS --max-time 60 "https://valeta-job-seeker.marcos-valeta.workers.dev/api/radar" \
             -H "Authorization: Bearer $APP_TOKEN" \
             | jq '{
@@ -66,28 +90,43 @@ jobs:
                 dueCount,
                 monitors: [(.monitors // [])[] | {company, active, lastRunStatus, lastRunFoundCount, lastCheckedAt}],
                 opportunities: [(.opportunities // [])[] | {id, title, company, location, sourceUrl, sourceType, fitScore, fitSummary, status, alignmentPasses, origin}]
-              }' > radar-inbox.json
-          jq -r '"\(.opportunities | length) opportunities in inbox"' radar-inbox.json
+              }' > results/radar-inbox.json
+          jq -r '"\(.opportunities | length) opportunities in inbox"' results/radar-inbox.json
 
       - uses: actions/upload-artifact@v4
-        if: inputs.mode == 'scan'
+        if: steps.request.outputs.mode == 'scan' && github.event_name == 'workflow_dispatch'
         with:
           name: radar-inbox
-          path: radar-inbox.json
+          path: results/radar-inbox.json
           retention-days: 1
 
       - name: Deliver draft
-        if: inputs.mode == 'deliver'
+        if: steps.request.outputs.mode == 'deliver'
         env:
           APP_TOKEN: ${{ secrets.APP_TOKEN }}
           DRAFT_B64: ${{ inputs.draft_b64 }}
         run: |
           set -euo pipefail
-          if [ -z "$DRAFT_B64" ]; then echo "deliver mode requires draft_b64"; exit 1; fi
-          echo "$DRAFT_B64" | base64 -d > draft.json
-          jq -e '.type and .content' draft.json > /dev/null || { echo "draft_b64 is not valid draft JSON"; exit 1; }
+          if [ "${{ github.event_name }}" = "push" ]; then
+            cp request/draft.json draft.json
+          else
+            if [ -z "$DRAFT_B64" ]; then echo "deliver mode requires draft_b64"; exit 1; fi
+            echo "$DRAFT_B64" | base64 -d > draft.json
+          fi
+          jq -e '.type and .content' draft.json > /dev/null || { echo "The draft payload is not valid draft JSON"; exit 1; }
+          mkdir -p results
           response=$(curl -sS --max-time 60 -X POST "https://valeta-job-seeker.marcos-valeta.workers.dev/api/drafts" \
             -H "Authorization: Bearer $APP_TOKEN" -H "Content-Type: application/json" \
             --data-binary @draft.json)
-          echo "$response" | jq -c '{ok, changed, draftId, versionNumber, code, message}'
+          echo "$response" | jq -c '{ok, changed, draftId, versionNumber, code, message}' | tee results/delivery-result.json
           [ "$(echo "$response" | jq -r '.ok')" = "true" ]
+
+      - name: Commit results back to the request branch
+        if: github.event_name == 'push' && steps.request.outputs.mode != 'none'
+        run: |
+          set -euo pipefail
+          git config user.name "automation-bridge"
+          git config user.email "noreply@users.noreply.github.com"
+          git add results
+          git commit -m "[bridge-result] ${{ steps.request.outputs.mode }} results"
+          git push origin HEAD
