@@ -52,7 +52,7 @@ type LinkReadPayload = { ok?: boolean; code?: string; message?: string; source?:
 type LinkedInStatus = { state: "checking" | "ready" | "error"; configured: boolean; connected: boolean; message: string; identity?: { name?: string; email?: string; picture?: string } };
 type OperationProgress = { label: string; detail: string } | null;
 type LinkAssist = { kind: "linkedin" | "indeed" | "login"; title: string; message: string } | null;
-type WorkspaceSnapshot = { version: number; profile: Profile; writingStyle: WritingStyle; resumeTracks: ResumeTrack[]; activeTrackId: string; aiPreference: AiPreference; playbookSettings: PlaybookSettings; applications: Application[]; jobSnapshots: JobSnapshot[]; generatedDrafts: GeneratedDraft[]; documents: SourceDocument[]; companies: CompanyTarget[]; roleDraft: { jobText: string; company: string; role: string; roleUrl: string } };
+type WorkspaceSnapshot = { version: number; profile: Profile; writingStyle: WritingStyle; resumeTracks: ResumeTrack[]; activeTrackId: string; aiPreference: AiPreference; claudeModel?: string; playbookSettings: PlaybookSettings; applications: Application[]; jobSnapshots: JobSnapshot[]; generatedDrafts: GeneratedDraft[]; documents: SourceDocument[]; companies: CompanyTarget[]; roleDraft: { jobText: string; company: string; role: string; roleUrl: string } };
 type WorkspaceSync = { state: "loading" | "ready" | "saving" | "error"; message: string; lastSavedAt?: string };
 type WorkspacePayload = { ok?: boolean; code?: string; message?: string; changed?: boolean; snapshot?: unknown; revision?: { id: string; createdAt: string; sizeBytes: number; sourceBuild: string } | null };
 type WorkspaceRevision = { id: string; createdAt: string; sizeBytes: number; sourceBuild: string; isCurrent: boolean };
@@ -96,6 +96,23 @@ const initialProfile: Profile = {
   summary: "",
   facts: "",
 };
+
+// Quick tone presets the user can apply from the AI tab. Each one writes the
+// three Writing-voice fields, which every cover letter, Claude prompt, and
+// the daily automation already read — one source of truth, still hand-
+// editable afterwards in Writing voice.
+const TONE_PRESETS: Array<{ id: string; label: string; tone: string; prefer: string; avoid: string }> = [
+  { id: "professional-direct", label: "Professional & direct", tone: "Clear, direct, confident, and practical.", prefer: "Specific examples, short sentences, concrete outcomes, and plain language.", avoid: "Corporate jargon, filler adjectives, exaggerated claims, and generic enthusiasm." },
+  { id: "warm-conversational", label: "Warm & conversational", tone: "Warm, natural, and conversational while staying professional.", prefer: "First-person stories, approachable phrasing, genuine interest in the team and its work.", avoid: "Stiff formality, buzzwords, copied job-description language, and flattery." },
+  { id: "executive-concise", label: "Executive & concise", tone: "Senior, measured, and economical — every sentence earns its place.", prefer: "Business outcomes, scope and scale, decision-making ownership, and short paragraphs.", avoid: "Long wind-ups, self-deprecation, jargon, and details that do not support the ask." },
+  { id: "creative-energetic", label: "Creative & energetic", tone: "Energetic and creative with a clear point of view.", prefer: "Vivid but honest examples, craft language of the creative industry, momentum between paragraphs.", avoid: "Gimmicks, exclamation marks, invented metrics, and forced humor." },
+];
+
+const CLAUDE_MODEL_OPTIONS: Array<{ id: string; label: string; description: string }> = [
+  { id: "sonnet", label: "Claude Sonnet", description: "Fast and strong — recommended for most drafts" },
+  { id: "opus", label: "Claude Opus", description: "Deepest reasoning for a role you care most about" },
+  { id: "haiku", label: "Claude Haiku", description: "Quickest — fine for small rewrites" },
+];
 
 const initialWritingStyle: WritingStyle = {
   tone: "Clear, direct, conversational, calm, and practical.",
@@ -380,6 +397,7 @@ export function JobSeekerApp() {
   const [resumeTracks, setResumeTracks] = useSavedState<ResumeTrack[]>("v-jobs-resume-tracks-v1", DEFAULT_RESUME_TRACKS);
   const [activeTrackId, setActiveTrackId] = useSavedState("v-jobs-active-track-v1", "auto");
   const [aiPreference, setAiPreference] = useSavedState<AiPreference>("valeta-ai-preference-v1", { provider: "openai", modelKey: "reliable" });
+  const [claudeModel, setClaudeModel] = useSavedState("v-jobs-claude-model-v1", "sonnet");
   const [playbookSettings, setPlaybookSettings] = useSavedState<PlaybookSettings>("valeta-playbook-settings-v1", { curatedEnabled: true });
   const [applications, setApplications] = useSavedState<Application[]>("valeta-applications-v3", [], ["valeta-applications-v1", "valeta-applications-v2"]);
   const [jobSnapshots, setJobSnapshots] = useSavedState<JobSnapshot[]>("v-jobs-market-history-v1", []);
@@ -580,6 +598,7 @@ export function JobSeekerApp() {
     resumeTracks: normalizedTracks,
     activeTrackId,
     aiPreference,
+    claudeModel,
     playbookSettings,
     applications,
     jobSnapshots,
@@ -587,7 +606,7 @@ export function JobSeekerApp() {
     documents,
     companies,
     roleDraft: { jobText, company, role, roleUrl },
-  }), [activeTrackId, aiPreference, applications, companies, company, documents, generatedDrafts, jobSnapshots, jobText, normalizedTracks, playbookSettings, profile, role, roleUrl, writingStyle]);
+  }), [activeTrackId, aiPreference, applications, claudeModel, companies, company, documents, generatedDrafts, jobSnapshots, jobText, normalizedTracks, playbookSettings, profile, role, roleUrl, writingStyle]);
 
   const saveWorkspaceBackup = useCallback(async (snapshot: WorkspaceSnapshot, manual = false) => {
     workspaceAbort.current?.abort();
@@ -700,6 +719,7 @@ export function JobSeekerApp() {
           setDocuments((current) => locallySaved("valeta-documents-v1") ? mergeById(remote.documents, current) : mergeById([], Array.isArray(remote.documents) ? remote.documents : current));
           setCompanies((current) => locallySaved("valeta-companies-v1") ? mergeById(remote.companies, current) : mergeById([], Array.isArray(remote.companies) ? remote.companies : current));
           setActiveTrackId((current) => locallySaved("v-jobs-active-track-v1") ? current : typeof remote.activeTrackId === "string" ? remote.activeTrackId : current);
+          setClaudeModel((current) => locallySaved("v-jobs-claude-model-v1") ? current : typeof remote.claudeModel === "string" ? remote.claudeModel : current);
           setAiPreference((current) => locallySaved("valeta-ai-preference-v1") ? preferLocalObject(remote.aiPreference, current) : preferLocalObject(current, remote.aiPreference && typeof remote.aiPreference === "object" ? remote.aiPreference as AiPreference : current));
           setPlaybookSettings((current) => locallySaved("valeta-playbook-settings-v1") ? preferLocalObject(remote.playbookSettings, current) : preferLocalObject(current, remote.playbookSettings && typeof remote.playbookSettings === "object" ? remote.playbookSettings as PlaybookSettings : current));
           // Earlier active role drafts remain preserved inside revision history,
@@ -715,7 +735,7 @@ export function JobSeekerApp() {
         logError("app", "workspace_restore_failed", cause);
       });
     return () => { active = false; };
-  }, [browserStateReady, logError, setActiveTrackId, setAiPreference, setApplications, setCompanies, setDocuments, setGeneratedDrafts, setJobSnapshots, setJobText, setPlaybookSettings, setProfile, setResumeTracks, setRole, setRoleUrl, setWritingStyle, setCompany]);
+  }, [browserStateReady, logError, setActiveTrackId, setAiPreference, setApplications, setClaudeModel, setCompanies, setDocuments, setGeneratedDrafts, setJobSnapshots, setJobText, setPlaybookSettings, setProfile, setResumeTracks, setRole, setRoleUrl, setWritingStyle, setCompany]);
 
   useEffect(() => {
     if (!workspaceLoaded) return;
@@ -1129,7 +1149,7 @@ export function JobSeekerApp() {
       `APPROVED CAREER FACTS — the only claims allowed\n${resumeFacts.length ? resumeFacts.map((fact) => `- ${fact}`).join("\n") : "(None approved yet — ask me for real experience before drafting.)"}`,
       `POSITIONING\nRésumé direction: ${selectedTrack.name}\nHeadline: ${selectedTrack.headline || profile.headline || "None saved"}\nSummary: ${selectedTrack.summary || profile.summary || "None saved"}`,
       rules.length ? `EDITORIAL RULES — uploaded rules first, curated second\n${rules.map((rule) => `- ${rule}`).join("\n")}` : "",
-      kind === "cover" ? `WRITING VOICE — affects phrasing only, never facts\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}` : "",
+      `WRITING VOICE — affects phrasing only, never facts\nTone: ${writingStyle.tone}\nPrefer: ${writingStyle.prefer}\nAvoid: ${writingStyle.avoid}`,
       kind === "resume"
         ? "OUTPUT\nReturn only the finished résumé as plain text: name on the first line, headline on the second, one contact line, then ALL-CAPS section headers (SUMMARY, EXPERIENCE, SKILLS, EDUCATION) with hyphen bullets. No commentary before or after the résumé."
         : "OUTPUT\nReturn only the finished cover letter as plain text, ready to send. No commentary before or after it.",
@@ -1589,7 +1609,7 @@ export function JobSeekerApp() {
                     <button onClick={() => { setPasteDraftOpen(false); setPasteDraftText(""); }}>Cancel</button>
                   </div>
                 </> : <div className="paste-external-draft-actions"><button className="primary" onClick={() => copyText(claudeSubscriptionPrompt(output as "resume" | "cover"), setNotice)}>Copy Claude prompt</button><button onClick={() => setPasteDraftOpen(true)}>Paste a drafted {output === "resume" ? "résumé" : "cover letter"}</button></div>}
-                <small>Use your regular Claude subscription instead of a paid API key: <b>Copy Claude prompt</b> bundles this role, your approved facts, playbook rules{output === "cover" ? ", and writing voice" : ", and positioning"} into one message. Paste it into a normal Claude conversation, then paste Claude&rsquo;s reply back here with <b>Paste a drafted {output === "resume" ? "résumé" : "cover letter"}</b> — it is scored, versioned, and exported exactly like a cloud-generated draft.</small>
+                <small>Use your regular Claude subscription instead of a paid API key: <b>Copy Claude prompt</b> bundles this role, your approved facts, playbook rules, positioning, and your writing voice into one message. Open a Claude chat with <b>{CLAUDE_MODEL_OPTIONS.find((option) => option.id === claudeModel)?.label || "Claude Sonnet"}</b> (change the model and tone in AI &amp; reliability), paste it, then paste Claude&rsquo;s reply back here with <b>Paste a drafted {output === "resume" ? "résumé" : "cover letter"}</b> — it is scored, versioned, and exported exactly like a cloud-generated draft.</small>
               </div>}
               {output === "resume" && <div className="resume-ai-toolbar">
                 <div><span>RÉSUMÉ ENGINE</span><strong>{selectedProvider?.name || "Choose a provider"} · {selectedModel?.label || "Choose a model"}</strong><small>Generation writes the résumé. Review audits the current draft without changing it.</small></div>
@@ -1655,6 +1675,13 @@ export function JobSeekerApp() {
             <div className="connection-heading"><div><span className={`connection-dot ${aiConnection.state === "loaded" && aiReady ? "ready" : aiConnection.state}`} /><div><small>SELECTED CLOUD CONNECTION</small><h2>{aiConnection.state === "checking" ? "Checking…" : aiReady ? "Connected" : !selectedProvider?.configured ? "Setup required" : !aiConnection.authenticated ? "Sign-in required" : "Access not allowed"}</h2></div></div><button onClick={recheckAiConnection} disabled={aiConnection.state === "checking"}>Recheck</button></div>
             <p>{aiConnectionMessage}</p>
             <div className="setup-note"><strong>No API key? Use your Claude subscription</strong><p>A Claude Max or Pro plan cannot be plugged in as an API key — consumer subscriptions and API billing are separate on purpose. But every drafting feature here works without one: on the Résumé and Cover letter tabs, <b>Copy Claude prompt</b> packages the role, your approved facts, and your playbook into one message for a normal Claude conversation, and <b>Paste a drafted…</b> brings the reply back as a scored, versioned draft. Job Radar scanning, fit analysis, the standards report, and the autofill companion never call a paid model at all.</p></div>
+            <div className="setup-note"><strong>Drafting style — Claude model &amp; tone</strong>
+              <div className="field-row">
+                <label>Claude model for drafting<select value={claudeModel} onChange={(event) => setClaudeModel(event.target.value)}>{CLAUDE_MODEL_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label} — {option.description}</option>)}</select></label>
+                <label>Apply a tone preset<select value="" onChange={(event) => { const preset = TONE_PRESETS.find((item) => item.id === event.target.value); if (!preset) return; setWritingStyle({ ...writingStyle, tone: preset.tone, prefer: preset.prefer, avoid: preset.avoid }); setNotice(`Tone set to “${preset.label}”. Every cover letter, Claude prompt, and the daily automation now use it — fine-tune it anytime in Writing voice.`); }}><option value="">Choose a preset…</option>{TONE_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}</select></label>
+              </div>
+              <p>The model choice is remembered for the <b>Copy Claude prompt</b> flow and for the scheduled daily drafting. A tone preset rewrites the three Writing-voice fields in one click; your learned voice stays available — press <b>Relearn</b> in Writing voice to go back to it.</p>
+            </div>
             <div className="model-diagnostics-actions">
               <button onClick={runModelDiagnostics} disabled={aiDiagnostics.state === "checking"}>{aiDiagnostics.state === "checking" ? "Checking…" : "Check model catalog access"}</button>
               {selectedProvider?.configured && selectedModel && <button onClick={runLiveGenerationCheck} disabled={aiDiagnostics.state === "checking"}>Test real generation with {selectedModel.label}</button>}
