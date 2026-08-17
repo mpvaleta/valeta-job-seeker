@@ -82,12 +82,18 @@ jobs:
             echo "$scan" | jq -c '.result | {checked, discovered, found, added, matchedAdded, failures: (.failures | length)}'
           fi
           mkdir -p results
+          # Drafting preferences only — tone and model choice, never the
+          # profile, documents, facts, or drafts.
+          drafting=$(curl -sS --max-time 60 "https://valeta-job-seeker.marcos-valeta.workers.dev/api/workspace" \
+            -H "Authorization: Bearer $APP_TOKEN" \
+            | jq -c '{tone: (.snapshot.writingStyle.tone // ""), prefer: (.snapshot.writingStyle.prefer // ""), avoid: (.snapshot.writingStyle.avoid // ""), claudeModel: (.snapshot.claudeModel // "sonnet")}')
           curl -sS --max-time 60 "https://valeta-job-seeker.marcos-valeta.workers.dev/api/radar" \
             -H "Authorization: Bearer $APP_TOKEN" \
-            | jq '{
+            | jq --argjson drafting "$drafting" '{
                 fetchedAt: (now | todate),
                 lastRunAt,
                 dueCount,
+                drafting: $drafting,
                 monitors: [(.monitors // [])[] | {company, active, lastRunStatus, lastRunFoundCount, lastCheckedAt}],
                 opportunities: [(.opportunities // [])[] | {id, title, company, location, sourceUrl, sourceType, fitScore, fitSummary, status, alignmentPasses, origin}]
               }' > results/radar-inbox.json
