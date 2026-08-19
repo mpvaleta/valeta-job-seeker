@@ -259,7 +259,10 @@ function dateToday() {
 }
 
 function dateInputToday() {
-  return new Date().toISOString().slice(0, 10);
+  // Local calendar date, not UTC: toISOString() stamped tomorrow's date on
+  // any application marked Applied after ~5pm Pacific.
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
 function createId() {
@@ -329,8 +332,11 @@ function splitLocation(value: string) {
   if (!parts.length) return { city: "", state: "", country: "" };
   if (parts.length === 1) return { city: parts[0], state: "", country: "" };
   const [city, second, third] = parts;
-  const state = /^[A-Za-z]{2}$|^[A-Z][a-z]+$/.test(second) ? second : "";
-  return { city, state, country: third || "" };
+  const stateLike = /^[A-Za-z]{2}$|^[A-Z][a-z]+$/.test(second);
+  // "Remote, United States" has no state — the second part is the country,
+  // and dropping it entirely left both fields blank in the autofill package.
+  if (!stateLike) return { city, state: "", country: third || second };
+  return { city, state: second, country: third || "" };
 }
 
 function ResumePaper({ text }: { text: string }) {
@@ -882,7 +888,9 @@ export function JobSeekerApp() {
     profile: { fullName: profile.name, email: profile.email, phone: profile.phone, location: profile.location, linkedin: profile.linkedin, ...splitLocation(profile.location) },
     target: { company, role },
     answers: { headline: profile.headline, summary: profile.summary, interest: `I’m interested in ${role || "this role"} because it combines ${roleKeywords.slice(0, 3).join(", ") || "project leadership, creative operations, and cross-functional delivery"}.` },
-    resumeVersion: selectedAutofillResume ? { id: selectedAutofillResume.id, title: selectedAutofillResume.title, versionNumber: selectedAutofillResume.versionNumber || null, origin: selectedAutofillResume.origin } : null,
+    // The companion reads this as `resume` — it was emitted as `resumeVersion`
+    // for weeks, which is why the popup always said no résumé was attached.
+    resume: selectedAutofillResume ? { id: selectedAutofillResume.id, title: selectedAutofillResume.title, versionNumber: selectedAutofillResume.versionNumber || null, origin: selectedAutofillResume.origin } : null,
     safety: { neverSubmit: true, sensitiveFieldsRequireUser: true },
   }, null, 2);
 
@@ -1383,6 +1391,7 @@ export function JobSeekerApp() {
       document: { id: createId(), title: file.name, type: file.type || "Document", category: sourceCategory, scope, trackId: sourceTrackId, sourceUrl: importedUrl, importedAt: dateToday(), text: "", candidates: [], approved: [], status: "reading" as const },
     }));
     setSourceUrl("");
+    let failedCount = 0;
     setDocuments((current) => [...queued.map((item) => item.document), ...current]);
     setNotice(`Reading ${files.length} ${files.length === 1 ? "file" : "files"} on this Mac…`);
     setOperationProgress({ label: "Learning from uploaded content", detail: "Extracting text locally, classifying its knowledge scope, and preparing only evidence or résumé rules for your approval…" });
@@ -1392,12 +1401,14 @@ export function JobSeekerApp() {
       const fileLimit = isZip ? MAX_LINKEDIN_ARCHIVE_BYTES : MAX_SOURCE_FILE_BYTES;
       if (file.size > fileLimit) {
         logError("documents", "source_file_too_large", `The selected file is larger than the ${isZip ? "50" : "10"} MB import limit.`, { size: file.size, limit: fileLimit });
+        failedCount += 1;
         setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, status: "needs-text" } : item));
         return;
       }
       const isSupported = isZip || /^(text\/|application\/(json|csv|pdf|vnd\.openxmlformats-officedocument\.wordprocessingml\.document))/.test(file.type) || /\.(txt|md|csv|json|pdf|docx)$/i.test(file.name);
       if (!isSupported) {
         logError("documents", "unsupported_file_type", "The selected file type is not supported.", { extension: file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() || "unknown" : "none", mime: file.type || "unknown", size: file.size });
+        failedCount += 1;
         setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, status: "needs-text" } : item));
         return;
       }
@@ -1432,11 +1443,18 @@ export function JobSeekerApp() {
         if (scope === "voice") addWritingSample(document.title, text);
       } catch (cause) {
         logError("documents", "document_read_failed", cause, { extension: file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() || "unknown" : "none", mime: file.type || "unknown", size: file.size });
+        failedCount += 1;
         setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, status: "needs-text" } : item));
       }
     }));
     setOperationProgress(null);
-    setNotice(scope === "evidence" ? "Import finished. Review candidates individually or use Approve all." : scope === "voice" ? "Writing samples are now in your voice bank and cannot create career facts." : scope === "guidance" ? "Résumé playbook imported and activated automatically. Your uploaded rules now outrank the built-in guidance." : "Research sources are saved as context and cannot create career facts.");
+    if (failedCount >= files.length) {
+      setNotice(`None of the ${files.length === 1 ? "file" : `${files.length} files`} could be read — ${files.length === 1 ? "it is" : "they are"} marked "needs text" below. Check the type (PDF, DOCX, TXT, MD, CSV, JSON, or a LinkedIn ZIP) and size, or paste the text directly.`);
+    } else if (failedCount > 0) {
+      setNotice(`${files.length - failedCount} of ${files.length} files imported; ${failedCount} could not be read and ${failedCount === 1 ? "is" : "are"} marked "needs text" below. ${scope === "evidence" ? "Review candidates from the imported ones or use Approve all." : ""}`.trim());
+    } else {
+      setNotice(scope === "evidence" ? "Import finished. Review candidates individually or use Approve all." : scope === "voice" ? "Writing samples are now in your voice bank and cannot create career facts." : scope === "guidance" ? "Résumé playbook imported and activated automatically. Your uploaded rules now outrank the built-in guidance." : "Research sources are saved as context and cannot create career facts.");
+    }
   }
 
   function approveCandidate(documentId: string, candidate: string) {
@@ -1547,7 +1565,7 @@ export function JobSeekerApp() {
       <aside className="nav-panel">
         <button className="wordmark" onClick={() => setView("workspace")}><span>V&apos;S</span><small>JOB SEEKER</small></button>
         <nav>
-          {([['workspace','Role workspace'],['radar','Job radar'],['profile','Career profile'],['documents','Knowledge sources'],['voice','Writing voice'],['connections','Connections'],['applications','Applications'],['autofill','Autofill assistant'],['ai','AI & reliability'],['data','Data & versions']] as [View,string][]).map(([id,label]) =>
+          {([['workspace','Role workspace'],['radar','Job radar'],['companies','Target directory'],['profile','Career profile'],['documents','Knowledge sources'],['voice','Writing voice'],['connections','Connections'],['applications','Applications'],['autofill','Autofill assistant'],['ai','AI & reliability'],['data','Data & versions']] as [View,string][]).map(([id,label]) =>
             <button key={id} className={view === id ? "nav-item active" : "nav-item"} onClick={() => { setView(id); if (id === "data" && workspaceHistoryState === "idle") window.setTimeout(() => void loadWorkspaceHistory(), 0); }}>{label}</button>
           )}
         </nav>

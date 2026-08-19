@@ -73,7 +73,7 @@ export async function ensureRadarUser(db: D1Database, email: string, displayName
 }
 
 export async function readRadarDashboard(db: D1Database, userId: string) {
-  const [profileRow, monitorResult, opportunityResult] = await Promise.all([
+  const [profileRow, monitorResult, opportunityResult, opportunityCountRow] = await Promise.all([
     db.prepare("SELECT id, headline, target_roles_json, target_markets_json, positioning, constraints_json FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<ProfileRow>(),
     // CURRENT_TIMESTAMP only resolves to whole seconds, so two runs of the same
     // monitor inside one second tie on created_at. rowid breaks the tie in
@@ -85,9 +85,13 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
       (SELECT mr.created_at FROM monitor_runs mr WHERE mr.monitor_id = m.id ORDER BY mr.created_at DESC, mr.rowid DESC LIMIT 1) AS last_run_at
       FROM company_monitors m JOIN companies c ON c.id = m.company_id
       WHERE m.user_id = ? ORDER BY m.is_active DESC, c.name ASC`).bind(userId).all<MonitorRow>(),
+    // Newest 600 travel to the browser; the true total rides alongside so the
+    // inbox can say "newest 600 of N" instead of silently plateauing at the cap
+    // (the old hard 300 made the radar look frozen once the inbox filled up).
     db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, c.company_type, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at
       FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
-      WHERE o.user_id = ? ORDER BY o.discovered_at DESC, o.fit_score DESC LIMIT 300`).bind(userId).all<OpportunityRow>(),
+      WHERE o.user_id = ? ORDER BY o.discovered_at DESC, o.fit_score DESC LIMIT 600`).bind(userId).all<OpportunityRow>(),
+    db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE user_id = ?").bind(userId).first<{ count: number }>(),
   ]);
   const profile = profileFromRow(profileRow);
   const monitors = (monitorResult.results || []).map(monitorFromRow);
@@ -147,6 +151,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     profile,
     monitors,
     opportunities,
+    opportunityTotal: Number(opportunityCountRow?.count || 0),
     excludedNavigationCount: opportunityRows.length - visibleOpportunityRows.length,
     dueCount: monitors.filter((monitor) => monitor.active && isMonitorDue(monitor)).length,
     lastRunAt: monitors.map((monitor) => monitor.lastCheckedAt).filter(Boolean).sort().reverse()[0] || null,
