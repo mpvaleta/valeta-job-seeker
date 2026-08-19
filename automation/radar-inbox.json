@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-08-19T21:01:54Z",
-  "lastRunAt": "2026-08-19 21:01:52",
+  "fetchedAt": "2026-08-19T23:36:56Z",
+  "lastRunAt": "2026-08-19 23:36:55",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -22,7 +22,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 26,
-      "lastCheckedAt": "2026-08-19 20:59:20",
+      "lastCheckedAt": "2026-08-19 23:36:39",
       "lastRunSummary": "Manual scan · 38 verified roles read · 26 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -30,7 +30,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-08-19 20:59:21",
+      "lastCheckedAt": "2026-08-19 23:36:41",
       "lastRunSummary": "Manual scan · 9 verified roles read · 1 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -38,7 +38,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-08-19 20:59:21",
+      "lastCheckedAt": "2026-08-19 23:36:42",
       "lastRunSummary": "Manual scan · 7 verified roles read · 3 met the 45% minimum · 4 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -46,7 +46,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 20:59:24",
+      "lastCheckedAt": "2026-08-19 23:36:46",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -54,7 +54,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 20:59:24",
+      "lastCheckedAt": "2026-08-19 23:36:46",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -62,7 +62,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 93,
-      "lastCheckedAt": "2026-08-19 21:00:29",
+      "lastCheckedAt": "2026-08-19 23:36:55",
       "lastRunSummary": "Manual scan · 93 verified roles read · 93 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
