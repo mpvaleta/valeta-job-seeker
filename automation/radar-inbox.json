@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-08-19T20:49:31Z",
-  "lastRunAt": "2026-08-19 20:49:29",
+  "fetchedAt": "2026-08-19T20:59:26Z",
+  "lastRunAt": "2026-08-19 20:59:24",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -14,15 +14,15 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 59,
-      "lastCheckedAt": "2026-08-19 20:48:48",
-      "lastRunSummary": "Manual scan · 300 verified roles read · 59 met the 45% minimum · 241 saved below threshold · 2 new (0 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-19 20:59:18",
+      "lastRunSummary": "Manual scan · 300 verified roles read · 59 met the 45% minimum · 241 saved below threshold · 1 new (0 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Attentive",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 26,
-      "lastCheckedAt": "2026-08-19 20:48:51",
+      "lastCheckedAt": "2026-08-19 20:59:20",
       "lastRunSummary": "Manual scan · 38 verified roles read · 26 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -30,7 +30,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-08-19 20:48:53",
+      "lastCheckedAt": "2026-08-19 20:59:21",
       "lastRunSummary": "Manual scan · 9 verified roles read · 1 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -38,7 +38,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-08-19 20:48:54",
+      "lastCheckedAt": "2026-08-19 20:59:21",
       "lastRunSummary": "Manual scan · 7 verified roles read · 3 met the 45% minimum · 4 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -46,7 +46,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 20:48:57",
+      "lastCheckedAt": "2026-08-19 20:59:24",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -54,7 +54,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 20:48:57",
+      "lastCheckedAt": "2026-08-19 20:59:24",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -147,6 +147,19 @@
     }
   ],
   "opportunities": [
+    {
+      "id": "287c0cd2-d899-4750-b8ee-7c22a4a1da24",
+      "title": "Business Development Representative",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5396186008",
+      "sourceType": "greenhouse",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · skill overlap: project management · goal overlap: marketing, roles, ownership · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
     {
       "id": "d5874ba6-5ea4-4125-8825-7d504ed25ef0",
       "title": "Data Center Electrical Engineer",
@@ -7930,19 +7943,6 @@
       "sourceType": "greenhouse",
       "fitScore": 68,
       "fitSummary": "68% target alignment · title overlap: program · skill overlap: project management, brand · goal overlap: brand, roles, ownership · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "02c20ad6-d97c-4289-8cd2-1e74df9d2250",
-      "title": "Community & Executive Escalations Program Manager",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5207565008",
-      "sourceType": "greenhouse",
-      "fitScore": 68,
-      "fitSummary": "68% target alignment · title overlap: program · skill overlap: brand, cross-functional · goal overlap: brand, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
