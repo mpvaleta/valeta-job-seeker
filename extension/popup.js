@@ -50,7 +50,7 @@ function showScan(response) {
     label.textContent = field.label;
     label.title = field.reason || "";
     const badge = document.createElement("b");
-    badge.textContent = field.status === "fillable" ? "Ready" : field.status === "review" ? "Review" : "Unmapped";
+    badge.textContent = field.status === "filled" ? "Filled" : field.status === "fillable" ? "Ready" : field.status === "review" ? "Review" : "Unmapped";
     row.append(label, badge);
     results.append(row);
   });
@@ -81,9 +81,21 @@ document.querySelector("#save").addEventListener("click", async () => {
   }
 });
 
-document.querySelector("#scan").addEventListener("click", async () => {
+function packageValueOrExplain() {
+  // A broken package used to surface as "Could not inspect this page",
+  // sending the user to refresh a page that was never the problem.
   try {
-    const value = packageValue();
+    return packageValue();
+  } catch {
+    status.textContent = "The saved package is not valid JSON from V's Job Seeker. Open the Autofill tab in the app, copy the package again, and paste it above.";
+    return null;
+  }
+}
+
+document.querySelector("#scan").addEventListener("click", async () => {
+  const value = packageValueOrExplain();
+  if (!value) return;
+  try {
     await chrome.storage.local.set({ valetaPackage: value });
     showPackageMeta(value);
     const tab = await activeTab();
@@ -96,8 +108,9 @@ document.querySelector("#scan").addEventListener("click", async () => {
 });
 
 fillButton.addEventListener("click", async () => {
+  const value = packageValueOrExplain();
+  if (!value) return;
   try {
-    const value = packageValue();
     await chrome.storage.local.set({ valetaPackage: value });
     showPackageMeta(value);
     const tab = await activeTab();

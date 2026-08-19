@@ -60,6 +60,7 @@ type RadarPayload = {
   profile?: RadarProfile;
   monitors?: RadarMonitor[];
   opportunities?: RadarOpportunity[];
+  opportunityTotal?: number;
   dueCount?: number;
   lastRunAt?: string | null;
   excludedNavigationCount?: number;
@@ -127,6 +128,24 @@ const TARGET_TYPES = [
 ];
 
 const REFERENCE_SOURCES = ["None", "LinkedIn", "Indeed", "Glassdoor", "Other job board"];
+
+// Region filters for the discovery inbox. Job locations arrive as free text
+// ("San Francisco or New York · hybrid", "United States · remote"), so exact
+// string matching made the old location dropdown nearly useless — one posting
+// per option. Regions match the text instead, and more than one can be on at
+// once.
+const LOCATION_REGIONS: Array<{ id: string; label: string; test: (location: string) => boolean }> = [
+  { id: "bay-area", label: "SF Bay Area", test: (value) => /san francisco|bay area|oakland|berkeley|emeryville|san jose|santa clara|sunnyvale|mountain view|palo alto|menlo park|redwood city|san mateo|san bruno|south san francisco|cupertino|fremont|foster city|burlingame|\bsf\b/i.test(value) },
+  { id: "remote", label: "Remote", test: (value) => /\bremote\b|\banywhere\b|work from home|\bwfh\b|\bdistributed\b/i.test(value) },
+  { id: "new-york", label: "New York", test: (value) => /new york|\bnyc\b|brooklyn|manhattan/i.test(value) },
+  { id: "los-angeles", label: "Los Angeles", test: (value) => /los angeles|santa monica|culver city|burbank|el segundo|\bla\b/i.test(value) },
+];
+
+function matchesSelectedRegions(location: string, selected: string[]) {
+  if (!selected.length) return true;
+  const named = LOCATION_REGIONS.filter((region) => region.test(location)).map((region) => region.id);
+  return selected.some((id) => id === "other" ? named.length === 0 : named.includes(id));
+}
 const initialDraft = profileToDraft(DEFAULT_RADAR_PROFILE);
 
 export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, onError }: Props) {
@@ -134,6 +153,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
   const [monitors, setMonitors] = useState<RadarMonitor[]>([]);
   const [opportunities, setOpportunities] = useState<RadarOpportunity[]>([]);
   const [dueCount, setDueCount] = useState(0);
+  const [opportunityTotal, setOpportunityTotal] = useState(0);
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);
   const [excludedNavigationCount, setExcludedNavigationCount] = useState(0);
   const [schedulerEnabled, setSchedulerEnabled] = useState(false);
@@ -149,7 +169,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
   const [originFilter, setOriginFilter] = useState<"all" | "monitored" | "v-watch" | "imported" | "linkedin-saved">("all");
   const [importLinks, setImportLinks] = useState("");
   const [targetFilter, setTargetFilter] = useState("all");
-  const [locationFilter, setLocationFilter] = useState("all");
+  const [locationRegions, setLocationRegions] = useState<string[]>([]);
   const [company, setCompany] = useState("");
   // "Other" is a deliberate neutral default — TARGET_TYPES[0] is "Startup /
   // Early-stage" (ordered that way for the filter dropdown's prominence), so
@@ -170,8 +190,16 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     ...monitors.map((monitor) => monitor.company),
     ...opportunities.map((opportunity) => opportunity.company),
   ])].sort((left, right) => left.localeCompare(right)), [monitors, opportunities]);
-  const locationOptions = useMemo(() => [...new Set(opportunities.map((opportunity) => opportunity.location).filter(Boolean))]
-    .sort((left, right) => left.localeCompare(right)), [opportunities]);
+  const regionCounts = useMemo(() => {
+    const counts = new Map<string, number>([["other", 0]]);
+    for (const region of LOCATION_REGIONS) counts.set(region.id, 0);
+    for (const opportunity of opportunities) {
+      const named = LOCATION_REGIONS.filter((region) => region.test(opportunity.location));
+      if (!named.length) counts.set("other", (counts.get("other") || 0) + 1);
+      for (const region of named) counts.set(region.id, (counts.get(region.id) || 0) + 1);
+    }
+    return counts;
+  }, [opportunities]);
   const targetOptions = useMemo(() => [...new Set([
     ...savedTargetPositions,
     ...monitors.map((monitor) => monitor.targetPosition).filter(Boolean),
@@ -185,8 +213,8 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     .filter((item) => companyFilter === "all" || item.company === companyFilter)
     .filter((item) => originFilter === "all" || item.origin === originFilter)
     .filter((item) => targetFilter === "all" || item.targetPosition === targetFilter || item.trackLabel === targetFilter)
-    .filter((item) => locationFilter === "all" || item.location === locationFilter)
-    .sort((left, right) => right.fitScore - left.fitScore || right.discoveredAt.localeCompare(left.discoveredAt)), [alignmentFilter, categoryFilter, companyFilter, filter, locationFilter, opportunities, originFilter, targetFilter, trackFilter]);
+    .filter((item) => matchesSelectedRegions(item.location, locationRegions))
+    .sort((left, right) => right.fitScore - left.fitScore || right.discoveredAt.localeCompare(left.discoveredAt)), [alignmentFilter, categoryFilter, companyFilter, filter, locationRegions, opportunities, originFilter, targetFilter, trackFilter]);
   const newCount = opportunities.filter((item) => item.status === "new").length;
   const shortlistedCount = opportunities.filter((item) => item.status === "shortlisted").length;
   const matchingCount = opportunities.filter((item) => item.alignmentPasses).length;
@@ -241,6 +269,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     }
     if (Array.isArray(data.monitors)) setMonitors(data.monitors);
     if (Array.isArray(data.opportunities)) setOpportunities(data.opportunities);
+    setOpportunityTotal(data.opportunityTotal || 0);
     setDueCount(data.dueCount || 0);
     setLastRunAt(data.lastRunAt || null);
     setExcludedNavigationCount(data.excludedNavigationCount || 0);
@@ -454,13 +483,17 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     </section>
 
     <section className="radar-inbox">
-      <div className="radar-section-head"><div><span>DISCOVERY INBOX</span><h2>{visibleOpportunities.length} discovered {visibleOpportunities.length === 1 ? "role" : "roles"}</h2><small>V keeps below-threshold discoveries too, so a working scan never looks empty.</small></div><div className="radar-filters">{([['active','Active'],['shortlisted','Approved'],['dismissed','Dismissed'],['archived','Archived'],['all','All statuses']] as const).map(([id, label]) => <button key={id} className={filter === id ? "selected" : ""} onClick={() => setFilter(id)}>{label}</button>)}</div></div>
+      <div className="radar-section-head"><div><span>DISCOVERY INBOX</span><h2>{visibleOpportunities.length} discovered {visibleOpportunities.length === 1 ? "role" : "roles"}{opportunityTotal > opportunities.length ? ` · ${opportunityTotal} total` : ""}</h2><small>{opportunityTotal > opportunities.length ? `Showing the newest ${opportunities.length} of ${opportunityTotal} preserved discoveries — nothing was deleted. ` : ""}V keeps below-threshold discoveries too, so a working scan never looks empty.</small></div><div className="radar-filters">{([['active','Active'],['shortlisted','Approved'],['dismissed','Dismissed'],['archived','Archived'],['all','All statuses']] as const).map(([id, label]) => <button key={id} className={filter === id ? "selected" : ""} onClick={() => setFilter(id)}>{label}</button>)}</div></div>
       <div className="radar-inbox-controls">
         <div className="radar-filters" aria-label="Alignment filter">{([["all",`All alignment (${opportunities.length})`],["matching",`Matching (${matchingCount})`],["below",`Below threshold (${belowThresholdCount})`]] as const).map(([id, label]) => <button key={id} className={alignmentFilter === id ? "selected" : ""} onClick={() => setAlignmentFilter(id)}>{label}</button>)}</div>
         <label>Company<select value={companyFilter} onChange={(event) => setCompanyFilter(event.target.value)}><option value="all">All companies</option>{companyOptions.map((companyName) => <option key={companyName} value={companyName}>{companyName}</option>)}</select></label>
         <label>Found by<select value={originFilter} onChange={(event) => setOriginFilter(event.target.value as "all" | "monitored" | "v-watch" | "imported" | "linkedin-saved")}><option value="all">All discovery sources</option><option value="monitored">Companies I monitor</option><option value="v-watch">Suggested by V’s</option><option value="imported">Imported by me</option><option value="linkedin-saved">Saved on LinkedIn</option></select></label>
         <label>Target position<select value={targetFilter} onChange={(event) => setTargetFilter(event.target.value)}><option value="all">All target positions</option>{targetOptions.map((target) => <option key={target} value={target}>{target}</option>)}</select></label>
-        <label>Location<select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}><option value="all">All locations</option>{locationOptions.map((location) => <option key={location} value={location}>{location}</option>)}</select></label>
+        <div className="radar-filters" aria-label="Location filter — pick one or more regions">
+          <button className={locationRegions.length === 0 ? "selected" : ""} onClick={() => setLocationRegions([])}>All locations</button>
+          {LOCATION_REGIONS.map((region) => <button key={region.id} className={locationRegions.includes(region.id) ? "selected" : ""} aria-pressed={locationRegions.includes(region.id)} onClick={() => setLocationRegions((current) => current.includes(region.id) ? current.filter((id) => id !== region.id) : [...current, region.id])}>{region.label} ({regionCounts.get(region.id) || 0})</button>)}
+          <button className={locationRegions.includes("other") ? "selected" : ""} aria-pressed={locationRegions.includes("other")} onClick={() => setLocationRegions((current) => current.includes("other") ? current.filter((id) => id !== "other") : [...current, "other"])}>Other ({regionCounts.get("other") || 0})</button>
+        </div>
         <label>Career trail<select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}><option value="all">All trails</option>{RADAR_TRACKS.map((track) => <option key={track.id} value={track.id}>{track.label}</option>)}</select></label>
         <label>Company type<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All company types</option>{RADAR_COMPANY_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
       </div>
