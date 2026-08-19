@@ -94,7 +94,7 @@ jobs:
                 lastRunAt,
                 dueCount,
                 drafting: $drafting,
-                monitors: [(.monitors // [])[] | {company, active, lastRunStatus, lastRunFoundCount, lastCheckedAt}],
+                monitors: [(.monitors // [])[] | {company, active, lastRunStatus, lastRunFoundCount, lastCheckedAt, lastRunSummary}],
                 opportunities: [(.opportunities // [])[] | {id, title, company, location, sourceUrl, sourceType, fitScore, fitSummary, status, alignmentPasses, origin}]
               }' > results/radar-inbox.json
           jq -r '"\(.opportunities | length) opportunities in inbox"' results/radar-inbox.json
