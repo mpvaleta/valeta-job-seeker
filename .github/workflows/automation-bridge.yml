@@ -37,6 +37,12 @@ on:
   push:
     branches:
       - "automation/request/**"
+  schedule:
+    # Snapshot the inbox onto the automation-state branch shortly before each
+    # drafting routine fires, so the Claude session never has to run a scan or
+    # wait on a round trip — it just reads one file and pushes one draft.
+    - cron: "20 13 * * *"
+    - cron: "20 23 * * *"
 
 permissions:
   contents: write
@@ -52,7 +58,9 @@ jobs:
         id: request
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "push" ]; then
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "mode=scan" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ]; then
             if [ -f request/draft.json ]; then echo "mode=deliver" >> "$GITHUB_OUTPUT";
             elif [ -f request/scan.json ]; then echo "mode=scan" >> "$GITHUB_OUTPUT";
             else echo "mode=none" >> "$GITHUB_OUTPUT"; echo "No request file on this branch."; fi
@@ -136,3 +144,41 @@ jobs:
           git add results
           git commit -m "[bridge-result] ${{ steps.request.outputs.mode }} results"
           git push origin HEAD
+
+      # Everything the drafting session needs to read, and everything it would
+      # otherwise have to write, lives on one stable branch maintained here.
+      # The session's only git write is a single draft push — every extra
+      # round trip was a step that could fail silently inside its sandbox.
+      - name: Publish inbox and record deliveries on automation-state
+        if: always() && steps.request.outputs.mode != 'none' && (steps.request.outputs.mode == 'scan' || steps.request.outputs.mode == 'deliver')
+        run: |
+          set -euo pipefail
+          [ -f results/radar-inbox.json ] || [ -f results/delivery-result.json ] || { echo "Nothing to publish."; exit 0; }
+          git config user.name "automation-bridge"
+          git config user.email "noreply@users.noreply.github.com"
+          rm -rf /tmp/state && mkdir -p /tmp/state
+          cp -f results/radar-inbox.json /tmp/state/ 2>/dev/null || true
+          if [ -f request/draft.json ] && [ -f results/delivery-result.json ]; then
+            cp -f request/draft.json /tmp/state/delivered-draft.json
+            cp -f results/delivery-result.json /tmp/state/
+          fi
+          git fetch origin automation-state --quiet 2>/dev/null && git checkout -B automation-state origin/automation-state \
+            || git checkout --orphan automation-state
+          git rm -rf --cached . --quiet 2>/dev/null || true
+          find . -maxdepth 1 -mindepth 1 ! -name .git ! -name automation -exec rm -rf {} + 2>/dev/null || true
+          mkdir -p automation
+          [ -f /tmp/state/radar-inbox.json ] && cp -f /tmp/state/radar-inbox.json automation/radar-inbox.json || true
+          [ -f automation/drafted.json ] || echo '[]' > automation/drafted.json
+          if [ -f /tmp/state/delivery-result.json ] && [ "$(jq -r '.ok' /tmp/state/delivery-result.json)" = "true" ]; then
+            note=$(jq -r '.note // ""' /tmp/state/delivered-draft.json)
+            jq -n --slurpfile prev automation/drafted.json \
+              --arg company "$(jq -r '.company // ""' /tmp/state/delivered-draft.json)" \
+              --arg role "$(jq -r '.role // ""' /tmp/state/delivered-draft.json)" \
+              --arg note "$note" \
+              --arg date "$(date -u +%Y-%m-%d)" \
+              '$prev[0] + [{company: $company, role: $role, note: $note, date: $date}]' > automation/drafted.json.new
+            mv automation/drafted.json.new automation/drafted.json
+          fi
+          git add automation
+          git commit -m "[bridge-result] update automation state" || { echo "State unchanged."; exit 0; }
+          git push origin automation-state
