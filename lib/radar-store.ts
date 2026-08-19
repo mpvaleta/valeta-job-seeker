@@ -487,11 +487,27 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
   const dashboard = await readRadarDashboard(db, userId);
   const index = await loadOpportunityIndex(db, userId);
-  const selected = dashboard.monitors
+  // A Worker request has a hard subrequest budget, and one monitor can spend
+  // seven of them when its careers page needs recovery plus a web-search
+  // fallback. Scanning every target in a single run silently exhausted that
+  // budget: the tail companies were stamped "completed · 0 found" within the
+  // same second, having never actually been fetched — which is why the same
+  // five names reported zero on every run for weeks.
+  //
+  // Least-recently-checked first turns that into a rotation: each run covers
+  // a slice it can genuinely finish, and the two-hourly cron works through
+  // the whole list. A single-target scan ("Check now") is never throttled.
+  const SCAN_BUDGET = 6;
+  const eligible = dashboard.monitors
     .filter((monitor) => monitor.active)
     .filter((monitor) => !options.monitorId || monitor.id === options.monitorId)
-    .filter((monitor) => !options.dueOnly || isMonitorDue(monitor))
-    .slice(0, 20);
+    .filter((monitor) => !options.dueOnly || isMonitorDue(monitor));
+  const selected = options.monitorId
+    ? eligible.slice(0, 1)
+    : [...eligible]
+        .sort((left, right) => (left.lastCheckedAt || "").localeCompare(right.lastCheckedAt || ""))
+        .slice(0, SCAN_BUDGET);
+  const deferred = Math.max(0, eligible.length - selected.length);
   let found = 0;
   let discovered = 0;
   let belowThreshold = 0;
@@ -696,7 +712,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       ]);
     }
   }
-  return { checked: selected.length, found, discovered, belowThreshold, added, matchedAdded, repairedSources, mergedDuplicates, failures, watchBatch };
+  return { checked: selected.length, deferred, found, discovered, belowThreshold, added, matchedAdded, repairedSources, mergedDuplicates, failures, watchBatch };
 }
 
 export async function scanAllDueRadars(db: D1Database) {

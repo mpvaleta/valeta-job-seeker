@@ -66,6 +66,7 @@ type RadarPayload = {
   excludedNavigationCount?: number;
   result?: {
     checked?: number;
+    deferred?: number;
     found?: number;
     discovered?: number;
     belowThreshold?: number;
@@ -343,7 +344,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     if (!data) return;
     const result = data.result || {};
     const failures = result.failures?.length || 0;
-    if (!options.automatic) onNotice(`${result.checked || 0} ${result.checked === 1 ? "target" : "targets"} checked · ${result.discovered || 0} roles read · ${result.found || 0} matched · ${result.added || 0} new saved${result.repairedSources ? ` · ${result.repairedSources} source ${result.repairedSources === 1 ? "was" : "were"} repaired` : ""}${result.mergedDuplicates ? ` · ${result.mergedDuplicates} duplicate ${result.mergedDuplicates === 1 ? "row was" : "rows were"} merged` : ""}${failures ? ` · ${failures} ${failures === 1 ? "target needs" : "targets need"} attention` : ""}`);
+    if (!options.automatic) onNotice(`${result.checked || 0} ${result.checked === 1 ? "target" : "targets"} checked · ${result.discovered || 0} roles read · ${result.found || 0} matched · ${result.added || 0} new saved${result.repairedSources ? ` · ${result.repairedSources} source ${result.repairedSources === 1 ? "was" : "were"} repaired` : ""}${result.mergedDuplicates ? ` · ${result.mergedDuplicates} duplicate ${result.mergedDuplicates === 1 ? "row was" : "rows were"} merged` : ""}${failures ? ` · ${failures} ${failures === 1 ? "target needs" : "targets need"} attention` : ""}${result.deferred ? ` · ${result.deferred} longest-waiting ${result.deferred === 1 ? "target goes" : "targets go"} in the next run` : ""}`);
   }
 
   async function seedAgencyPack() {

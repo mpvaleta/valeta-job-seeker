@@ -825,3 +825,51 @@ test("startups-only mismatch stays filtered out even when minScore is set to the
     await mf.dispose();
   }
 });
+
+// A Worker request has a finite subrequest budget. Scanning every target at
+// once burned through it and stamped the tail of the list "completed · 0
+// found" without ever fetching them — the same five companies reported zero
+// on every run for weeks. A run must now cover only what it can finish.
+test("a full scan covers a bounded slice, oldest first, and defers the rest", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  const originalFetch = globalThis.fetch;
+  try {
+    for (let index = 0; index < 9; index += 1) {
+      const added = await worker.fetch(new Request("http://localhost/api/radar", {
+        method: "POST", headers,
+        body: JSON.stringify({ action: "add_monitor", monitor: { company: `Company ${index}`, careersUrl: `https://boards.greenhouse.io/company${index}`, cadence: "manual" } }),
+      }), env, context);
+      assert.equal(added.status, 200);
+    }
+
+    globalThis.fetch = async () => Response.json({ jobs: [] });
+    const scanned = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const data = await scanned.json();
+    assert.equal(scanned.status, 200);
+    assert.equal(data.result.checked, 6, "one run must stay inside the subrequest budget");
+    assert.equal(data.result.deferred, 3, "the remaining targets are reported, not silently zeroed");
+
+    // Never-checked targets sort first, so a second run reaches the rest
+    // instead of re-scanning the same six forever.
+    const secondRun = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const secondData = await secondRun.json();
+    assert.equal(secondData.monitors.filter((monitor) => monitor.lastCheckedAt).length, 9, "every target is reached within two runs");
+
+    // A single-target "Check now" is never throttled.
+    const single = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan", monitorId: secondData.monitors[0].id }),
+    }), env, context);
+    const singleData = await single.json();
+    assert.equal(singleData.result.checked, 1);
+    assert.equal(singleData.result.deferred, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
