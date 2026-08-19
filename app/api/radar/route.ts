@@ -11,12 +11,14 @@ import {
   saveRadarProfile,
   scanRadar,
   seedDefaultRadarMonitors,
+  seedRadarMonitorPack,
   setRadarOpportunityStatus,
   updateRadarMonitor,
 } from "@/lib/radar-store";
 import { isLinkedInUrl, validatePublicUrl } from "@/lib/public-link-reader.mjs";
 import { getRuntimeDatabase } from "@/lib/runtime-bindings";
 import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
+import { AGENCY_RADAR_PACK } from "@/lib/agency-radar-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +101,8 @@ export async function POST(request: Request) {
       await deleteRadarMonitor(db, user.id, text(input.monitorId, 100));
     } else if (action === "seed_default_monitors") {
       result = await seedDefaultRadarMonitors(db, user.id);
+    } else if (action === "seed_agency_pack") {
+      result = await seedRadarMonitorPack(db, user.id, AGENCY_RADAR_PACK);
     } else if (action === "set_opportunity_status") {
       result = await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40));
     } else if (action === "scan") {

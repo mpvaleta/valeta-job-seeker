@@ -13,9 +13,27 @@ chrome.storage.local.get("valetaPackage", ({ valetaPackage }) => {
 
 function showPackageMeta(value) {
   const resume = value?.resume;
-  packageMeta.textContent = resume?.title
+  packageMeta.textContent = "";
+  const note = document.createElement("span");
+  note.textContent = resume?.title
     ? `Selected résumé: ${resume.title}. Website file-upload fields remain manual by browser security.`
     : "No résumé version is attached to this package. You can still scan and fill profile fields.";
+  packageMeta.append(note);
+  if (resume?.content) {
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.className = "copy-resume";
+    copyButton.textContent = "Copy résumé text";
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(resume.content);
+        status.textContent = "Résumé text copied — paste it into forms that accept a pasted résumé instead of a file.";
+      } catch {
+        status.textContent = "Could not copy. Click inside the popup first, then try again.";
+      }
+    });
+    packageMeta.append(copyButton);
+  }
 }
 
 function packageValue() {

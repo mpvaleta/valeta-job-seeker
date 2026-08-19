@@ -18,7 +18,7 @@
   //
   // "legal" is matched only in its sensitive senses. On its own it also caught
   // "Legal first name", a routine ATS name field, and pushed it to review.
-  const SENSITIVE = /salary|compensation|pay expectation|desired pay|expected pay|authoriz(?:ed|ation)|right to work|work permit|sponsor|visa|immigration|gender|pronoun|\brace\b|ethnicity|veteran|disability|criminal|conviction|felony|background check|drug (?:test|screen)|security clearance|legally|legal (?:status|right|proceedings?|history)|ssn|social security|birth|\bage\b|marital|citizen|sexual orientation|protected/i;
+  const SENSITIVE = /salary|compensation|pay expectation|desired pay|expected pay|authoriz(?:ed|ation)|right to work|work permit|sponsor|visa|immigration|gender|pronoun|\brace\b|ethnicity|veteran|disability|criminal|conviction|felony|background check|drug (?:test|screen)|security clearance|legally|legal (?:status|right|proceedings?|history)|ssn|social security|birth|\bage\b|marital|citizen|sexual orientation|protected|notice period|start date|available to start|earliest start|when can you start|relocat|salary history/i;
 
   // A control the user must operate themselves; V's can describe it but must
   // never choose a value.
@@ -39,6 +39,7 @@
     { key: "country", match: /\bcountry\b/i, read: (data) => data.profile.country },
     { key: "location", match: /\bcurrent.?location\b|\byour.?location\b|where.*located|\blocation\b/i, read: (data) => data.profile.location },
     { key: "linkedin", match: /\blinkedin\b/i, read: (data) => data.profile.linkedin },
+    { key: "portfolio", match: /\bportfolio\b|\bpersonal.?(?:web)?site\b|\bwebsite\b/i, read: (data) => data.profile.portfolio },
     { key: "headline", match: /\bheadline\b|\bprofessional.?title\b|\bcurrent.?title\b/i, read: (data) => data.answers.headline },
     { key: "summary", match: /\babout.?you\b|\bsummary\b|\bbackground\b|tell.?us.?about|\bprofessional.?profile\b|\bbio\b/i, read: (data) => data.answers.summary },
     { key: "interest", match: /why.*(role|position|company|join|apply)|interest.*(role|position|company)|why do you want/i, read: (data) => data.answers.interest },
