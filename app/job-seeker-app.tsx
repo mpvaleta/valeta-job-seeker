@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { analyzeRole } from "@/lib/recommendation-engine.mjs";
 import { classifyKnowledgeSource, mergeWritingSample, scopeForCategory, sourceScope, sourceScopeDescription, sourceScopeLabel, SOURCE_CATEGORIES } from "@/lib/knowledge-sources.mjs";
 import { CURATED_RESUME_PLAYBOOK } from "@/lib/resume-playbook.mjs";
+import { US_MARKET_REFERENCES } from "@/lib/us-market-references.mjs";
 import { readJsonResponse } from "@/lib/http-json.mjs";
 import { extractLinkedInArchive, extractLinkedInSavedJobs } from "@/lib/linkedin-archive.mjs";
 import { parseResumeText, proseToHtml, resumeToHtml } from "@/lib/resume-document.mjs";
@@ -35,7 +36,7 @@ type WritingStyle = { tone: string; prefer: string; avoid: string; samples: stri
 type AiProviderId = "openai" | "anthropic" | "google";
 type AiModelKey = "reliable" | "balanced" | "fast";
 type AiPreference = { provider: AiProviderId; modelKey: AiModelKey };
-type PlaybookSettings = { curatedEnabled: boolean };
+type PlaybookSettings = { curatedEnabled: boolean; usReferencesEnabled?: boolean };
 type AiModelOption = { key: AiModelKey; id: string; label: string; tier: string; description: string };
 type AiProviderStatus = { id: AiProviderId; name: string; keyName: string; configured: boolean; ready: boolean; defaultModelKey: AiModelKey; models: AiModelOption[] };
 type AiConnection = { state: "checking" | "loaded" | "error"; authenticated: boolean; authorized: boolean; providers: AiProviderStatus[]; message: string };
@@ -81,6 +82,7 @@ type Profile = {
   phone: string;
   location: string;
   linkedin: string;
+  portfolio: string;
   headline: string;
   summary: string;
   facts: string;
@@ -92,6 +94,7 @@ const initialProfile: Profile = {
   phone: "",
   location: "",
   linkedin: "",
+  portfolio: "",
   headline: "",
   summary: "",
   facts: "",
@@ -533,7 +536,7 @@ export function JobSeekerApp() {
     () => prioritizeResumePlaybookRules(userPlaybookRules, `${selectedTrack.name}\n${selectedTrack.headline}\n${role}\n${jobText}`, PLAYBOOK_GENERATION_RULE_LIMIT),
     [jobText, role, selectedTrack.headline, selectedTrack.name, userPlaybookRules],
   );
-  const curatedPlaybookRules = useMemo(() => playbookSettings.curatedEnabled ? CURATED_RESUME_PLAYBOOK.rules.map((rule) => rule.text) : [], [playbookSettings.curatedEnabled]);
+  const curatedPlaybookRules = useMemo(() => [...(playbookSettings.curatedEnabled ? CURATED_RESUME_PLAYBOOK.rules.map((rule) => rule.text) : []), ...(playbookSettings.usReferencesEnabled ? US_MARKET_REFERENCES.rules.map((rule) => rule.text) : [])], [playbookSettings.curatedEnabled, playbookSettings.usReferencesEnabled]);
   const availableResumeVersions = useMemo(() => generatedDrafts.filter((draft) => draft.type === "resume" && draft.content.trim()).sort((left, right) => Date.parse(right.updatedAt || right.createdAt || "") - Date.parse(left.updatedAt || left.createdAt || "")), [generatedDrafts]);
   const selectedAutofillResume = useMemo(() => availableResumeVersions.find((draft) => draft.id === autofillResumeVersionId) || null, [autofillResumeVersionId, availableResumeVersions]);
   // Prior versions strong enough to adapt for this role. Reusing one is the
@@ -885,12 +888,12 @@ export function JobSeekerApp() {
   );
   const autofillData = JSON.stringify({
     version: 1,
-    profile: { fullName: profile.name, email: profile.email, phone: profile.phone, location: profile.location, linkedin: profile.linkedin, ...splitLocation(profile.location) },
+    profile: { fullName: profile.name, email: profile.email, phone: profile.phone, location: profile.location, linkedin: profile.linkedin, portfolio: profile.portfolio, ...splitLocation(profile.location) },
     target: { company, role },
     answers: { headline: profile.headline, summary: profile.summary, interest: `I’m interested in ${role || "this role"} because it combines ${roleKeywords.slice(0, 3).join(", ") || "project leadership, creative operations, and cross-functional delivery"}.` },
     // The companion reads this as `resume` — it was emitted as `resumeVersion`
     // for weeks, which is why the popup always said no résumé was attached.
-    resume: selectedAutofillResume ? { id: selectedAutofillResume.id, title: selectedAutofillResume.title, versionNumber: selectedAutofillResume.versionNumber || null, origin: selectedAutofillResume.origin } : null,
+    resume: selectedAutofillResume ? { id: selectedAutofillResume.id, title: selectedAutofillResume.title, versionNumber: selectedAutofillResume.versionNumber || null, origin: selectedAutofillResume.origin, content: selectedAutofillResume.content.slice(0, 60_000) } : null,
     safety: { neverSubmit: true, sensitiveFieldsRequireUser: true },
   }, null, 2);
 
@@ -1782,7 +1785,7 @@ export function JobSeekerApp() {
 
         {view === "profile" && <section className="profile-workspace">
           <div className="section-head"><div className="step"><b>PROFILE</b><span>VERIFIED SOURCE OF TRUTH</span></div><p>Edit this once. Every résumé, letter, answer, and autofill package uses these fields.</p></div>
-          <div className="profile-form"><label>Full name<input value={profile.name} onChange={(e) => setProfile({...profile,name:e.target.value})} /></label><label>Default professional headline<input value={profile.headline} onChange={(e) => setProfile({...profile,headline:e.target.value})} /></label><label>Email<input value={profile.email} onChange={(e) => setProfile({...profile,email:e.target.value})} /></label><label>Phone<input value={profile.phone} onChange={(e) => setProfile({...profile,phone:e.target.value})} /></label><label>Location<input value={profile.location} onChange={(e) => setProfile({...profile,location:e.target.value})} /></label><label>LinkedIn<input value={profile.linkedin} onChange={(e) => setProfile({...profile,linkedin:e.target.value})} /></label><label className="wide">Default base summary<textarea value={profile.summary} onChange={(e) => setProfile({...profile,summary:e.target.value})} /></label><label className="wide">Verified career facts — one per line<textarea className="facts-area" value={profile.facts} onChange={(e) => setProfile({...profile,facts:e.target.value})} /></label></div>
+          <div className="profile-form"><label>Full name<input value={profile.name} onChange={(e) => setProfile({...profile,name:e.target.value})} /></label><label>Default professional headline<input value={profile.headline} onChange={(e) => setProfile({...profile,headline:e.target.value})} /></label><label>Email<input value={profile.email} onChange={(e) => setProfile({...profile,email:e.target.value})} /></label><label>Phone<input value={profile.phone} onChange={(e) => setProfile({...profile,phone:e.target.value})} /></label><label>Location<input value={profile.location} onChange={(e) => setProfile({...profile,location:e.target.value})} /></label><label>LinkedIn<input value={profile.linkedin} onChange={(e) => setProfile({...profile,linkedin:e.target.value})} /></label><label>Portfolio / website<input type="url" value={profile.portfolio} onChange={(e) => setProfile({...profile,portfolio:e.target.value})} placeholder="https://…" /></label><label className="wide">Default base summary<textarea value={profile.summary} onChange={(e) => setProfile({...profile,summary:e.target.value})} /></label><label className="wide">Verified career facts — one per line<textarea className="facts-area" value={profile.facts} onChange={(e) => setProfile({...profile,facts:e.target.value})} /></label></div>
           <div className="resume-tracks-section">
             <div className="resume-tracks-head"><div><span>RÉSUMÉ DIRECTIONS</span><h2>Keep different career areas distinct.</h2><p>Auto-select uses role terms. Each track can override the default headline and summary; approved career facts remain shared truth unless a source is assigned to one track.</p></div><button onClick={addResumeTrack}>Add track</button></div>
             <label className="track-default">Role workspace selection<select value={activeTrackId} onChange={(event) => setActiveTrackId(event.target.value)}><option value="auto">Auto-select from each role</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>
@@ -1852,7 +1855,8 @@ export function JobSeekerApp() {
               </details>}
             </section>
 
-            <article className={`curated-playbook-card ${playbookSettings.curatedEnabled ? "enabled" : "disabled"}`}><div className="curated-title"><div><span>BUILT-IN · CURATED GUIDANCE</span><strong>{CURATED_RESUME_PLAYBOOK.name}</strong><small>Version {CURATED_RESUME_PLAYBOOK.version} · reviewed {CURATED_RESUME_PLAYBOOK.lastReviewed}</small></div><button onClick={() => setPlaybookSettings({ curatedEnabled: !playbookSettings.curatedEnabled })}>{playbookSettings.curatedEnabled ? "Disable" : "Enable"}</button></div><p>{CURATED_RESUME_PLAYBOOK.summary}</p><div className="curated-meta"><span>{CURATED_RESUME_PLAYBOOK.rules.length} paraphrased do/don’t rules</span><span>{CURATED_RESUME_PLAYBOOK.sources.length} authoritative sources</span><span>Updates with V’s releases</span></div><details><summary>Review sources</summary><div>{CURATED_RESUME_PLAYBOOK.sources.map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><strong>{source.title}</strong><small>{source.authority} ↗</small></a>)}</div></details></article>
+            <article className={`curated-playbook-card ${playbookSettings.curatedEnabled ? "enabled" : "disabled"}`}><div className="curated-title"><div><span>BUILT-IN · CURATED GUIDANCE</span><strong>{CURATED_RESUME_PLAYBOOK.name}</strong><small>Version {CURATED_RESUME_PLAYBOOK.version} · reviewed {CURATED_RESUME_PLAYBOOK.lastReviewed}</small></div><button onClick={() => setPlaybookSettings({ ...playbookSettings, curatedEnabled: !playbookSettings.curatedEnabled })}>{playbookSettings.curatedEnabled ? "Disable" : "Enable"}</button></div><p>{CURATED_RESUME_PLAYBOOK.summary}</p><div className="curated-meta"><span>{CURATED_RESUME_PLAYBOOK.rules.length} paraphrased do/don’t rules</span><span>{CURATED_RESUME_PLAYBOOK.sources.length} authoritative sources</span><span>Updates with V’s releases</span></div><details><summary>Review sources</summary><div>{CURATED_RESUME_PLAYBOOK.sources.map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><strong>{source.title}</strong><small>{source.authority} ↗</small></a>)}</div></details></article>
+            <article className={`curated-playbook-card ${playbookSettings.usReferencesEnabled ? "enabled" : "disabled"}`}><div className="curated-title"><div><span>OPTIONAL · U.S. MARKET RESEARCH</span><strong>{US_MARKET_REFERENCES.name}</strong><small>Version {US_MARKET_REFERENCES.version} · researched {US_MARKET_REFERENCES.lastReviewed}</small></div><button onClick={() => setPlaybookSettings({ ...playbookSettings, usReferencesEnabled: !playbookSettings.usReferencesEnabled })}>{playbookSettings.usReferencesEnabled ? "Disable" : "Enable"}</button></div><p>{US_MARKET_REFERENCES.summary}</p><div className="curated-meta"><span>{US_MARKET_REFERENCES.rules.length} researched do/don’t rules</span><span>{US_MARKET_REFERENCES.sources.length} cited sources</span><span>Your uploaded rules always come first</span></div><details><summary>Review sources</summary><div>{US_MARKET_REFERENCES.sources.map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><strong>{source.title}</strong><small>{source.authority} ↗</small></a>)}</div></details></article>
             {documents.length === 0 ? <div className="empty-state compact"><strong>Your knowledge library is empty.</strong><span>Start with your current résumé for evidence. Then add “Résumé playbook” sources containing tips, do’s, don’ts, templates, or best practices.</span></div> : <div className="source-list">{documents.map((doc) => {
               const scope = sourceScope(doc);
               const detected = sourceClassifications.get(doc.id);

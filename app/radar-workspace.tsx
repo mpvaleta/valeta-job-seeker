@@ -346,6 +346,15 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     if (!options.automatic) onNotice(`${result.checked || 0} ${result.checked === 1 ? "target" : "targets"} checked · ${result.discovered || 0} roles read · ${result.found || 0} matched · ${result.added || 0} new saved${result.repairedSources ? ` · ${result.repairedSources} source ${result.repairedSources === 1 ? "was" : "were"} repaired` : ""}${result.mergedDuplicates ? ` · ${result.mergedDuplicates} duplicate ${result.mergedDuplicates === 1 ? "row was" : "rows were"} merged` : ""}${failures ? ` · ${failures} ${failures === 1 ? "target needs" : "targets need"} attention` : ""}`);
   }
 
+  async function seedAgencyPack() {
+    const data = await mutate({ action: "seed_agency_pack" }, "agency-pack", "Adding U.S. advertising, marketing, digital, and creative agencies — SF Bay Area shops first — to your monitored targets…");
+    if (!data) return;
+    const result = (data.result || {}) as { added?: number; skipped?: number };
+    onNotice(result.added
+      ? `${result.added} ${result.added === 1 ? "agency" : "agencies"} added to the radar${result.skipped ? ` · ${result.skipped} already monitored` : ""}. They will be scanned automatically — or press “Run radar now.”`
+      : "Every agency in the pack is already on your radar.");
+  }
+
   async function importJobLinks() {
     const links = importLinks.split(/[\s,]+/).map((link) => link.trim()).filter(Boolean);
     if (!links.length) { onNotice("Paste at least one public job link, one per line."); return; }
@@ -428,7 +437,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
     </div>
 
     <section className="radar-targets-section">
-      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target below, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div>
+      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><div className="radar-target-actions"><button onClick={seedAgencyPack} disabled={Boolean(busy)} title="Add U.S. advertising, marketing, digital, and creative agencies — SF Bay Area first">{busy === "agency-pack" ? "Adding agencies…" : "Add agency pack"}</button><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target below, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div></div>
       {monitors.length > 0 && !monitors.some((item) => item.active) && <div className="empty-state compact"><strong>Every target is paused.</strong><span>“Run radar now” stays disabled until at least one target below is resumed.</span></div>}
       {!monitors.length ? <div className="empty-state compact"><strong>Add the first company you want V’s to watch.</strong><span>Add the website and let V’s find the careers page, or paste an official careers URL. Targets catch up when the app opens, and you can run the radar anytime.</span></div> : <div className="radar-target-list">{monitors.map((monitor) => {
         const coverage = monitorCoverage(monitor);
@@ -458,6 +467,11 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
       <p className="scheduler-note"><strong>Twice-daily behavior:</strong> V’s treats recommended targets as due every 12 hours and catches them up when you open the private app. {schedulerEnabled
         ? "The background scheduler checks for due targets every 2 hours (not just at two fixed times a day) and scans them while the app is closed; each run summary says whether it came from the background scheduler, an app-open catch-up, or a manual scan."
         : "Connecting to the background scheduler…"}</p>
+    </section>
+
+    <section className="radar-import">
+      <div className="radar-section-head"><div><span>SEARCH THE BIG BOARDS</span><h2>One-click searches on LinkedIn and Indeed</h2><small>LinkedIn and Indeed forbid automated collection, so V’s cannot scan them in the background. These links open each board already filtered to your saved target positions, newest first. Found something? Use the companion’s “Copy visible job page” for LinkedIn, or paste any other job link into the import box below.</small></div></div>
+      {savedTargetPositions.length ? <div className="radar-target-list">{savedTargetPositions.slice(0, 4).map((title) => <article key={title}><div className="radar-target-main"><span>TARGET POSITION</span><strong>{title}</strong></div><div className="radar-target-actions"><a className="board-link" href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(title)}&location=${encodeURIComponent("San Francisco Bay Area")}&f_TPR=r604800`} target="_blank" rel="noreferrer">LinkedIn · Bay Area ↗</a><a className="board-link" href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(title)}&f_WT=2&f_TPR=r604800`} target="_blank" rel="noreferrer">LinkedIn · Remote ↗</a><a className="board-link" href={`https://www.indeed.com/jobs?q=${encodeURIComponent(title)}&l=${encodeURIComponent("San Francisco Bay Area, CA")}&fromage=7`} target="_blank" rel="noreferrer">Indeed · Bay Area ↗</a><a className="board-link" href={`https://www.indeed.com/jobs?q=${encodeURIComponent(title)}&sc=0kf%3Aattr%28DSQF7%29%3B&fromage=7`} target="_blank" rel="noreferrer">Indeed · Remote ↗</a></div></article>)}</div> : <div className="empty-state compact"><strong>Save target positions first.</strong><span>Add your roles in Search Goals above — each one becomes a ready-made LinkedIn and Indeed search here.</span></div>}
     </section>
 
     <section className="radar-import">

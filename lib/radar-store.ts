@@ -194,18 +194,20 @@ export async function addRadarMonitor(db: D1Database, userId: string, input: Rad
   return monitorId;
 }
 
-// One-time starter set so the real scan engine (direct board scraping, with
-// an AI web-search fallback when no board URL is known) has something to
-// run against, instead of the user depending on the frozen V's Job Watch
-// list. Skips any company the user already monitors, so it is safe to call
-// repeatedly — it only ever fills gaps, never duplicates or overrides.
-export async function seedDefaultRadarMonitors(db: D1Database, userId: string) {
+// Seed a curated pack of monitors so the real scan engine (direct board
+// scraping, with an AI web-search fallback when no board URL is known) has
+// something to run against. Skips any company the user already monitors, so
+// packs are safe to apply repeatedly — they only ever fill gaps, never
+// duplicate or override.
+type MonitorPackEntry = { readonly company: string; readonly kind: string; readonly careersUrl: string; readonly websiteUrl: string; readonly focus: string };
+
+export async function seedRadarMonitorPack(db: D1Database, userId: string, pack: readonly MonitorPackEntry[]) {
   const existing = await db.prepare(
     "SELECT c.name AS name FROM company_monitors m JOIN companies c ON c.id = m.company_id WHERE m.user_id = ?"
   ).bind(userId).all<{ name: string }>();
   const existingNames = new Set((existing.results || []).map((row) => row.name.trim().toLowerCase()));
   let added = 0;
-  for (const monitor of DEFAULT_RADAR_MONITORS) {
+  for (const monitor of pack) {
     if (existingNames.has(monitor.company.toLowerCase())) continue;
     await addRadarMonitor(db, userId, {
       company: monitor.company,
@@ -217,7 +219,11 @@ export async function seedDefaultRadarMonitors(db: D1Database, userId: string) {
     });
     added += 1;
   }
-  return { added, skipped: DEFAULT_RADAR_MONITORS.length - added };
+  return { added, skipped: pack.length - added };
+}
+
+export async function seedDefaultRadarMonitors(db: D1Database, userId: string) {
+  return seedRadarMonitorPack(db, userId, DEFAULT_RADAR_MONITORS);
 }
 
 export async function updateRadarMonitor(db: D1Database, userId: string, monitorId: string, patch: { active?: boolean; cadence?: string; focus?: string; targetPosition?: string }) {

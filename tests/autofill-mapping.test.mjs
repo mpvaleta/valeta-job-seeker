@@ -13,7 +13,7 @@ vm.runInContext(source, sandbox);
 const { decideField } = sandbox.VJobsAutofill;
 
 const data = {
-  profile: { fullName: "Marcos Valeta", email: "marcos@example.com", phone: "555-123-4567", location: "Fremont, CA", linkedin: "linkedin.com/in/mvaleta" },
+  profile: { fullName: "Marcos Valeta", email: "marcos@example.com", phone: "555-123-4567", location: "Fremont, CA", linkedin: "linkedin.com/in/mvaleta", portfolio: "https://marcosvaleta.com" },
   answers: { headline: "Project and Operations Manager", summary: "Creative operations leader.", interest: "The role matches my delivery experience." },
   resume: { title: "Brand PM v3" },
 };
@@ -163,5 +163,25 @@ test("'legal name' is a name field, while genuinely legal questions stay sensiti
   assert.equal(decideField(field({ strong: "Legal name" }), withAddress).ruleKey, "fullName");
   for (const label of ["Legal status", "Are you legally authorized to work?", "Legal right to work in the US"]) {
     assert.equal(decideField(field({ strong: label }), withAddress).status, "review", label);
+  }
+});
+
+test("portfolio and personal website fill from the approved portfolio link", () => {
+  const decision = decideField(field({ strong: "Portfolio or personal website" }), data);
+  assert.equal(decision.status, "fillable");
+  assert.equal(decision.ruleKey, "portfolio");
+});
+
+test("a LinkedIn URL field still maps to LinkedIn, not the portfolio rule", () => {
+  const decision = decideField(field({ strong: "LinkedIn Profile URL" }), data);
+  assert.equal(decision.status, "fillable");
+  assert.equal(decision.ruleKey, "linkedin");
+});
+
+test("timing, relocation, and salary-history questions go to the user", () => {
+  for (const label of ["Notice period", "When can you start?", "Earliest start date", "Are you willing to relocate?", "Salary history"]) {
+    const decision = decideField(field({ strong: label }), data);
+    assert.equal(decision.status, "review", label);
+    assert.equal(decision.confidence, "manual", label);
   }
 });
