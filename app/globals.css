@@ -232,3 +232,4 @@ input,textarea,select{border-radius:12px}
 .radar-board-handoff small{color:var(--muted);font-size:11px;line-height:1.5}
 .radar-board-handoff button{white-space:nowrap}
 @media(max-width:720px){.job-search-list article{grid-template-columns:1fr}.radar-board-handoff{flex-direction:column;align-items:flex-start}}
+.application-actions button.danger-armed{border-color:#c0392b;background:#c0392b;color:#fff}
