@@ -426,7 +426,7 @@ export async function importRadarOpportunities(db: D1Database, userId: string, u
 export async function importLinkedInSavedJobs(
   db: D1Database,
   userId: string,
-  rows: Array<{ title: string; company: string; url: string; savedAt?: string }>,
+  rows: Array<{ title: string; company: string; url: string; savedAt?: string; location?: string; description?: string }>,
 ) {
   const dashboard = await readRadarDashboard(db, userId);
   const index = await loadOpportunityIndex(db, userId);
@@ -446,20 +446,27 @@ export async function importLinkedInSavedJobs(
       await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
         .bind(company.id, companyName, classification.companyCategory, "United States", "Added from your LinkedIn saved jobs export").run();
     }
-    // Only the exported title and company are available, so the score reflects
-    // that limited text rather than a full description.
-    const match = scoreRadarOpportunity({ title, company: companyName, location: "", description: "", companyCategory: classification.companyCategory }, dashboard.profile);
-    const summary = `${match.summary} · Scored from your LinkedIn export's title and company only — open the role to review the full description.`;
+    // A LinkedIn data export carries only the title and company, so a score
+    // built from it is necessarily thin. A capture taken in the owner's own
+    // browser carries the location and often the description too — when those
+    // arrive, score against them and say so, rather than warning about a
+    // limitation that no longer applies.
+    const location = clean(row?.location, 240);
+    const description = clean(row?.description, 8_000);
+    const match = scoreRadarOpportunity({ title, company: companyName, location, description, companyCategory: classification.companyCategory }, dashboard.profile);
+    const summary = description
+      ? `${match.summary} · Scored from the job page you captured in your own browser.`
+      : `${match.summary} · Scored from the title${location ? ", company, and location" : " and company"} only — open the role to review the full description.`;
     const existing = index.get(opportunityKey(url));
     if (existing) {
-      await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
-        .bind(company.id, title, "linkedin-saved", match.score, summary, existing.id, userId).run();
+      await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = COALESCE(NULLIF(?, ''), location), source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+        .bind(company.id, title, location, "linkedin-saved", match.score, summary, existing.id, userId).run();
       updated += 1;
       continue;
     }
     const savedId = crypto.randomUUID();
     await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(savedId, userId, company.id, title, null, url, "linkedin-saved", match.score, summary, "new").run();
+      .bind(savedId, userId, company.id, title, location || null, url, "linkedin-saved", match.score, summary, "new").run();
     rememberOpportunity(index, url, savedId);
     added += 1;
   }

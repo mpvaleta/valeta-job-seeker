@@ -386,6 +386,18 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
           </button>
           <small>Anything with a public job-details page works, including iCIMS career sites, Built In, Wellfound, and Work at a Startup. Links that fail stay in the box so you can retry just those.</small>
         </div>
+        <div className="radar-linkedin-bridge">
+          <div>
+            <strong>Skip the pasting entirely on LinkedIn and Indeed</strong>
+            <span>
+              The V’s browser companion can read a whole page of search results you are already looking at and file every
+              role in your Discovery Inbox at once — title, company, location, and enough of the card to score against
+              your goals. Open the companion, save your app address and access token once under “Send straight to V’s,”
+              then press “Send this results list to V’s” on any LinkedIn or Indeed search page. It opens nothing and
+              fetches nothing on its own: it reads the page in front of you, in your browser, on your own session.
+            </span>
+          </div>
+        </div>
       </div>
     </section>
 

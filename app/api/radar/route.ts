@@ -52,7 +52,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isTrustedSameOriginMutation(request)) return NextResponse.json({ ok: false, code: "cross_site_request_blocked", message: "This protected action must start inside V’s Job Seeker." }, { status: 403 });
+  // The browser companion posts captured roles here from its extension
+  // origin, proving itself with the access token in an Authorization header.
+  if (!isTrustedSameOriginMutation(request, { allowBearerClients: true })) return NextResponse.json({ ok: false, code: "cross_site_request_blocked", message: "This protected action must start inside V’s Job Seeker." }, { status: 403 });
   const contentLength = Number(request.headers.get("content-length") || "0");
   if (contentLength > MAX_BODY_BYTES) return error(413, "request_too_large", "The radar request is too large.");
   const raw = await request.text();
@@ -130,8 +132,10 @@ export async function POST(request: Request) {
       if (!urls.length) return error(400, "invalid_request", "None of those links could be read as a public job page.");
       result = await importRadarOpportunities(db, user.id, urls);
     } else if (action === "import_linkedin_saved_jobs") {
-      // Rows come from the user's own official LinkedIn export and are used as
-      // exported; no LinkedIn page is fetched, so no scan budget is consumed.
+      // Rows come from the owner's own official LinkedIn export, or from a
+      // page they were already looking at in their own browser. Either way the
+      // rows are used as given — the server never fetches a LinkedIn page, so
+      // no scan budget is consumed and no automated collection takes place.
       const rows = Array.isArray(input.rows) ? input.rows : [];
       if (!rows.length) return error(400, "invalid_request", "No saved jobs were found in that LinkedIn export.");
       result = await importLinkedInSavedJobs(db, user.id, rows.slice(0, 200).map((row) => {
@@ -141,6 +145,10 @@ export async function POST(request: Request) {
           company: optionalText(entry.company, 180),
           url: optionalText(entry.url, 4_000),
           savedAt: optionalText(entry.savedAt, 40),
+          // Present when the row came from a browser capture rather than an
+          // export file; absent rows still score exactly as they did before.
+          location: optionalText(entry.location, 240),
+          description: optionalText(entry.description, 8_000),
         };
       }));
     } else {
