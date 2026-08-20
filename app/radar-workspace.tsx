@@ -92,6 +92,7 @@ type SavedLinkedInJob = { title: string; company: string; url: string; savedAt: 
 
 type Props = {
   savedLinkedInJobs?: SavedLinkedInJob[];
+  onOpenJobSearch?: () => void;
   onPrepare: (opportunity: RadarOpportunity) => void | Promise<void>;
   onNotice: (message: string) => void;
   onError: (code: string, message: unknown, context?: Record<string, string | number | boolean>) => void;
@@ -149,7 +150,7 @@ function matchesSelectedRegions(location: string, selected: string[]) {
 }
 const initialDraft = profileToDraft(DEFAULT_RADAR_PROFILE);
 
-export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, onError }: Props) {
+export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrepare, onNotice, onError }: Props) {
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(initialDraft);
   const [monitors, setMonitors] = useState<RadarMonitor[]>([]);
   const [opportunities, setOpportunities] = useState<RadarOpportunity[]>([]);
@@ -470,9 +471,13 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onPrepare, onNotice, on
         : "Connecting to the background scheduler…"}</p>
     </section>
 
-    <section className="radar-import">
-      <div className="radar-section-head"><div><span>SEARCH THE BIG BOARDS</span><h2>One-click searches on LinkedIn and Indeed</h2><small>LinkedIn and Indeed forbid automated collection, so V’s cannot scan them in the background. These links open each board already filtered to your saved target positions, newest first. Found something? Use the companion’s “Copy visible job page” for LinkedIn, or paste any other job link into the import box below.</small></div></div>
-      {savedTargetPositions.length ? <div className="radar-target-list">{savedTargetPositions.slice(0, 4).map((title) => <article key={title}><div className="radar-target-main"><span>TARGET POSITION</span><strong>{title}</strong></div><div className="radar-target-actions"><a className="board-link" href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(title)}&location=${encodeURIComponent("San Francisco Bay Area")}&f_TPR=r604800`} target="_blank" rel="noreferrer">LinkedIn · Bay Area ↗</a><a className="board-link" href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(title)}&f_WT=2&f_TPR=r604800`} target="_blank" rel="noreferrer">LinkedIn · Remote ↗</a><a className="board-link" href={`https://www.indeed.com/jobs?q=${encodeURIComponent(title)}&l=${encodeURIComponent("San Francisco Bay Area, CA")}&fromage=7`} target="_blank" rel="noreferrer">Indeed · Bay Area ↗</a><a className="board-link" href={`https://www.indeed.com/jobs?q=${encodeURIComponent(title)}&sc=0kf%3Aattr%28DSQF7%29%3B&fromage=7`} target="_blank" rel="noreferrer">Indeed · Remote ↗</a></div></article>)}</div> : <div className="empty-state compact"><strong>Save target positions first.</strong><span>Add your roles in Search Goals above — each one becomes a ready-made LinkedIn and Indeed search here.</span></div>}
+    <section className="radar-board-handoff">
+      <div>
+        <span>THE BOARDS V’S CANNOT SCAN</span>
+        <strong>LinkedIn, Indeed, Glassdoor and the rest live in Open job search</strong>
+        <small>Those boards forbid automated reading, so the radar can never scan them. The Open job search tab builds the exact search for each one — your roles, your places, your freshness window — and remembers which you already worked through.</small>
+      </div>
+      {onOpenJobSearch && <button className="primary" onClick={onOpenJobSearch}>Open job search →</button>}
     </section>
 
     <section className="radar-import">

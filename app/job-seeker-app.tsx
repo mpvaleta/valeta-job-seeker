@@ -19,12 +19,13 @@ import type { EvidenceAudit } from "@/lib/evidence-conflicts.mjs";
 import { estimateUsageCost, formatEstimatedCost } from "@/lib/ai-pricing.mjs";
 import { findReusableResumes } from "@/lib/resume-reuse.mjs";
 import { RadarWorkspace } from "./radar-workspace";
+import { JobSearchWorkspace } from "./job-search-workspace";
 import type { RadarOpportunity } from "./radar-workspace";
 import type { ApplicationRecommendation } from "@/lib/recommendation-engine.mjs";
 import type { SourceCategory, SourceScope } from "@/lib/knowledge-sources.mjs";
 import type { ResumeTrack } from "@/lib/resume-tracks.mjs";
 
-type View = "workspace" | "radar" | "profile" | "documents" | "voice" | "connections" | "companies" | "applications" | "autofill" | "ai" | "data";
+type View = "workspace" | "radar" | "search" | "profile" | "documents" | "voice" | "connections" | "companies" | "applications" | "autofill" | "ai" | "data";
 type Output = "analysis" | "resume" | "cover" | "answers" | "history";
 type ApplicationStatus = "Saved opportunity" | "Preparing" | "Applied" | "Interview" | "Closed";
 type Application = { id: string; company: string; role: string; status: ApplicationStatus; date: string; url?: string; jobSnapshotId?: string; resumeVersionId?: string; coverVersionId?: string; note?: string; nextStep?: string };
@@ -47,7 +48,7 @@ type AiDiagnosticsPayload = { ok?: boolean; code?: string; message?: string; che
 type CloudRecommendation = { decision: "prioritize_and_apply" | "apply_after_edits" | "hold_and_investigate"; confidence: "high" | "medium" | "low"; summary: string; actions: string[]; priorityFacts: string[]; evidenceGaps: string[]; cautions: string[]; evidenceMap?: Array<{ requirement: string; support: "strong" | "partial" | "gap"; facts: string[] }> };
 type CloudUsage = { inputTokens: number; outputTokens: number; cachedTokens: number; totalTokens: number };
 type CloudReview = { key: string; provider: AiProviderId; providerName: string; model: string; modelKey: AiModelKey; modelLabel: string; recommendation: CloudRecommendation; usage?: CloudUsage; requestId?: string | null };
-type ErrorLogEntry = { id: string; timestamp: string; area: "app" | "ai" | "connection" | "documents" | "links" | "radar"; code: string; message: string; context?: Record<string, string | number | boolean> };
+type ErrorLogEntry = { id: string; timestamp: string; area: "app" | "ai" | "connection" | "documents" | "job-search" | "links" | "radar"; code: string; message: string; context?: Record<string, string | number | boolean> };
 type ReadableLinkSource = { requestedUrl: string; finalUrl: string; sourceType: string; title: string; description: string; text: string; links?: Array<{ href: string; label: string }>; jobs: Array<{ title: string; company: string; location: string; description: string; sourceUrl: string }> };
 type LinkReadPayload = { ok?: boolean; code?: string; message?: string; source?: ReadableLinkSource };
 type LinkedInStatus = { state: "checking" | "ready" | "error"; configured: boolean; connected: boolean; message: string; identity?: { name?: string; email?: string; picture?: string } };
@@ -411,7 +412,6 @@ export function JobSeekerApp() {
   const [applications, setApplications] = useSavedState<Application[]>("valeta-applications-v3", [], ["valeta-applications-v1", "valeta-applications-v2"]);
   const [jobSnapshots, setJobSnapshots] = useSavedState<JobSnapshot[]>("v-jobs-market-history-v1", []);
   const [generatedDrafts, setGeneratedDrafts] = useSavedState<GeneratedDraft[]>("v-jobs-generated-drafts-v1", []);
-  const [workspaceResumeVersionId, setWorkspaceResumeVersionId] = useSavedState("v-jobs-workspace-resume-v1", "");
   const [autofillResumeVersionId, setAutofillResumeVersionId] = useSavedState("v-jobs-autofill-resume-v1", "");
   const [documents, setDocuments] = useSavedState<SourceDocument[]>("valeta-documents-v1", []);
   const [companies, setCompanies] = useSavedState<CompanyTarget[]>("valeta-companies-v1", []);
@@ -1568,7 +1568,7 @@ export function JobSeekerApp() {
       <aside className="nav-panel">
         <button className="wordmark" onClick={() => setView("workspace")}><span>V&apos;S</span><small>JOB SEEKER</small></button>
         <nav>
-          {([['workspace','Role workspace'],['radar','Job radar'],['companies','Target directory'],['profile','Career profile'],['documents','Knowledge sources'],['voice','Writing voice'],['connections','Connections'],['applications','Applications'],['autofill','Autofill assistant'],['ai','AI & reliability'],['data','Data & versions']] as [View,string][]).map(([id,label]) =>
+          {([['workspace','Role workspace'],['radar','Job radar'],['search','Open job search'],['companies','Target directory'],['profile','Career profile'],['documents','Knowledge sources'],['voice','Writing voice'],['connections','Connections'],['applications','Applications'],['autofill','Autofill assistant'],['ai','AI & reliability'],['data','Data & versions']] as [View,string][]).map(([id,label]) =>
             <button key={id} className={view === id ? "nav-item active" : "nav-item"} onClick={() => { setView(id); if (id === "data" && workspaceHistoryState === "idle") window.setTimeout(() => void loadWorkspaceHistory(), 0); }}>{label}</button>
           )}
         </nav>
@@ -1576,7 +1576,7 @@ export function JobSeekerApp() {
       </aside>
 
       <section className="main-stage">
-        <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your daily radar." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : view === "data" ? "Recover and preserve every version." : "Choose and understand your AI."}</h1></div><button className={`status-pill workspace-sync ${workspaceSync.state}`} onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"} title={workspaceSync.message}><i /> {workspaceSync.state === "saving" ? "Saving private revision…" : workspaceSync.state === "error" ? "Browser saved · retry backup" : workspaceSync.lastSavedAt ? "Private backup current" : "Private backup ready"}</button></header>
+        <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your daily radar." : view === "search" ? "Search every board the radar cannot reach." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : view === "data" ? "Recover and preserve every version." : "Choose and understand your AI."}</h1></div><button className={`status-pill workspace-sync ${workspaceSync.state}`} onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"} title={workspaceSync.message}><i /> {workspaceSync.state === "saving" ? "Saving private revision…" : workspaceSync.state === "error" ? "Browser saved · retry backup" : workspaceSync.lastSavedAt ? "Private backup current" : "Private backup ready"}</button></header>
         {notice && <button className={`notice ${noticeTone(notice)}`} onClick={() => setNotice("")}>{notice} ×</button>}
         {operationProgress && <div className="operation-status global-operation" role="status" aria-live="polite"><i /><div><strong>{operationProgress.label}</strong><span>{operationProgress.detail}</span></div></div>}
 
@@ -1688,7 +1688,9 @@ export function JobSeekerApp() {
           </section>
         </div>}
 
-        {view === "radar" && <RadarWorkspace savedLinkedInJobs={linkedInSavedJobs} onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
+        {view === "radar" && <RadarWorkspace savedLinkedInJobs={linkedInSavedJobs} onOpenJobSearch={() => setView("search")} onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
+
+        {view === "search" && <JobSearchWorkspace onNotice={setNotice} onError={(code, message, context) => logError("job-search", code, message, context)} />}
 
         {view === "ai" && <section className="ai-reliability">
           <div className="ai-status-card">
