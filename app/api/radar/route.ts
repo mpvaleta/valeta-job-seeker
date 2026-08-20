@@ -19,6 +19,7 @@ import { isLinkedInUrl, validatePublicUrl } from "@/lib/public-link-reader.mjs";
 import { getRuntimeDatabase } from "@/lib/runtime-bindings";
 import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
 import { AGENCY_RADAR_PACK } from "@/lib/agency-radar-pack";
+import { BRAND_RADAR_PACK } from "@/lib/brand-radar-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,8 @@ export async function POST(request: Request) {
       result = await seedDefaultRadarMonitors(db, user.id);
     } else if (action === "seed_agency_pack") {
       result = await seedRadarMonitorPack(db, user.id, AGENCY_RADAR_PACK);
+    } else if (action === "seed_brand_pack") {
+      result = await seedRadarMonitorPack(db, user.id, BRAND_RADAR_PACK);
     } else if (action === "set_opportunity_status") {
       result = await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40));
     } else if (action === "scan") {

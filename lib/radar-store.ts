@@ -504,17 +504,28 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   // Least-recently-checked first turns that into a rotation: each run covers
   // a slice it can genuinely finish, and the two-hourly cron works through
   // the whole list. A single-target scan ("Check now") is never throttled.
-  const SCAN_BUDGET = 6;
+  //
+  // The slice is measured in source attempts rather than companies, because
+  // the two are not the same thing. A healthy Greenhouse board costs one
+  // attempt; a company whose careers page has moved costs up to seven. A flat
+  // count of six companies therefore stopped after six subrequests on a good
+  // run and after forty-two on a bad one — too early in the common case and
+  // too late in the case that caused the bug. Counting what is actually spent
+  // covers far more companies per run while lowering the worst case, and the
+  // company cap stays as a second ceiling so no single run monopolizes time.
+  const SCAN_ATTEMPT_BUDGET = 14;
+  const SCAN_COMPANY_CAP = 12;
   const eligible = dashboard.monitors
     .filter((monitor) => monitor.active)
     .filter((monitor) => !options.monitorId || monitor.id === options.monitorId)
     .filter((monitor) => !options.dueOnly || isMonitorDue(monitor));
-  const selected = options.monitorId
+  const queue = options.monitorId
     ? eligible.slice(0, 1)
-    : [...eligible]
-        .sort((left, right) => (left.lastCheckedAt || "").localeCompare(right.lastCheckedAt || ""))
-        .slice(0, SCAN_BUDGET);
-  const deferred = Math.max(0, eligible.length - selected.length);
+    : [...eligible].sort((left, right) => (left.lastCheckedAt || "").localeCompare(right.lastCheckedAt || ""));
+  // A single-target scan always runs, however expensive it turns out to be.
+  const throttled = !options.monitorId;
+  let attemptsUsed = 0;
+  const selected: typeof queue = [];
   let found = 0;
   let discovered = 0;
   let belowThreshold = 0;
@@ -523,8 +534,15 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   let repairedSources = 0;
   const failures: Array<{ monitorId: string; company: string; message: string }> = [];
 
-  for (const monitor of selected) {
+  for (const monitor of queue) {
+    if (throttled && (attemptsUsed >= SCAN_ATTEMPT_BUDGET || selected.length >= SCAN_COMPANY_CAP)) break;
+    selected.push(monitor);
     const runId = crypto.randomUUID();
+    // Charged against the run budget in the finally below, so a company that
+    // fails partway through still pays for the sources it did reach. The
+    // floor of one keeps a monitor that fails before its first fetch from
+    // looking free and letting the loop run away.
+    let monitorAttempts = 1;
     try {
       const searchFocus = [
         monitor.targetPosition,
@@ -626,6 +644,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
         const metaLimitation = discovery.attempts.find((attempt) => /Meta's published robots policy|does not permit automated job collection/i.test(attempt.message || ""));
         if (metaLimitation) throw new Error(metaLimitation.message || "Meta search does not permit automated job collection.");
       }
+      monitorAttempts = Math.max(1, discovery.attempts.length);
       const jobs = discovery.jobs;
       const focus = monitor.focus ? monitor.focus.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) : [];
       const titles = monitor.targetPosition
@@ -717,8 +736,11 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
               : `${triggerLabel} · Source check failed after automatic careers-page recovery: ${message}`,
           ),
       ]);
+    } finally {
+      attemptsUsed += monitorAttempts;
     }
   }
+  const deferred = Math.max(0, eligible.length - selected.length);
   return { checked: selected.length, deferred, found, discovered, belowThreshold, added, matchedAdded, repairedSources, mergedDuplicates, failures, watchBatch };
 }
 

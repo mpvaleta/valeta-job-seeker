@@ -357,6 +357,15 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
       : "Every agency in the pack is already on your radar.");
   }
 
+  async function seedBrandPack() {
+    const data = await mutate({ action: "seed_brand_pack" }, "brand-pack", "Adding Bay Area consumer, media, and sports brands with in-house creative and production teams…");
+    if (!data) return;
+    const result = (data.result || {}) as { added?: number; skipped?: number };
+    onNotice(result.added
+      ? `${result.added} ${result.added === 1 ? "brand" : "brands"} added to the radar${result.skipped ? ` · ${result.skipped} already monitored` : ""}. Every board in this pack was verified as publicly readable, so they should start returning roles on the next scan.`
+      : "Every brand in the pack is already on your radar.");
+  }
+
   async function importJobLinks() {
     const links = importLinks.split(/[\s,]+/).map((link) => link.trim()).filter(Boolean);
     if (!links.length) { onNotice("Paste at least one public job link, one per line."); return; }
@@ -439,7 +448,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
     </div>
 
     <section className="radar-targets-section">
-      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><div className="radar-target-actions"><button onClick={seedAgencyPack} disabled={Boolean(busy)} title="Add U.S. advertising, marketing, digital, and creative agencies — SF Bay Area first">{busy === "agency-pack" ? "Adding agencies…" : "Add agency pack"}</button><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target below, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div></div>
+      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><div className="radar-target-actions"><button onClick={seedAgencyPack} disabled={Boolean(busy)} title="Add U.S. advertising, marketing, digital, and creative agencies — SF Bay Area first">{busy === "agency-pack" ? "Adding agencies…" : "Add agency pack"}</button><button onClick={seedBrandPack} disabled={Boolean(busy)} title="Add Bay Area consumer, media, and sports brands with in-house creative and production teams — every board verified as publicly readable">{busy === "brand-pack" ? "Adding brands…" : "Add brand pack"}</button><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target below, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div></div>
       {monitors.length > 0 && !monitors.some((item) => item.active) && <div className="empty-state compact"><strong>Every target is paused.</strong><span>“Run radar now” stays disabled until at least one target below is resumed.</span></div>}
       {!monitors.length ? <div className="empty-state compact"><strong>Add the first company you want V’s to watch.</strong><span>Add the website and let V’s find the careers page, or paste an official careers URL. Targets catch up when the app opens, and you can run the radar anytime.</span></div> : <div className="radar-target-list">{monitors.map((monitor) => {
         const coverage = monitorCoverage(monitor);
