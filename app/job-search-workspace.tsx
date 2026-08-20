@@ -162,16 +162,17 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
 
   function markOpened(keys: string[]) {
     const now = new Date().toISOString();
-    setOpened((current) => {
-      const next = { ...current };
-      for (const key of keys) next[key] = now;
-      try {
-        window.localStorage.setItem(OPENED_KEY, JSON.stringify(next));
-      } catch {
-        // See persist(): storage is a convenience here.
-      }
-      return next;
-    });
+    // Built outside the state updater on purpose: React may run an updater
+    // more than once, and writing to storage from inside it would repeat the
+    // write every time.
+    const next = { ...opened };
+    for (const key of keys) next[key] = now;
+    setOpened(next);
+    try {
+      window.localStorage.setItem(OPENED_KEY, JSON.stringify(next));
+    } catch {
+      // See persist(): storage is a convenience here.
+    }
   }
 
   function openGroup(groupSearches: JobSearchUrl[]) {

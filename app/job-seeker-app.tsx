@@ -309,7 +309,12 @@ function useSavedState<T>(key: string, fallback: T, legacyKeys: string[] = []) {
 }
 
 function copyText(value: string, setNotice: (value: string) => void) {
-  navigator.clipboard.writeText(value).then(() => setNotice("Copied to clipboard"));
+  // A denied clipboard used to reject silently: the button did nothing, said
+  // nothing, and left the user pressing it again. Say what happened instead.
+  navigator.clipboard.writeText(value).then(
+    () => setNotice("Copied to clipboard"),
+    () => setNotice("Your browser blocked the copy. Select the text and copy it manually, or allow clipboard access for this site."),
+  );
 }
 
 function renderStructuredResume(result: ResumeAiResult, profile: Profile) {
@@ -896,6 +901,18 @@ export function JobSeekerApp() {
     resume: selectedAutofillResume ? { id: selectedAutofillResume.id, title: selectedAutofillResume.title, versionNumber: selectedAutofillResume.versionNumber || null, origin: selectedAutofillResume.origin, content: selectedAutofillResume.content.slice(0, 60_000) } : null,
     safety: { neverSubmit: true, sensitiveFieldsRequireUser: true },
   }, null, 2);
+
+  // The package carries the whole résumé so the companion can paste it into
+  // forms that take pasted text. Printing all of it on screen buried
+  // everything else under tens of thousands of characters, so the preview
+  // shows the shape and says how much text is standing in for itself. Copy
+  // and Download still emit the real package.
+  const autofillPreview = selectedAutofillResume?.content
+    ? autofillData.replace(
+        JSON.stringify(selectedAutofillResume.content.slice(0, 60_000)),
+        JSON.stringify(`[${selectedAutofillResume.content.length.toLocaleString()} characters of résumé text — included in full when you copy or download]`),
+      )
+    : autofillData;
 
   async function requestResumeAi(action: "generate" | "review") {
     if (jobText.trim().length < 80) throw new Error("Paste the complete job description before using cloud résumé tools.");
@@ -1883,7 +1900,7 @@ export function JobSeekerApp() {
 
         {view === "autofill" && <section className="autofill-grid">
           <div className="autofill-intro"><div className="step"><b>04</b><span>ASSISTED AUTOFILL</span></div><h2>Continue an application without starting over.</h2><p>Choose the exact résumé version you want to use, then load one reusable package into the companion. It scans the page again each time and fills only blank, approved fields after your click.</p><div className="safety-list"><span>✓ Keeps the selected résumé version visible</span><span>✓ Skips already-completed fields</span><span>✓ Never presses Submit or guesses sensitive answers</span><span>✓ File uploads stay manual because browsers protect them</span></div></div>
-          <div className="autofill-package"><span>AUTOFILL PACKAGE</span><label>Résumé for this application<select value={selectedAutofillResume?.id || ""} onChange={(event) => setAutofillResumeVersionId(event.target.value)}><option value="">Choose a preserved résumé</option>{availableResumeVersions.map((draft) => <option key={draft.id} value={draft.id}>{draft.origin === "uploaded" ? "Uploaded" : `v${draft.versionNumber || "saved"}`} · {draft.title}</option>)}</select></label>{selectedAutofillResume ? <div className="autofill-resume-choice"><strong>{selectedAutofillResume.title}</strong><span>Selected for this package. The original is preserved.</span><button onClick={() => downloadWordDocument(`${selectedAutofillResume.title.replace(/[^a-z0-9.-]+/gi, "-")}.doc`, selectedAutofillResume.title, selectedAutofillResume.content, "resume")}>Download selected résumé</button></div> : <p className="autofill-empty-choice">Choose or upload a résumé version first. The companion will identify it for the form; you manually select the file when a website requires an upload.</p>}<pre>{autofillData}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load once in the Chrome companion, then use Scan page and Fill ready fields. Reload the extension after updating it from the companion folder.</small></div>
+          <div className="autofill-package"><span>AUTOFILL PACKAGE</span><label>Résumé for this application<select value={selectedAutofillResume?.id || ""} onChange={(event) => setAutofillResumeVersionId(event.target.value)}><option value="">Choose a preserved résumé</option>{availableResumeVersions.map((draft) => <option key={draft.id} value={draft.id}>{draft.origin === "uploaded" ? "Uploaded" : `v${draft.versionNumber || "saved"}`} · {draft.title}</option>)}</select></label>{selectedAutofillResume ? <div className="autofill-resume-choice"><strong>{selectedAutofillResume.title}</strong><span>Selected for this package. The original is preserved.</span><button onClick={() => downloadWordDocument(`${selectedAutofillResume.title.replace(/[^a-z0-9.-]+/gi, "-")}.doc`, selectedAutofillResume.title, selectedAutofillResume.content, "resume")}>Download selected résumé</button></div> : <p className="autofill-empty-choice">Choose or upload a résumé version first. The companion will identify it for the form; you manually select the file when a website requires an upload.</p>}<pre>{autofillPreview}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load once in the Chrome companion, then use Scan page and Fill ready fields. Reload the extension after updating it from the companion folder.</small></div>
         </section>}
       </section>
     </main>
