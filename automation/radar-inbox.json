@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-08-19T23:36:56Z",
-  "lastRunAt": "2026-08-19 23:36:55",
+  "fetchedAt": "2026-08-20T14:05:02Z",
+  "lastRunAt": "2026-08-20 14:05:00",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -13,64 +13,64 @@
       "company": "Anthropic",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 59,
-      "lastCheckedAt": "2026-08-19 21:01:52",
-      "lastRunSummary": "Manual scan · 300 verified roles read · 59 met the 45% minimum · 241 saved below threshold · 0 new (0 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 58,
+      "lastCheckedAt": "2026-08-20 12:01:00",
+      "lastRunSummary": "Background scheduled scan · 300 verified roles read · 58 met the 45% minimum · 242 saved below threshold · 3 new (1 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Attentive",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 26,
-      "lastCheckedAt": "2026-08-19 23:36:39",
-      "lastRunSummary": "Manual scan · 38 verified roles read · 26 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-20 12:01:07",
+      "lastRunSummary": "Background scheduled scan · 38 verified roles read · 26 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Aventon",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-08-19 23:36:41",
-      "lastRunSummary": "Manual scan · 9 verified roles read · 1 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-20 14:00:12",
+      "lastRunSummary": "Background scheduled scan · 9 verified roles read · 1 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Gantri",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-08-19 23:36:42",
-      "lastRunSummary": "Manual scan · 7 verified roles read · 3 met the 45% minimum · 4 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-20 14:00:27",
+      "lastRunSummary": "Background scheduled scan · 7 verified roles read · 3 met the 45% minimum · 4 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "George P. Johnson",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 23:36:46",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-20 14:00:31",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Google",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 23:36:46",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-20 14:00:32",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Highwire",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 93,
-      "lastCheckedAt": "2026-08-19 23:36:55",
-      "lastRunSummary": "Manual scan · 93 verified roles read · 93 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 90,
+      "lastCheckedAt": "2026-08-20 14:00:48",
+      "lastRunSummary": "Background scheduled scan · 90 verified roles read · 90 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Hinge Health",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 30,
-      "lastCheckedAt": "2026-08-19 21:00:33",
+      "lastCheckedAt": "2026-08-20 14:04:39",
       "lastRunSummary": "Manual scan · 72 verified roles read · 30 met the 45% minimum · 42 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
@@ -78,7 +78,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 21:00:35",
+      "lastCheckedAt": "2026-08-20 14:04:41",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -86,7 +86,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 62,
-      "lastCheckedAt": "2026-08-19 21:00:40",
+      "lastCheckedAt": "2026-08-20 14:04:48",
       "lastRunSummary": "Manual scan · 75 verified roles read · 62 met the 45% minimum · 13 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -94,7 +94,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 21:00:40",
+      "lastCheckedAt": "2026-08-20 14:04:48",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -102,7 +102,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 11,
-      "lastCheckedAt": "2026-08-19 21:00:46",
+      "lastCheckedAt": "2026-08-20 14:04:57",
       "lastRunSummary": "Manual scan · 99 verified roles read · 11 met the 45% minimum · 88 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
     },
     {
@@ -110,7 +110,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 21:01:26",
+      "lastCheckedAt": "2026-08-20 14:05:00",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -118,35 +118,74 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-19 21:01:27",
-      "lastRunSummary": "Manual scan · 13 verified roles read · 4 met the 45% minimum · 9 saved below threshold · 12 new (3 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-20 12:00:13",
+      "lastRunSummary": "Background scheduled scan · 13 verified roles read · 4 met the 45% minimum · 9 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Tubi",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 15,
-      "lastCheckedAt": "2026-08-19 21:01:30",
-      "lastRunSummary": "Manual scan · 30 verified roles read · 15 met the 45% minimum · 15 saved below threshold · 29 new (14 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-20 12:00:19",
+      "lastRunSummary": "Background scheduled scan · 30 verified roles read · 15 met the 45% minimum · 15 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Whatnot",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-19 21:01:31",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-20 12:00:19",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "e.l.f. Cosmetics",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 29,
-      "lastCheckedAt": "2026-08-19 21:01:38",
-      "lastRunSummary": "Manual scan · 66 verified roles read · 29 met the 45% minimum · 37 saved below threshold · 66 new (29 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-20 12:00:33",
+      "lastRunSummary": "Background scheduled scan · 66 verified roles read · 29 met the 45% minimum · 37 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     }
   ],
   "opportunities": [
+    {
+      "id": "665a83af-34d7-40c5-912f-82e8a7d4b4eb",
+      "title": "Director, Infrastructure Supply Chain Accounting",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5318977008",
+      "sourceType": "greenhouse",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "49e5c93a-7c9a-4af9-936d-2da37a3c0f36",
+      "title": "Pre-Sales Program Lead, Forward Deployed Engineering",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391012008",
+      "sourceType": "greenhouse",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · title overlap: program · goal overlap: roles · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "2aa2d991-dab5-492c-ba30-405d8daced79",
+      "title": "Business Systems Analyst",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5394958008",
+      "sourceType": "greenhouse",
+      "fitScore": 46,
+      "fitSummary": "46% target alignment · skill overlap: project management, cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
     {
       "id": "df0a63a5-3b2d-4089-bee7-7e7a8cb375c7",
       "title": "Interim, Coordinator, Inventory Control",
@@ -2153,7 +2192,7 @@
       "id": "97caf269-a442-4d3d-8f5c-3e9dee932db7",
       "title": "Enterprise Integrated Campaign Manager",
       "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391995008",
       "sourceType": "greenhouse",
       "fitScore": 64,
@@ -4426,7 +4465,7 @@
     },
     {
       "id": "0019243e-4a22-49d3-ae3d-7869f8f382bf",
-      "title": "Associate Creative Director",
+      "title": "Associate Creative Director (Experiential Events)",
       "company": "Jack Morton Worldwide",
       "location": "Singapore",
       "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4337499009",
@@ -7901,45 +7940,6 @@
       "company": "Anthropic",
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5066977008",
-      "sourceType": "greenhouse",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "25e1d29c-c53b-4814-af73-cf86f722a88a",
-      "title": "Safeguards Enforcement Analyst, Access Controls & Identity",
-      "company": "Anthropic",
-      "location": "Remote-Friendly, United States; San Francisco, CA | New York City, NY | Washington, DC",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5319626008",
-      "sourceType": "greenhouse",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "5a725ee7-4a45-4492-b02d-45c25378db71",
-      "title": "Safeguards Enforcement Analyst, Age-Appropriate Design",
-      "company": "Anthropic",
-      "location": "Remote-Friendly, United States; San Francisco, CA | New York City, NY | Washington, DC",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5311234008",
-      "sourceType": "greenhouse",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "83279a5e-ae45-4744-b93b-9bdd4a949713",
-      "title": "Safeguards Enforcement Analyst, User Well-being",
-      "company": "Anthropic",
-      "location": "Remote-Friendly, United States; San Francisco, CA | New York City, NY | Washington, DC",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5374778008",
       "sourceType": "greenhouse",
       "fitScore": 41,
       "fitSummary": "41% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
