@@ -185,3 +185,57 @@ test("timing, relocation, and salary-history questions go to the user", () => {
     assert.equal(decision.confidence, "manual", label);
   }
 });
+
+const { normalizeCapturedRows } = sandbox.VJobsAutofill;
+
+test("a results-list capture drops anything that is not a job link", () => {
+  const rows = normalizeCapturedRows([
+    { title: "Creative Producer", url: "https://www.linkedin.com/jobs/view/123/" },
+    { title: "", url: "https://www.linkedin.com/jobs/view/456/" },
+    { title: "No link at all", url: "" },
+    { title: "Not a web address", url: "javascript:alert(1)" },
+    null,
+  ]);
+  // The rows are built inside the vm realm, so compare contents rather than
+  // using a deep-equal that also insists on a same-realm Array prototype.
+  assert.deepEqual([...rows.map((row) => row.title)], ["Creative Producer"]);
+});
+
+test("two rows for the same job collapse even when their tracking parameters differ", () => {
+  const rows = normalizeCapturedRows([
+    { title: "Creative Producer", url: "https://www.linkedin.com/jobs/view/123/?refId=aaa&trackingId=1" },
+    { title: "Creative Producer", url: "https://www.linkedin.com/jobs/view/123?refId=bbb" },
+    { title: "Brand Manager", url: "https://www.linkedin.com/jobs/view/999/" },
+  ]);
+  assert.equal(rows.length, 2);
+  // The first spelling wins, so the row keeps a URL that was actually on the page.
+  assert.match(rows[0].url, /refId=aaa/);
+});
+
+test("captured text is squeezed and capped rather than sent as found", () => {
+  const [row] = normalizeCapturedRows([{
+    title: "  Senior   Creative\n Producer  ",
+    company: " VaynerMedia\n",
+    location: "\tSan Francisco, CA ",
+    url: "https://www.linkedin.com/jobs/view/123/",
+    description: "x".repeat(5000),
+  }]);
+  assert.equal(row.title, "Senior Creative Producer");
+  assert.equal(row.company, "VaynerMedia");
+  assert.equal(row.location, "San Francisco, CA");
+  assert.equal(row.description.length, 600);
+});
+
+test("a very long results page is capped instead of becoming an oversized upload", () => {
+  const many = Array.from({ length: 250 }, (_, index) => ({
+    title: `Role ${index}`,
+    url: `https://www.linkedin.com/jobs/view/${index}/`,
+  }));
+  assert.equal(normalizeCapturedRows(many).length, 100);
+  assert.equal(normalizeCapturedRows(many, 25).length, 25);
+});
+
+test("a capture that found nothing returns an empty list, not a crash", () => {
+  assert.equal(normalizeCapturedRows(undefined).length, 0);
+  assert.equal(normalizeCapturedRows([]).length, 0);
+});

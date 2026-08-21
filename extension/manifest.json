@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "V's Application Autofill",
-  "version": "0.6.0",
-  "description": "Capture visible job pages and preview approved job-application fields. Never submits forms.",
+  "version": "0.7.0",
+  "description": "Capture visible job pages and results lists, and preview approved job-application fields. Never submits forms.",
   "permissions": [
     "activeTab",
     "storage",
@@ -23,5 +23,11 @@
       ],
       "run_at": "document_idle"
     }
+  ],
+  "host_permissions": [
+    "https://*.workers.dev/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
   ]
 }

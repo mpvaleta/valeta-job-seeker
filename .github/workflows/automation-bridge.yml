@@ -46,6 +46,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   bridge:
@@ -167,6 +168,9 @@ jobs:
           git rm -rf --cached . --quiet 2>/dev/null || true
           find . -maxdepth 1 -mindepth 1 ! -name .git ! -name automation -exec rm -rf {} + 2>/dev/null || true
           mkdir -p automation
+          # The outgoing snapshot is the baseline the digest step below diffs
+          # against — captured before the new one overwrites it.
+          [ -f automation/radar-inbox.json ] && cp -f automation/radar-inbox.json /tmp/state/previous-inbox.json || true
           [ -f /tmp/state/radar-inbox.json ] && cp -f /tmp/state/radar-inbox.json automation/radar-inbox.json || true
           [ -f automation/drafted.json ] || echo '[]' > automation/drafted.json
           if [ -f /tmp/state/delivery-result.json ] && [ "$(jq -r '.ok' /tmp/state/delivery-result.json)" = "true" ]; then
@@ -182,3 +186,49 @@ jobs:
           git add automation
           git commit -m "[bridge-result] update automation state" || { echo "State unchanged."; exit 0; }
           git push origin automation-state
+
+      # "How do I know what it found and what it sent, without giving anything
+      # my email login?" — like this. New matching roles and delivered drafts
+      # are posted as comments on one rolling issue in this private repo, and
+      # GitHub's own notifications carry them to the owner's inbox. No mail
+      # provider, no OAuth, no new secret.
+      - name: Post digest to the radar issue
+        if: always() && (steps.request.outputs.mode == 'scan' || steps.request.outputs.mode == 'deliver')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          body=""
+          if [ "${{ steps.request.outputs.mode }}" = "scan" ] && [ -f /tmp/state/radar-inbox.json ]; then
+            prev=/tmp/state/previous-inbox.json
+            [ -f "$prev" ] || echo '{"opportunities":[]}' > "$prev"
+            jq -n --slurpfile new /tmp/state/radar-inbox.json --slurpfile prev "$prev" '
+              ([$prev[0].opportunities[]?.id]) as $known |
+              [$new[0].opportunities[]?
+                | select(.alignmentPasses == true)
+                | select(.id as $i | $known | index($i) | not)]
+              | sort_by(-.fitScore)' > /tmp/state/new-roles.json
+            count=$(jq 'length' /tmp/state/new-roles.json)
+            if [ "$count" -gt 0 ]; then
+              body=$(jq -r --arg count "$count" '
+                "🆕 **" + $count + " new matching role" + (if ($count | tonumber) == 1 then "" else "s" end) + "** found by the radar:\n\n" +
+                ([.[:20][] | "- [" + .title + " — " + .company + "](" + .sourceUrl + ") · " + (.fitScore | tostring) + "%"] | join("\n")) +
+                (if ($count | tonumber) > 20 then "\n- …and " + (($count | tonumber) - 20 | tostring) + " more in the Discovery Inbox" else "" end) +
+                "\n\n_Posted automatically by the radar. Review them in the Discovery Inbox._"' /tmp/state/new-roles.json)
+            else
+              echo "No new matching roles — nothing to post."
+            fi
+          elif [ "${{ steps.request.outputs.mode }}" = "deliver" ] && [ -f /tmp/state/delivery-result.json ] \
+            && [ "$(jq -r '.ok' /tmp/state/delivery-result.json)" = "true" ] && [ -f /tmp/state/delivered-draft.json ]; then
+            body=$(jq -r '"✍️ **Draft delivered** into the workspace: " + (.type // "document") + " for **" + (.role // "a role") + "** at **" + (.company // "a company") + "**." + (if (.note // "") != "" then "\n\n> " + .note else "" end) + "\n\n_Posted automatically by the automation bridge. The draft is in Data \u0026 versions and the Role workspace._"' /tmp/state/delivered-draft.json)
+          fi
+          [ -n "$body" ] || exit 0
+          issue=$(gh issue list --state open --search "Radar digest in:title" --json number --jq '.[0].number // empty' || true)
+          if [ -z "$issue" ]; then
+            issue=$(gh issue create --title "📡 Radar digest — new roles and deliveries" \
+              --body "@${{ github.repository_owner }} This issue is V's notification channel. Every time the scheduled radar finds new matching roles, or the automation delivers a drafted résumé or cover letter, a comment lands here — and GitHub notifies you the way it already notifies you about this repository. Close it any time to retire the channel; a new one is opened on the next digest." \
+              | grep -oE '[0-9]+$')
+          fi
+          printf '%s\n' "$body" > /tmp/state/comment.md
+          gh issue comment "$issue" --body-file /tmp/state/comment.md
+          echo "Digest posted to issue #$issue."
