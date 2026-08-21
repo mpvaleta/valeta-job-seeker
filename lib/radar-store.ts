@@ -46,6 +46,8 @@ type OpportunityRow = {
   status: string;
   discovered_at: string;
   updated_at: string;
+  last_seen_at: string | null;
+  last_listing_read_at: string | null;
 };
 
 export type RadarMonitorInput = {
@@ -72,7 +74,37 @@ export async function ensureRadarUser(db: D1Database, email: string, displayName
   return { id, email: normalizedEmail, display_name: name };
 }
 
+// Source types that come from reading a company's complete public board
+// (Greenhouse / Lever / Ashby / SmartRecruiters APIs). Only these support the
+// "no longer listed" inference below: absence from a *complete* successful
+// listing read means the posting is gone, while absence from a partial page
+// scrape or a web-search lead means nothing at all.
+const COMPLETE_LISTING_SOURCES = new Set(["greenhouse", "lever", "ashby", "smartrecruiters"]);
+
+// Adds the listing-freshness columns to databases created before they
+// existed. Runs at most once per database handle, tolerates the columns
+// already being there, and never requires a manual migration step — the
+// bootstrap workflow re-applies every migration file and fails loudly on
+// re-runs, so shipping this as a migration would have made deploying this
+// feature a hand-run operation.
+const listingColumnsEnsured = new WeakSet<D1Database>();
+async function ensureListingColumns(db: D1Database) {
+  if (listingColumnsEnsured.has(db)) return;
+  for (const statement of [
+    "ALTER TABLE job_opportunities ADD COLUMN last_seen_at text",
+    "ALTER TABLE companies ADD COLUMN last_listing_read_at text",
+  ]) {
+    try {
+      await db.prepare(statement).run();
+    } catch (cause) {
+      if (!/duplicate column/i.test(safeMessage(cause))) throw cause;
+    }
+  }
+  listingColumnsEnsured.add(db);
+}
+
 export async function readRadarDashboard(db: D1Database, userId: string) {
+  await ensureListingColumns(db);
   const [profileRow, monitorResult, opportunityResult, opportunityCountRow] = await Promise.all([
     db.prepare("SELECT id, headline, target_roles_json, target_markets_json, positioning, constraints_json FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<ProfileRow>(),
     // CURRENT_TIMESTAMP only resolves to whole seconds, so two runs of the same
@@ -88,7 +120,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     // Newest 600 travel to the browser; the true total rides alongside so the
     // inbox can say "newest 600 of N" instead of silently plateauing at the cap
     // (the old hard 300 made the radar look frozen once the inbox filled up).
-    db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, c.company_type, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at
+    db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, c.company_type, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at, o.last_seen_at, c.last_listing_read_at
       FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
       WHERE o.user_id = ? ORDER BY o.discovered_at DESC, o.fit_score DESC LIMIT 600`).bind(userId).all<OpportunityRow>(),
     db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE user_id = ?").bind(userId).first<{ count: number }>(),
@@ -120,6 +152,15 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     const exclusionHit = /review exclusion:|startups-only filter/i.test(row.fit_summary || "");
     const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
     const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : row.source_type === "linkedin-saved" ? "linkedin-saved" : "monitored";
+    // The posting came from a complete board read, the board has since been
+    // read completely again, and the posting was not in that newer read — the
+    // employer has most likely closed or unlisted it. Postings refreshed
+    // during the same read carry a last_seen_at at or after the read's start
+    // stamp, so strict less-than never flags what the read just confirmed.
+    const listingLost = origin === "monitored"
+      && COMPLETE_LISTING_SOURCES.has(row.source_type)
+      && Boolean(row.last_listing_read_at)
+      && (row.last_seen_at || "") < (row.last_listing_read_at || "");
     return {
       id: row.id,
       companyId: row.company_id,
@@ -145,6 +186,8 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
       status: normalizeOpportunityStatus(row.status),
       discoveredAt: row.discovered_at,
       updatedAt: row.updated_at,
+      lastSeenAt: row.last_seen_at,
+      listingLost,
     };
   });
   return {
@@ -489,6 +532,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   // Runs on every trigger — manual, app-open catch-up, and the twice-daily
   // background cron — so the general V's Job Watch list stays current
   // without depending on someone opening the app or clicking a button.
+  await ensureListingColumns(db);
   const watchBatch = await importJobWatchBatch(db, userId);
   // Self-heal rows an earlier build duplicated before reading the current state.
   const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
@@ -665,15 +709,26 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       found += matches.length;
       discovered += scored.length;
       belowThreshold += scored.length - matches.length;
+      // Captured before any row is touched: every posting confirmed by this
+      // read gets a last_seen_at at or after this stamp, so comparing a
+      // posting's last_seen_at against the company's stamp cleanly separates
+      // "confirmed by the newest read" from "absent from it".
+      const listingReadStamp = new Date().toISOString().slice(0, 19).replace("T", " ");
+      // One batch per monitor instead of one awaited round trip per job: a
+      // large board is up to 150 rows, and this loop now covers up to twelve
+      // companies per run, so per-row awaits multiplied into the thousands.
+      // The in-memory index keeps deduplication correct even though the
+      // inserts have not landed yet.
+      const jobStatements: D1PreparedStatement[] = [];
       for (const { job, match } of scored) {
         const existing = index.get(opportunityKey(job.sourceUrl));
         if (existing) {
-          await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
-            .bind(monitor.companyId, job.title, job.location || null, job.sourceType || "public-careers-page", match.score, match.summary, existing.id, userId).run();
+          jobStatements.push(db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+            .bind(monitor.companyId, job.title, job.location || null, job.sourceType || "public-careers-page", match.score, match.summary, existing.id, userId));
         } else {
           const discoveredId = crypto.randomUUID();
-          await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            .bind(discoveredId, userId, monitor.companyId, job.title, job.location || null, job.sourceUrl, job.sourceType || "public-careers-page", match.score, match.summary, "new").run();
+          jobStatements.push(db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)")
+            .bind(discoveredId, userId, monitor.companyId, job.title, job.location || null, job.sourceUrl, job.sourceType || "public-careers-page", match.score, match.summary, "new"));
           rememberOpportunity(index, job.sourceUrl || "", discoveredId);
           added += 1;
           monitorAdded += 1;
@@ -683,6 +738,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
           }
         }
       }
+      if (jobStatements.length) await db.batch(jobStatements);
       const savedAttempt = discovery.attempts.find((attempt) => attempt.purpose === "saved-careers");
       const repairedSource = clean(discovery.recommendedCareersUrl, 4_000);
       const shouldRepairSource = Boolean(repairedSource)
@@ -718,6 +774,13 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
           .bind(runId, monitor.id, "completed", matches.length, `${triggerLabel} · ${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${jobs.length - matches.length} saved below threshold · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}${zeroReason}`),
       ];
       if (repairStatement) statements.unshift(repairStatement);
+      // Only a read that produced at least one complete-board posting counts
+      // as a listing read: a failed fetch or a web-search-only run says
+      // nothing about which postings are still up, and must never make older
+      // postings look withdrawn.
+      if (jobs.some((job) => COMPLETE_LISTING_SOURCES.has(job.sourceType || ""))) {
+        statements.push(db.prepare("UPDATE companies SET last_listing_read_at = ? WHERE id = ?").bind(listingReadStamp, monitor.companyId));
+      }
       await db.batch(statements);
     } catch (cause) {
       const message = safeMessage(cause);

@@ -233,3 +233,7 @@ input,textarea,select{border-radius:12px}
 .radar-board-handoff button{white-space:nowrap}
 @media(max-width:720px){.job-search-list article{grid-template-columns:1fr}.radar-board-handoff{flex-direction:column;align-items:flex-start}}
 .application-actions button.danger-armed{border-color:#c0392b;background:#c0392b;color:#fff}
+.opportunity-tags em.closed{background:#fdecec;color:#a03030}
+.followup-alert{margin:6px 0 0;color:#9d5d00;font-size:11px;font-weight:800}
+.application-list article.followup-overdue{background:#fffaf3;box-shadow:inset 4px 0 #f0a121}
+.application-list label.followup-due input{border-color:#f0a121;background:#fff7ea}

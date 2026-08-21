@@ -899,6 +899,62 @@ test("a full scan is bounded, covers the longest-waiting targets first, and repo
   }
 });
 
+test("a posting that vanishes from a re-read board is flagged, not deleted", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  const originalFetch = globalThis.fetch;
+  try {
+    await addMonitors(worker, env, 1);
+    const board = (titles) => Response.json({
+      jobs: titles.map((title, index) => ({
+        id: 100 + index,
+        title,
+        absolute_url: `https://boards.greenhouse.io/company0/jobs/${100 + index}`,
+        location: { name: "San Francisco, CA" },
+        updated_at: new Date().toISOString(),
+        content: "Own integrated production for brand campaigns.",
+      })),
+    });
+
+    globalThis.fetch = async () => board(["Senior Creative Producer", "Brand Program Manager"]);
+    const first = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    assert.equal((await first.json()).result.added, 2);
+
+    // The board is read again later and only one of the two postings is still
+    // on it. Both runs land in the same test second, so the vanished row is
+    // backdated the way real time would have separated them.
+    globalThis.fetch = async () => board(["Senior Creative Producer"]);
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    await db.prepare("UPDATE job_opportunities SET last_seen_at = '2026-01-01 00:00:00' WHERE title = 'Brand Program Manager'").run();
+
+    const dashboard = await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
+    const opportunities = (await dashboard.json()).opportunities;
+    const kept = opportunities.find((item) => item.title === "Senior Creative Producer");
+    const vanished = opportunities.find((item) => item.title === "Brand Program Manager");
+    assert.ok(kept && vanished, "both rows stay in the inbox — nothing is deleted");
+    assert.equal(kept.listingLost, false, "a posting the newest read confirmed is not flagged");
+    assert.equal(vanished.listingLost, true, "a posting absent from the newest complete read is flagged");
+
+    // A failed read must say nothing about listing freshness: after every
+    // source stops responding, the flags stay exactly as they were.
+    globalThis.fetch = async () => new Response("gone", { status: 500 });
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const after = await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
+    const keptAfter = (await after.json()).opportunities.find((item) => item.title === "Senior Creative Producer");
+    assert.equal(keptAfter.listingLost, false, "a failed read never turns a live posting into a lost one");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
 test("a run of healthy boards covers far more companies than a run of broken ones", async () => {
   const { mf, db } = await createDatabase();
   const worker = await loadWorker();
