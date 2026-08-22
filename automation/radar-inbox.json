@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-08-22T13:48:05Z",
-  "lastRunAt": "2026-08-22 13:48:03",
+  "fetchedAt": "2026-08-22T23:35:15Z",
+  "lastRunAt": "2026-08-22 23:35:13",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -78,48 +78,48 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-22 10:00:12",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-22 23:35:01",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Jack Morton Worldwide",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 61,
-      "lastCheckedAt": "2026-08-22 10:00:26",
-      "lastRunSummary": "Background scheduled scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-22 23:35:04",
+      "lastRunSummary": "Manual scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "OpenAI",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-22 10:00:27",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-22 23:35:04",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Perplexity",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 11,
-      "lastCheckedAt": "2026-08-22 10:00:44",
-      "lastRunSummary": "Background scheduled scan · 99 verified roles read · 11 met the 45% minimum · 88 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
+      "lastCheckedAt": "2026-08-22 23:35:08",
+      "lastRunSummary": "Manual scan · 99 verified roles read · 11 met the 45% minimum · 88 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Snap",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-22 10:00:46",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-22 23:35:13",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "The Athletic",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-22 12:00:17",
-      "lastRunSummary": "Background scheduled scan · 13 verified roles read · 4 met the 45% minimum · 9 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-22 23:35:13",
+      "lastRunSummary": "Manual scan · 13 verified roles read · 4 met the 45% minimum · 9 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Tubi",
