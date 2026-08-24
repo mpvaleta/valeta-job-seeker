@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-08-23T23:35:28Z",
-  "lastRunAt": "2026-08-23 23:35:27",
+  "fetchedAt": "2026-08-24T14:07:40Z",
+  "lastRunAt": "2026-08-24 14:07:38",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -13,16 +13,16 @@
       "company": "Anthropic",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 61,
-      "lastCheckedAt": "2026-08-23 13:49:18",
-      "lastRunSummary": "Manual scan · 300 verified roles read · 61 met the 45% minimum · 239 saved below threshold · 0 new (0 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 62,
+      "lastCheckedAt": "2026-08-24 14:07:33",
+      "lastRunSummary": "Manual scan · 300 verified roles read · 62 met the 45% minimum · 238 saved below threshold · 2 new (1 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Attentive",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 27,
-      "lastCheckedAt": "2026-08-23 13:49:22",
+      "lastCheckedAt": "2026-08-24 14:07:36",
       "lastRunSummary": "Manual scan · 39 verified roles read · 27 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -30,7 +30,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-08-23 13:49:23",
+      "lastCheckedAt": "2026-08-24 14:07:38",
       "lastRunSummary": "Manual scan · 9 verified roles read · 1 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -38,7 +38,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-08-23 18:00:12",
+      "lastCheckedAt": "2026-08-24 08:00:13",
       "lastRunSummary": "Background scheduled scan · 7 verified roles read · 3 met the 45% minimum · 4 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -46,7 +46,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-23 18:00:16",
+      "lastCheckedAt": "2026-08-24 08:00:17",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -54,7 +54,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-23 18:00:16",
+      "lastCheckedAt": "2026-08-24 08:00:17",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -62,7 +62,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 100,
-      "lastCheckedAt": "2026-08-23 18:00:35",
+      "lastCheckedAt": "2026-08-24 08:00:36",
       "lastRunSummary": "Background scheduled scan · 100 verified roles read · 100 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -70,7 +70,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 31,
-      "lastCheckedAt": "2026-08-23 18:00:48",
+      "lastCheckedAt": "2026-08-24 08:00:50",
       "lastRunSummary": "Background scheduled scan · 72 verified roles read · 31 met the 45% minimum · 41 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
@@ -78,55 +78,55 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-23 23:35:16",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-24 12:00:12",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Jack Morton Worldwide",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 61,
-      "lastCheckedAt": "2026-08-23 23:35:19",
-      "lastRunSummary": "Manual scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-24 12:00:26",
+      "lastRunSummary": "Background scheduled scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "OpenAI",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-23 23:35:19",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-24 12:00:26",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Perplexity",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 11,
-      "lastCheckedAt": "2026-08-23 23:35:23",
-      "lastRunSummary": "Manual scan · 99 verified roles read · 11 met the 45% minimum · 88 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
+      "lastCheckedAt": "2026-08-24 12:00:44",
+      "lastRunSummary": "Background scheduled scan · 99 verified roles read · 11 met the 45% minimum · 88 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Snap",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-23 23:35:26",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-24 12:00:47",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "The Athletic",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-23 23:35:27",
-      "lastRunSummary": "Manual scan · 13 verified roles read · 4 met the 45% minimum · 9 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-24 12:00:50",
+      "lastRunSummary": "Background scheduled scan · 13 verified roles read · 4 met the 45% minimum · 9 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Tubi",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 15,
-      "lastCheckedAt": "2026-08-23 13:48:58",
+      "lastCheckedAt": "2026-08-24 14:07:10",
       "lastRunSummary": "Manual scan · 30 verified roles read · 15 met the 45% minimum · 15 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -134,19 +134,45 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-23 13:48:59",
+      "lastCheckedAt": "2026-08-24 14:07:11",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "e.l.f. Cosmetics",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 29,
-      "lastCheckedAt": "2026-08-23 13:49:05",
-      "lastRunSummary": "Manual scan · 67 verified roles read · 29 met the 45% minimum · 38 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastRunFoundCount": 28,
+      "lastCheckedAt": "2026-08-24 14:07:18",
+      "lastRunSummary": "Manual scan · 66 verified roles read · 28 met the 45% minimum · 38 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     }
   ],
   "opportunities": [
+    {
+      "id": "6265f916-1d0a-4dfa-9158-73601bf99721",
+      "title": "Finance & Strategy, GTM - Post Sales",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5163060008",
+      "sourceType": "greenhouse",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "97102677-0344-4e0e-891d-854d94e307c1",
+      "title": "Enterprise Account Executive, Manufacturing",
+      "company": "Anthropic",
+      "location": "London, UK",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5237973008",
+      "sourceType": "greenhouse",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · skill overlap: creative operations, brand, cross-functional · goal overlap: brand, marketing, roles, cross-functional · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
     {
       "id": "0e23a4bc-d60d-4594-850b-34b8ef6f690e",
       "title": "Policy Design Manager, Conventional Weapons",
@@ -7917,32 +7943,6 @@
       "sourceType": "greenhouse",
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "c9d3e0e9-479b-43cc-b3d7-a96f70f42538",
-      "title": "Principal Product Marketing Manager",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4227033009",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "b044ff7e-1c72-4be7-9647-6239341db3ee",
-      "title": "Senior IT Support Associate",
-      "company": "Attentive",
-      "location": "New York, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4339581009",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, ownership · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
