@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-08-24T14:07:40Z",
-  "lastRunAt": "2026-08-24 14:07:38",
+  "fetchedAt": "2026-08-24T23:35:29Z",
+  "lastRunAt": "2026-08-24 23:35:28",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -38,7 +38,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-08-24 08:00:13",
+      "lastCheckedAt": "2026-08-24 22:00:14",
       "lastRunSummary": "Background scheduled scan · 7 verified roles read · 3 met the 45% minimum · 4 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -46,7 +46,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 08:00:17",
+      "lastCheckedAt": "2026-08-24 22:00:18",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -54,7 +54,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 08:00:17",
+      "lastCheckedAt": "2026-08-24 22:00:18",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -62,64 +62,64 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 100,
-      "lastCheckedAt": "2026-08-24 08:00:36",
+      "lastCheckedAt": "2026-08-24 22:00:37",
       "lastRunSummary": "Background scheduled scan · 100 verified roles read · 100 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Hinge Health",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 31,
-      "lastCheckedAt": "2026-08-24 08:00:50",
-      "lastRunSummary": "Background scheduled scan · 72 verified roles read · 31 met the 45% minimum · 41 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
+      "lastRunFoundCount": 30,
+      "lastCheckedAt": "2026-08-24 22:00:50",
+      "lastRunSummary": "Background scheduled scan · 73 verified roles read · 30 met the 45% minimum · 43 saved below threshold · 2 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Inizio Evoke",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 12:00:12",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-24 23:35:11",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Jack Morton Worldwide",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 61,
-      "lastCheckedAt": "2026-08-24 12:00:26",
-      "lastRunSummary": "Background scheduled scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-24 23:35:16",
+      "lastRunSummary": "Manual scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 3 new (3 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "OpenAI",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 12:00:26",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-24 23:35:16",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Perplexity",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 11,
-      "lastCheckedAt": "2026-08-24 12:00:44",
-      "lastRunSummary": "Background scheduled scan · 99 verified roles read · 11 met the 45% minimum · 88 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
+      "lastCheckedAt": "2026-08-24 23:35:22",
+      "lastRunSummary": "Manual scan · 99 verified roles read · 11 met the 45% minimum · 88 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Snap",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 12:00:47",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-24 23:35:27",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "The Athletic",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-24 12:00:50",
-      "lastRunSummary": "Background scheduled scan · 13 verified roles read · 4 met the 45% minimum · 9 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-24 23:35:28",
+      "lastRunSummary": "Manual scan · 12 verified roles read · 4 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Tubi",
@@ -147,6 +147,71 @@
     }
   ],
   "opportunities": [
+    {
+      "id": "51705638-45f5-4663-87b5-d9231ed82e75",
+      "title": "Prep Technician (Trade Shows & Events)",
+      "company": "Jack Morton Worldwide",
+      "location": "Addison, Illinois, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4380889009",
+      "sourceType": "greenhouse",
+      "fitScore": 47,
+      "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "c81e84b2-c7fd-4df6-b66c-19fe1e00172b",
+      "title": "Warehouse Associate (Trade Shows & Events)",
+      "company": "Jack Morton Worldwide",
+      "location": "Addison, Illinois, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4380946009",
+      "sourceType": "greenhouse",
+      "fitScore": 52,
+      "fitSummary": "52% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "1d6554b0-0c46-4916-a2a4-371a2b579510",
+      "title": "Cabinet Maker (Trade Shows & Events)",
+      "company": "Jack Morton Worldwide",
+      "location": "Addison, Illinois, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4377658009",
+      "sourceType": "greenhouse",
+      "fitScore": 47,
+      "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "74b2b914-6928-4df0-a10a-01e005517698",
+      "title": "Associate RVP, Provider Sales- West",
+      "company": "Hinge Health",
+      "location": "Remote US · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/128a4914-a7d2-480a-aadc-f4f05e5d93cb",
+      "sourceType": "ashby",
+      "fitScore": 35,
+      "fitSummary": "35% target alignment · skill overlap: project management · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "8c80baae-c10a-4dd7-b57d-89a26e508cdc",
+      "title": "Senior Software Engineer - Fullstack",
+      "company": "Hinge Health",
+      "location": "San Francisco-HQ · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/ad0deb56-e28d-438d-aae3-1adb834b8e79",
+      "sourceType": "ashby",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
     {
       "id": "6265f916-1d0a-4dfa-9158-73601bf99721",
       "title": "Finance & Strategy, GTM - Post Sales",
@@ -5182,11 +5247,11 @@
       "id": "6d09f974-be06-49c8-9b9c-127cba704148",
       "title": "Staff Software Engineer, CV UX",
       "company": "Hinge Health",
-      "location": "Montreal-HQ · Remote",
+      "location": "San Francisco-HQ · Remote",
       "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/aaef9501-f998-442b-882c-32d0e8023405",
       "sourceType": "ashby",
       "fitScore": 22,
-      "fitSummary": "22% target alignment · location: United States",
+      "fitSummary": "22% target alignment · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -5206,7 +5271,7 @@
     },
     {
       "id": "81741ea8-155d-4fa8-ae87-a327e3ab0b99",
-      "title": "Associate RVP, Provider Sales",
+      "title": "Associate RVP, Provider Sales - East",
       "company": "Hinge Health",
       "location": "Remote US · Remote",
       "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/b0cd263e-91da-4453-8b25-1e225281f2e4",
@@ -7875,71 +7940,6 @@
       "company": "Attentive",
       "location": "United States",
       "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4188022009",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "f4379bfb-8250-43ce-a35d-30c9573131d4",
-      "title": "Applied Science / Data Science Leader",
-      "company": "Attentive",
-      "location": "San Francisco, CA",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4308475009",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "5319e287-388a-48fa-a66f-aa32490fd2eb",
-      "title": "Finance Manager, Revenue",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4339819009",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · skill overlap: creative operations, brand · goal overlap: brand, marketing, ownership · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "f0ca8987-d227-495c-8d97-0ceeada55f5f",
-      "title": "FP&A Manager, G&A",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4329097009",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "f4f29ff5-8d74-4c60-a224-606069f22c76",
-      "title": "Lead Product Manager, Identity & First-Party Data",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4163560009",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "398e8fa9-e36a-41f9-a1f1-4d85bbf03983",
-      "title": "Lead Product Manager, Targeting",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4332724009",
       "sourceType": "greenhouse",
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: United States",
