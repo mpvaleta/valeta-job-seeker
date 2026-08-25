@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-08-25T14:10:09Z",
-  "lastRunAt": "2026-08-25 14:10:08",
+  "fetchedAt": "2026-08-25T23:38:48Z",
+  "lastRunAt": "2026-08-25 23:38:47",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -38,48 +38,48 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-08-25 12:00:14",
-      "lastRunSummary": "Background scheduled scan · 9 verified roles read · 3 met the 45% minimum · 6 saved below threshold · 2 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-25 23:38:30",
+      "lastRunSummary": "Manual scan · 9 verified roles read · 3 met the 45% minimum · 6 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "George P. Johnson",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-25 12:00:18",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-25 23:38:33",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Google",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-25 12:00:18",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-25 23:38:33",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Highwire",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 100,
-      "lastCheckedAt": "2026-08-25 12:00:36",
-      "lastRunSummary": "Background scheduled scan · 100 verified roles read · 100 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 95,
+      "lastCheckedAt": "2026-08-25 23:38:40",
+      "lastRunSummary": "Manual scan · 95 verified roles read · 95 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Hinge Health",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 31,
-      "lastCheckedAt": "2026-08-25 12:00:50",
-      "lastRunSummary": "Background scheduled scan · 74 verified roles read · 31 met the 45% minimum · 43 saved below threshold · 2 new (1 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
+      "lastCheckedAt": "2026-08-25 23:38:45",
+      "lastRunSummary": "Manual scan · 74 verified roles read · 31 met the 45% minimum · 43 saved below threshold · 2 new (1 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Inizio Evoke",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-25 12:00:52",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-25 23:38:47",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Jack Morton Worldwide",
@@ -147,6 +147,32 @@
     }
   ],
   "opportunities": [
+    {
+      "id": "dda7bd07-f592-4031-8882-034e23da43d4",
+      "title": "Biostatistician, Quantitative Epidemiology",
+      "company": "Hinge Health",
+      "location": "San Francisco-HQ · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/9c57434f-6004-4662-bf5b-bb44ba6d78db",
+      "sourceType": "ashby",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · skill overlap: cross-functional · goal overlap: roles, meaningful, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "79f208a9-3377-4140-ae6e-5fef25000dc4",
+      "title": "Business Operations & Strategy Manager",
+      "company": "Hinge Health",
+      "location": "San Francisco-HQ · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/d307173d-281d-4d9a-b7cf-75c3066ef09b",
+      "sourceType": "ashby",
+      "fitScore": 68,
+      "fitSummary": "68% target alignment · title overlap: operations · skill overlap: project management, cross-functional · goal overlap: roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
     {
       "id": "982a2dff-d8ae-4318-83d3-31aa95cfa284",
       "title": "Senior Growth Data Scientist - New Products",
@@ -6363,7 +6389,7 @@
     },
     {
       "id": "093a7fb0-db05-4957-8e04-2f6bd9e2d06d",
-      "title": "Project Manager, Growth Marketing Operations",
+      "title": "Project Manager, Growth Operations",
       "company": "Hinge Health",
       "location": "San Francisco-HQ · Remote",
       "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/a2583315-2f5d-4f69-a96a-87c362d54c1d",
@@ -7871,7 +7897,7 @@
     },
     {
       "id": "a162cee3-d47d-4410-a2cb-18956636d51d",
-      "title": "Senior Manufacturing Process Engineer",
+      "title": "Senior Manufacturing Automation Engineer",
       "company": "Gantri",
       "location": "San Leandro, CA",
       "sourceUrl": "https://jobs.lever.co/Gantri/d7ed951f-8da4-43f6-8d7d-0d6dbb2abb01",
@@ -7917,32 +7943,6 @@
       "sourceType": "greenhouse",
       "fitScore": 41,
       "fitSummary": "41% target alignment · skill overlap: brand · goal overlap: brand, marketing · location: United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "1bb87d2f-6679-4da6-8b2e-49e6746eefc4",
-      "title": "Support Engineer",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4324314009",
-      "sourceType": "greenhouse",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · skill overlap: brand · goal overlap: brand, marketing · location: United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "a4bf6ddc-258b-465c-87af-f8d542609971",
-      "title": "Business Development Representative",
-      "company": "Aventon",
-      "location": "Brea, California",
-      "sourceUrl": "https://jobs.lever.co/aventon/4725f929-be1b-4587-91b4-8eb0c232469c",
-      "sourceType": "lever",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · skill overlap: brand · goal overlap: brand, roles · location: San Francisco Bay Area, California",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
