@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-08-24T23:35:29Z",
-  "lastRunAt": "2026-08-24 23:35:28",
+  "fetchedAt": "2026-08-25T14:10:09Z",
+  "lastRunAt": "2026-08-25 14:10:08",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -13,16 +13,16 @@
       "company": "Anthropic",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 62,
-      "lastCheckedAt": "2026-08-24 14:07:33",
-      "lastRunSummary": "Manual scan · 300 verified roles read · 62 met the 45% minimum · 238 saved below threshold · 2 new (1 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 66,
+      "lastCheckedAt": "2026-08-25 14:10:02",
+      "lastRunSummary": "Manual scan · 300 verified roles read · 66 met the 45% minimum · 234 saved below threshold · 0 new (0 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Attentive",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 27,
-      "lastCheckedAt": "2026-08-24 14:07:36",
+      "lastCheckedAt": "2026-08-25 14:10:06",
       "lastRunSummary": "Manual scan · 39 verified roles read · 27 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -30,7 +30,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-08-24 14:07:38",
+      "lastCheckedAt": "2026-08-25 14:10:08",
       "lastRunSummary": "Manual scan · 9 verified roles read · 1 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -38,15 +38,15 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-08-24 22:00:14",
-      "lastRunSummary": "Background scheduled scan · 7 verified roles read · 3 met the 45% minimum · 4 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-25 12:00:14",
+      "lastRunSummary": "Background scheduled scan · 9 verified roles read · 3 met the 45% minimum · 6 saved below threshold · 2 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "George P. Johnson",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 22:00:18",
+      "lastCheckedAt": "2026-08-25 12:00:18",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -54,7 +54,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 22:00:18",
+      "lastCheckedAt": "2026-08-25 12:00:18",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -62,91 +62,312 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 100,
-      "lastCheckedAt": "2026-08-24 22:00:37",
+      "lastCheckedAt": "2026-08-25 12:00:36",
       "lastRunSummary": "Background scheduled scan · 100 verified roles read · 100 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Hinge Health",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 30,
-      "lastCheckedAt": "2026-08-24 22:00:50",
-      "lastRunSummary": "Background scheduled scan · 73 verified roles read · 30 met the 45% minimum · 43 saved below threshold · 2 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
+      "lastRunFoundCount": 31,
+      "lastCheckedAt": "2026-08-25 12:00:50",
+      "lastRunSummary": "Background scheduled scan · 74 verified roles read · 31 met the 45% minimum · 43 saved below threshold · 2 new (1 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Inizio Evoke",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 23:35:11",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-25 12:00:52",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Jack Morton Worldwide",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 61,
-      "lastCheckedAt": "2026-08-24 23:35:16",
-      "lastRunSummary": "Manual scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 3 new (3 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-25 14:00:24",
+      "lastRunSummary": "Background scheduled scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "OpenAI",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 23:35:16",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-25 14:00:24",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Perplexity",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 11,
-      "lastCheckedAt": "2026-08-24 23:35:22",
-      "lastRunSummary": "Manual scan · 99 verified roles read · 11 met the 45% minimum · 88 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
+      "lastCheckedAt": "2026-08-25 14:00:42",
+      "lastRunSummary": "Background scheduled scan · 98 verified roles read · 11 met the 45% minimum · 87 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Snap",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 23:35:27",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-25 14:00:45",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "The Athletic",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-24 23:35:28",
-      "lastRunSummary": "Manual scan · 12 verified roles read · 4 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-25 14:00:49",
+      "lastRunSummary": "Background scheduled scan · 12 verified roles read · 4 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Tubi",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 15,
-      "lastCheckedAt": "2026-08-24 14:07:10",
-      "lastRunSummary": "Manual scan · 30 verified roles read · 15 met the 45% minimum · 15 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-25 14:09:38",
+      "lastRunSummary": "Manual scan · 33 verified roles read · 15 met the 45% minimum · 18 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Whatnot",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-24 14:07:11",
+      "lastCheckedAt": "2026-08-25 14:09:38",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "e.l.f. Cosmetics",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 28,
-      "lastCheckedAt": "2026-08-24 14:07:18",
-      "lastRunSummary": "Manual scan · 66 verified roles read · 28 met the 45% minimum · 38 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastRunFoundCount": 29,
+      "lastCheckedAt": "2026-08-25 14:09:47",
+      "lastRunSummary": "Manual scan · 68 verified roles read · 29 met the 45% minimum · 39 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     }
   ],
   "opportunities": [
+    {
+      "id": "982a2dff-d8ae-4318-83d3-31aa95cfa284",
+      "title": "Senior Growth Data Scientist - New Products",
+      "company": "Hinge Health",
+      "location": "San Francisco-HQ · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/e3db30d5-f105-48dc-aead-05228b7da997",
+      "sourceType": "ashby",
+      "fitScore": 28,
+      "fitSummary": "28% target alignment · goal overlap: marketing, roles · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "6c776575-5192-4ac2-be3a-1febb0f4ad83",
+      "title": "Staff Software Engineer- Backend",
+      "company": "Hinge Health",
+      "location": "Bengaluru-HQ · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/8bfabfb5-5e65-4781-9991-accef77b4295",
+      "sourceType": "ashby",
+      "fitScore": 49,
+      "fitSummary": "49% target alignment · skill overlap: project management, cross-functional · goal overlap: roles, ownership, cross-functional · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "3d329e8b-bf40-4dc0-8d9f-faa70819107f",
+      "title": "Production Associate - SWING SHIFT (Entry Level)",
+      "company": "Gantri",
+      "location": "San Leandro, CA",
+      "sourceUrl": "https://jobs.lever.co/Gantri/d5010591-b862-422e-a9a0-e758f9602c90",
+      "sourceType": "lever",
+      "fitScore": 22,
+      "fitSummary": "22% target alignment · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "1ae1ba1e-243a-43ae-9240-f83728336486",
+      "title": "Sander - SWING SHIFT (Entry Level)",
+      "company": "Gantri",
+      "location": "San Leandro, CA",
+      "sourceUrl": "https://jobs.lever.co/Gantri/64db8a85-30f1-40ba-81f2-506abe8e512b",
+      "sourceType": "lever",
+      "fitScore": 22,
+      "fitSummary": "22% target alignment · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "37f04db3-853e-4f8d-8e23-0e83fe18e111",
+      "title": "Product Policy Manager, Product Risk",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5400010008",
+      "sourceType": "greenhouse",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional, delivery. · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "36bad1f4-006b-4ce4-8ad8-b7be5f8c4fc2",
+      "title": "Data Center Sourcing Manager",
+      "company": "Anthropic",
+      "location": "Remote-Friendly, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5386947008",
+      "sourceType": "greenhouse",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional, delivery. · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "2a6927fd-bbe0-4d71-a3d0-2d783fecbed3",
+      "title": "Account Executive, Startups",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5400138008",
+      "sourceType": "greenhouse",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · skill overlap: cross-functional · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "049f0e81-ff84-45ee-9467-38863005a3c9",
+      "title": "IP Counsel, Trademarks & Domains",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5398360008",
+      "sourceType": "greenhouse",
+      "fitScore": 47,
+      "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, roles, ownership · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "780fdf18-cdee-48c8-8bfa-e2d4ac548ced",
+      "title": "Product Engineer - Manufacturing Operations",
+      "company": "Anthropic",
+      "location": "Remote-Friendly, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5399162008",
+      "sourceType": "greenhouse",
+      "fitScore": 60,
+      "fitSummary": "60% target alignment · title overlap: operations · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "87b6db5e-db1f-4849-bebf-210497e92516",
+      "title": "Head of National Security Sales (DoW/IC)",
+      "company": "Anthropic",
+      "location": "Washington, DC",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391504008",
+      "sourceType": "greenhouse",
+      "fitScore": 62,
+      "fitSummary": "62% target alignment · skill overlap: brand, agency, Marketing Events Lead, Brand and Enterprise event marketing · goal overlap: brand, marketing, agency, roles · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "17a99933-ff6a-4fc8-ba25-a54984e015f4",
+      "title": "Head of State and Local Government Sales",
+      "company": "Anthropic",
+      "location": "Austin, TX | Remote-Friendly, United States; Boston, MA; New York City, NY; San Francisco, CA; Washington, DC",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391488008",
+      "sourceType": "greenhouse",
+      "fitScore": 62,
+      "fitSummary": "62% target alignment · skill overlap: brand, agency, Marketing Events Lead, Brand and Enterprise event marketing · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "eded0155-cf0c-474f-9cae-73708802c3fc",
+      "title": "Environmental Health & Safety Manager, Data Center Construction and Operations",
+      "company": "Anthropic",
+      "location": "Remote-Friendly, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5399164008",
+      "sourceType": "greenhouse",
+      "fitScore": 68,
+      "fitSummary": "68% target alignment · title overlap: operations · skill overlap: project management, cross-functional · goal overlap: roles, ownership, cross-functional · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "649df69e-0233-4e02-a6bc-00727df4fb5c",
+      "title": "Associate Design Director",
+      "company": "e.l.f. Cosmetics",
+      "location": "New York, NY",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/1bce0d10-c105-440a-bf90-fa744424d2e9",
+      "sourceType": "lever",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · skill overlap: brand · goal overlap: brand · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "19f801f6-ce39-48bf-b089-20f533ef7600",
+      "title": "Director, Brand Partnerships",
+      "company": "e.l.f. Cosmetics",
+      "location": "New York, NY",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/9214b7f2-8da5-4d9f-b18f-eca778ee29ff",
+      "sourceType": "lever",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · title overlap: brand · skill overlap: brand · goal overlap: brand · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "7cccdaf4-1a9b-4bb8-8653-d67d64e5f402",
+      "title": "Performance Partner",
+      "company": "Tubi",
+      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8154147",
+      "sourceType": "greenhouse",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · skill overlap: cross-functional · goal overlap: cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "d127f30e-f2a4-4915-be70-3e6e1de51baf",
+      "title": "Senior HR Business Partner (Tech)",
+      "company": "Tubi",
+      "location": "San Francisco, CA (Hybrid)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8153323",
+      "sourceType": "greenhouse",
+      "fitScore": 43,
+      "fitSummary": "43% target alignment · skill overlap: project management, cross-functional · goal overlap: cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "3550421f-45cf-4c2d-9330-fb211b3dcf51",
+      "title": "Senior Manager, Creator Marketing",
+      "company": "Tubi",
+      "location": "Los Angeles, CA (Hybrid)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8145044",
+      "sourceType": "greenhouse",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · skill overlap: cross-functional · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
     {
       "id": "51705638-45f5-4663-87b5-d9231ed82e75",
       "title": "Prep Technician (Trade Shows & Events)",
@@ -1253,19 +1474,6 @@
       "origin": "monitored"
     },
     {
-      "id": "19d20a92-c74d-4d63-a713-06367549fd18",
-      "title": "Sr. Chemist, rhode",
-      "company": "e.l.f. Cosmetics",
-      "location": "Los Angeles, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/7b0e7d30-95f7-4a51-b51e-a8ed7b558005",
-      "sourceType": "lever",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · skill overlap: brand, cross-functional, Senior Manager · goal overlap: brand, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "30e7e45d-1a34-4a5b-b030-9392ddba8e5a",
       "title": "Sr. Director, Product Marketing, Naturium",
       "company": "e.l.f. Cosmetics",
@@ -1318,6 +1526,19 @@
       "origin": "monitored"
     },
     {
+      "id": "19d20a92-c74d-4d63-a713-06367549fd18",
+      "title": "R&D Chemist, rhode",
+      "company": "e.l.f. Cosmetics",
+      "location": "Los Angeles, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/7b0e7d30-95f7-4a51-b51e-a8ed7b558005",
+      "sourceType": "lever",
+      "fitScore": 46,
+      "fitSummary": "46% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
       "id": "84ce1bd0-e8a6-49bc-9986-634889362a21",
       "title": "Analyst, SAP S/4 HANA Functional, R2R",
       "company": "e.l.f. Cosmetics",
@@ -1332,7 +1553,7 @@
     },
     {
       "id": "56c5f6ac-44b4-41e8-a431-bfb7b0cb1bf2",
-      "title": "Associate Director, Business Systems & Integrations, rhode",
+      "title": "Sr. Manager, Business Systems & Integrations, rhode",
       "company": "e.l.f. Cosmetics",
       "location": "Beverly Hills, CA",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/00be0c9c-abd4-4ec7-8d59-66d2d573f401",
@@ -2179,11 +2400,11 @@
       "id": "d5874ba6-5ea4-4125-8825-7d504ed25ef0",
       "title": "Data Center Electrical Engineer",
       "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
+      "location": "Remote-Friendly, United States",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5375371008",
       "sourceType": "greenhouse",
       "fitScore": 41,
-      "fitSummary": "41% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
+      "fitSummary": "41% target alignment · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: United States",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -5257,19 +5478,6 @@
       "origin": "monitored"
     },
     {
-      "id": "ad8d0d13-0332-49b9-9f16-6c5fc07c3432",
-      "title": "Staff Product Designer, Design Systems",
-      "company": "Hinge Health",
-      "location": "San Francisco-HQ · Remote",
-      "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/ebb10992-73df-4efb-85b1-979aba7f046d",
-      "sourceType": "ashby",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · skill overlap: cross-functional · goal overlap: cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
       "id": "81741ea8-155d-4fa8-ae87-a327e3ab0b99",
       "title": "Associate RVP, Provider Sales - East",
       "company": "Hinge Health",
@@ -5278,6 +5486,19 @@
       "sourceType": "ashby",
       "fitScore": 35,
       "fitSummary": "35% target alignment · skill overlap: project management · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "ad8d0d13-0332-49b9-9f16-6c5fc07c3432",
+      "title": "Staff Product Designer, Design Systems",
+      "company": "Hinge Health",
+      "location": "San Francisco-HQ · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/ebb10992-73df-4efb-85b1-979aba7f046d",
+      "sourceType": "ashby",
+      "fitScore": 28,
+      "fitSummary": "28% target alignment · goal overlap: meaningful, ownership · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -7724,227 +7945,6 @@
       "fitSummary": "41% target alignment · skill overlap: brand · goal overlap: brand, roles · location: San Francisco Bay Area, California",
       "status": "new",
       "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "6909cd6b-1c5a-4b4a-927f-b97b27d95ab0",
-      "title": "Senior Graphic Designer",
-      "company": "Aventon",
-      "location": "Brea, California",
-      "sourceUrl": "https://jobs.lever.co/aventon/3ce17f7b-f355-4345-b3c7-bb93e1f2234e",
-      "sourceType": "lever",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · skill overlap: brand · goal overlap: brand, marketing · location: San Francisco Bay Area, California",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "7ec0469e-a39a-49d0-a2e7-a1173d3c5cd9",
-      "title": "Senior Implementation Consultant, UK (Hybrid)",
-      "company": "Attentive",
-      "location": "London",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4286733009",
-      "sourceType": "greenhouse",
-      "fitScore": 40,
-      "fitSummary": "40% target alignment · skill overlap: project management, brand, cross-functional · goal overlap: brand, marketing, cross-functional",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "bcd9125e-e7ae-4e71-90c4-8dfe8902e2b9",
-      "title": "Director, Sales, AUS (Hybrid)",
-      "company": "Attentive",
-      "location": "Sydney",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4309873009",
-      "sourceType": "greenhouse",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "493b47b8-1d62-457d-8036-8e88084fecc4",
-      "title": "Sales Development Representative, AUS (Hybrid)",
-      "company": "Attentive",
-      "location": "Sydney",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4169513009",
-      "sourceType": "greenhouse",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, roles, cross-functional",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "428826fb-e77b-42ba-9f59-cbfdab2d1658",
-      "title": "Sales Development Representative, UK (Hybrid)",
-      "company": "Attentive",
-      "location": "London",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4302373009",
-      "sourceType": "greenhouse",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, roles, cross-functional",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "9638f138-cbc9-43d4-af69-7d9d4d9d08ef",
-      "title": "Paralegal",
-      "company": "Aventon",
-      "location": "Brea, California",
-      "sourceUrl": "https://jobs.lever.co/aventon/dcba2ae4-d4be-47dc-a296-7898810f5e6e",
-      "sourceType": "lever",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · skill overlap: cross-functional · goal overlap: cross-functional · location: San Francisco Bay Area, California",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "29e86c94-e270-4e60-b95c-11bf414190ce",
-      "title": "Enterprise Account Executive, UK (Hybrid)",
-      "company": "Attentive",
-      "location": "London",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4303740009",
-      "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "300845a9-ea76-46f4-8c99-e577464f44fc",
-      "title": "Field Sales Manager",
-      "company": "Aventon",
-      "location": "Pennslyvannia",
-      "sourceUrl": "https://jobs.lever.co/aventon/d6775254-2d8c-46eb-b717-a0cf19447c77",
-      "sourceType": "lever",
-      "fitScore": 27,
-      "fitSummary": "27% target alignment · skill overlap: brand · goal overlap: brand, roles",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "33e33030-7bca-4b5e-910d-6cb77e7caebb",
-      "title": "Field Sales Representative",
-      "company": "Aventon",
-      "location": "Washington",
-      "sourceUrl": "https://jobs.lever.co/aventon/91d4dc5a-e102-436a-b8a7-a55e9b082af4",
-      "sourceType": "lever",
-      "fitScore": 27,
-      "fitSummary": "27% target alignment · skill overlap: brand · goal overlap: brand, roles",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "1abdbc63-715d-4f5a-becc-ac80586c2044",
-      "title": "Senior Machine Learning Engineer",
-      "company": "Attentive",
-      "location": "San Francisco, CA",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4129704009",
-      "sourceType": "greenhouse",
-      "fitScore": 52,
-      "fitSummary": "52% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "d64b3d79-a519-481a-abfb-1180a6d0b9f3",
-      "title": "Senior Partner Marketing Manager",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4298392009",
-      "sourceType": "greenhouse",
-      "fitScore": 52,
-      "fitSummary": "52% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, meaningful, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "2638d214-9bb5-4393-b1e7-a7dd5f87d0ba",
-      "title": "Senior Software Engineer, Intelligent Messaging, AI Journeys",
-      "company": "Attentive",
-      "location": "San Francisco, CA",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4355309009",
-      "sourceType": "greenhouse",
-      "fitScore": 52,
-      "fitSummary": "52% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, meaningful, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "4c181d75-a732-4e78-8842-74ceaa63331d",
-      "title": "Software Engineer II, Integrations",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4363395009",
-      "sourceType": "greenhouse",
-      "fitScore": 52,
-      "fitSummary": "52% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "7e966699-f8e7-4c9f-b963-dbcb91e951ab",
-      "title": "Staff Software Engineer, Machine Learning",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4244729009",
-      "sourceType": "greenhouse",
-      "fitScore": 52,
-      "fitSummary": "52% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "2359ec2f-0b59-4b62-b9d9-5b6e07fb9e1a",
-      "title": "Staff Software Engineer, Onsite Customer Growth",
-      "company": "Attentive",
-      "location": "New York, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4301174009",
-      "sourceType": "greenhouse",
-      "fitScore": 52,
-      "fitSummary": "52% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, meaningful, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "a26b2ba6-1f65-4219-8f22-2ca069dffa26",
-      "title": "Field Marketing Manager, UK (Hybrid)",
-      "company": "Attentive",
-      "location": "London",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4298481009",
-      "sourceType": "greenhouse",
-      "fitScore": 50,
-      "fitSummary": "50% target alignment · skill overlap: integrated production, project management, brand, agency · goal overlap: brand, marketing, agency, ownership",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "0b33b7de-0430-44c6-9059-39b104e29758",
-      "title": "Account Executive I, Mid-Market",
-      "company": "Attentive",
-      "location": "United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4188022009",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
       "origin": "monitored"
     }
   ]
