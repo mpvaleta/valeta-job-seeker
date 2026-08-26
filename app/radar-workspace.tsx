@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_RADAR_PROFILE, RADAR_COMPANY_CATEGORIES, RADAR_TRACKS } from "@/lib/radar.mjs";
+import { AGENCY_PACK_GROUPS } from "@/lib/agency-radar-pack";
 import { readJsonResponse } from "@/lib/http-json.mjs";
 import type { RadarProfile } from "@/lib/radar.mjs";
 
@@ -147,6 +148,20 @@ const LOCATION_REGIONS: Array<{ id: string; label: string; test: (location: stri
   { id: "los-angeles", label: "Los Angeles", test: (value) => /los angeles|santa monica|culver city|burbank|el segundo|\bla\b/i.test(value) },
 ];
 
+// One-press shortcuts for the company types worth separating at a glance.
+// Startup leads deliberately: it is the category the owner asked to be able to
+// see on its own, and the one the full Company-type dropdown buried eleven
+// options deep.
+const CATEGORY_SHORTCUTS: Array<{ category: string; label: string; blurb: string }> = [
+  { category: "Startup / Early-stage", label: "Startups", blurb: "Early-stage and venture-backed companies, however the posting describes itself." },
+  { category: "Creative / Advertising Agency", label: "Advertising", blurb: "Creative shops: brand campaigns, broadcast, integrated production." },
+  { category: "Marketing Agency", label: "Marketing & digital", blurb: "Performance, brand, communications, and digital-experience firms." },
+  { category: "Production Company", label: "Production", blurb: "Content, experiential, and film production companies." },
+  { category: "Sports / Entertainment", label: "Sports", blurb: "Teams, venues, leagues, and entertainment properties." },
+  { category: "Brand / Consumer", label: "Brands", blurb: "Consumer brands with in-house creative and marketing teams." },
+  { category: "Technology", label: "Tech", blurb: "Technology companies hiring for brand, creative, and programme roles." },
+];
+
 function matchesSelectedRegions(location: string, selected: string[]) {
   if (!selected.length) return true;
   const named = LOCATION_REGIONS.filter((region) => region.test(location)).map((region) => region.id);
@@ -196,6 +211,16 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
     ...monitors.map((monitor) => monitor.company),
     ...opportunities.map((opportunity) => opportunity.company),
   ])].sort((left, right) => left.localeCompare(right)), [monitors, opportunities]);
+  // Counted before the category filter itself is applied, so pressing one chip
+  // never makes the other chips read zero.
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const opportunity of opportunities) {
+      if (opportunity.status === "dismissed" || opportunity.status === "archived") continue;
+      counts.set(opportunity.companyCategory, (counts.get(opportunity.companyCategory) || 0) + 1);
+    }
+    return counts;
+  }, [opportunities]);
   const regionCounts = useMemo(() => {
     const counts = new Map<string, number>([["other", 0]]);
     for (const region of LOCATION_REGIONS) counts.set(region.id, 0);
@@ -352,13 +377,20 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
     if (!options.automatic) onNotice(`${result.checked || 0} ${result.checked === 1 ? "target" : "targets"} checked · ${result.discovered || 0} roles read · ${result.found || 0} matched · ${result.added || 0} new saved${result.repairedSources ? ` · ${result.repairedSources} source ${result.repairedSources === 1 ? "was" : "were"} repaired` : ""}${result.mergedDuplicates ? ` · ${result.mergedDuplicates} duplicate ${result.mergedDuplicates === 1 ? "row was" : "rows were"} merged` : ""}${failures ? ` · ${failures} ${failures === 1 ? "target needs" : "targets need"} attention` : ""}${result.deferred ? ` · ${result.deferred} longest-waiting ${result.deferred === 1 ? "target goes" : "targets go"} in the next run` : ""}`);
   }
 
-  async function seedAgencyPack() {
-    const data = await mutate({ action: "seed_agency_pack" }, "agency-pack", "Adding U.S. advertising, marketing, digital, and creative agencies — SF Bay Area shops first — to your monitored targets…");
+  async function seedAgencyPack(group?: { id: string; label: string }) {
+    const data = await mutate(
+      { action: "seed_agency_pack", group: group?.id },
+      group ? `agency-pack-${group.id}` : "agency-pack",
+      group
+        ? `Adding ${group.label.toLowerCase()} agencies to your monitored targets…`
+        : "Adding U.S. advertising, marketing, digital, and creative agencies — SF Bay Area shops first — to your monitored targets…",
+    );
     if (!data) return;
     const result = (data.result || {}) as { added?: number; skipped?: number };
+    const noun = group ? `${group.label.toLowerCase()} ${result.added === 1 ? "agency" : "agencies"}` : result.added === 1 ? "agency" : "agencies";
     onNotice(result.added
-      ? `${result.added} ${result.added === 1 ? "agency" : "agencies"} added to the radar${result.skipped ? ` · ${result.skipped} already monitored` : ""}. They will be scanned automatically — or press “Run radar now.”`
-      : "Every agency in the pack is already on your radar.");
+      ? `${result.added} ${noun} added to the radar${result.skipped ? ` · ${result.skipped} already monitored` : ""}. They will be scanned automatically — or press “Run radar now.”`
+      : `Every ${group ? `${group.label.toLowerCase()} agency` : "agency"} in that pack is already on your radar.`);
   }
 
   async function seedBrandPack() {
@@ -452,7 +484,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
     </div>
 
     <section className="radar-targets-section">
-      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><div className="radar-target-actions"><button onClick={seedAgencyPack} disabled={Boolean(busy)} title="Add U.S. advertising, marketing, digital, and creative agencies — SF Bay Area first">{busy === "agency-pack" ? "Adding agencies…" : "Add agency pack"}</button><button onClick={seedBrandPack} disabled={Boolean(busy)} title="Add Bay Area consumer, media, and sports brands with in-house creative and production teams — every board verified as publicly readable">{busy === "brand-pack" ? "Adding brands…" : "Add brand pack"}</button><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target below, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div></div>
+      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><div className="radar-target-actions">{AGENCY_PACK_GROUPS.map((group) => <button key={group.id} onClick={() => seedAgencyPack(group)} disabled={Boolean(busy)} title={`${group.blurb} Adds ${group.entries.length} companies.`}>{busy === `agency-pack-${group.id}` ? `Adding ${group.label.toLowerCase()}…` : `+ ${group.label}`}</button>)}<button onClick={seedBrandPack} disabled={Boolean(busy)} title="Add Bay Area consumer, media, and sports brands with in-house creative and production teams — every board verified as publicly readable">{busy === "brand-pack" ? "Adding brands…" : "Add brand pack"}</button><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target below, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div></div>
       {monitors.length > 0 && !monitors.some((item) => item.active) && <div className="empty-state compact"><strong>Every target is paused.</strong><span>“Run radar now” stays disabled until at least one target below is resumed.</span></div>}
       {!monitors.length ? <div className="empty-state compact"><strong>Add the first company you want V’s to watch.</strong><span>Add the website and let V’s find the careers page, or paste an official careers URL. Targets catch up when the app opens, and you can run the radar anytime.</span></div> : <div className="radar-target-list">{monitors.map((monitor) => {
         const coverage = monitorCoverage(monitor);
@@ -517,6 +549,20 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
 
     <section className="radar-inbox">
       <div className="radar-section-head"><div><span>DISCOVERY INBOX</span><h2>{visibleOpportunities.length} discovered {visibleOpportunities.length === 1 ? "role" : "roles"}{opportunityTotal > opportunities.length ? ` · ${opportunityTotal} total` : ""}</h2><small>{opportunityTotal > opportunities.length ? `Showing the newest ${opportunities.length} of ${opportunityTotal} preserved discoveries — nothing was deleted. ` : ""}V keeps below-threshold discoveries too, so a working scan never looks empty.</small></div><div className="radar-filters">{([['active','Active'],['shortlisted','Approved'],['dismissed','Dismissed'],['archived','Archived'],['all','All statuses']] as const).map(([id, label]) => <button key={id} className={filter === id ? "selected" : ""} onClick={() => setFilter(id)}>{label}</button>)}</div></div>
+      <div className="radar-category-chips" aria-label="Company type shortcuts">
+        <small>Jump to</small>
+        {CATEGORY_SHORTCUTS.map((shortcut) => {
+          const count = categoryCounts.get(shortcut.category) || 0;
+          return <button
+            key={shortcut.category}
+            className={`chip ${categoryFilter === shortcut.category ? "active" : ""}`}
+            onClick={() => setCategoryFilter(categoryFilter === shortcut.category ? "all" : shortcut.category)}
+            disabled={!count && categoryFilter !== shortcut.category}
+            title={shortcut.blurb}
+          >{shortcut.label} <b>{count}</b></button>;
+        })}
+        {categoryFilter !== "all" && <button className="chip clear" onClick={() => setCategoryFilter("all")}>Clear ×</button>}
+      </div>
       <div className="radar-inbox-controls">
         <div className="radar-filters" aria-label="Alignment filter">{([["all",`All alignment (${opportunities.length})`],["matching",`Matching (${matchingCount})`],["below",`Below threshold (${belowThresholdCount})`]] as const).map(([id, label]) => <button key={id} className={alignmentFilter === id ? "selected" : ""} onClick={() => setAlignmentFilter(id)}>{label}</button>)}</div>
         <label>Company<select value={companyFilter} onChange={(event) => setCompanyFilter(event.target.value)}><option value="all">All companies</option>{companyOptions.map((companyName) => <option key={companyName} value={companyName}>{companyName}</option>)}</select></label>
@@ -530,7 +576,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
         <label>Career trail<select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}><option value="all">All trails</option>{RADAR_TRACKS.map((track) => <option key={track.id} value={track.id}>{track.label}</option>)}</select></label>
         <label>Company type<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All company types</option>{RADAR_COMPANY_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
       </div>
-      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : opportunity.origin === "monitored" ? "monitored" : "imported"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : opportunity.origin === "imported" ? "Imported by you" : opportunity.origin === "linkedin-saved" ? "Saved on LinkedIn" : "Company you monitor"}</em>{!opportunity.alignmentPasses && <em className="below">Below {profileDraft.minScore}% threshold</em>}{opportunity.listingLost && <em className="closed" title="This role came from the company's public board, and the newest complete read of that board no longer includes it. Open the original to confirm before spending time on it.">No longer on the company board</em>}</div><p>{opportunity.fitSummary}</p><small>{opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : opportunity.origin === "imported" ? "Imported from a link you provided" : opportunity.origin === "linkedin-saved" ? "From your official LinkedIn saved-jobs export" : "Found from a monitored company"} · found {compactDate(opportunity.discoveredAt)} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button onClick={() => updateOpportunity(opportunity, "dismissed")}>Dismiss</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}{(opportunity.status === "dismissed" || opportunity.status === "archived") && <button onClick={() => updateOpportunity(opportunity, "reviewing")}>Restore</button>}</div></article>)}</div>}
+      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : opportunity.origin === "monitored" ? "monitored" : "imported"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : opportunity.origin === "imported" ? "Imported by you" : opportunity.origin === "linkedin-saved" ? "Saved on LinkedIn" : "Company you monitor"}</em>{!opportunity.alignmentPasses && <em className="below">Below {profileDraft.minScore}% threshold</em>}{opportunity.listingLost && <em className="closed" title="This role came from the company's public board, and the newest complete read of that board no longer includes it. Open the original to confirm before spending time on it.">No longer on the company board</em>}</div><p>{opportunity.fitSummary}</p><small><b className="collected-on">Collected {compactDateTime(opportunity.discoveredAt)}</b>{opportunity.lastSeenAt && opportunity.lastSeenAt.slice(0, 10) !== opportunity.discoveredAt.slice(0, 10) && <> · still listed {compactDate(opportunity.lastSeenAt)}</>} · {opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : opportunity.origin === "imported" ? "Imported from a link you provided" : opportunity.origin === "linkedin-saved" ? "From your official LinkedIn saved-jobs export" : "Found from a monitored company"} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button onClick={() => updateOpportunity(opportunity, "dismissed")}>Dismiss</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}{(opportunity.status === "dismissed" || opportunity.status === "archived") && <button onClick={() => updateOpportunity(opportunity, "reviewing")}>Restore</button>}</div></article>)}</div>}
     </section>
   </section>;
 }

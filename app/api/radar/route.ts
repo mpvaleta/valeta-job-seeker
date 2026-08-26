@@ -18,7 +18,7 @@ import {
 import { isLinkedInUrl, validatePublicUrl } from "@/lib/public-link-reader.mjs";
 import { getRuntimeDatabase } from "@/lib/runtime-bindings";
 import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
-import { AGENCY_RADAR_PACK } from "@/lib/agency-radar-pack";
+import { AGENCY_PACK_GROUPS, AGENCY_RADAR_PACK } from "@/lib/agency-radar-pack";
 import { BRAND_RADAR_PACK } from "@/lib/brand-radar-pack";
 
 export const dynamic = "force-dynamic";
@@ -105,7 +105,12 @@ export async function POST(request: Request) {
     } else if (action === "seed_default_monitors") {
       result = await seedDefaultRadarMonitors(db, user.id);
     } else if (action === "seed_agency_pack") {
-      result = await seedRadarMonitorPack(db, user.id, AGENCY_RADAR_PACK);
+      // No group named means every discipline, which is what this action
+      // meant before the packs were split.
+      const groupId = text(input.group, 40);
+      const group = groupId ? AGENCY_PACK_GROUPS.find((entry) => entry.id === groupId) : null;
+      if (groupId && !group) return error(400, "invalid_request", "That agency discipline is not one V’s knows.");
+      result = await seedRadarMonitorPack(db, user.id, group ? group.entries : AGENCY_RADAR_PACK);
     } else if (action === "seed_brand_pack") {
       result = await seedRadarMonitorPack(db, user.id, BRAND_RADAR_PACK);
     } else if (action === "set_opportunity_status") {

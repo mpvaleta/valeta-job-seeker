@@ -8,6 +8,8 @@ import {
   discoverTargetJobsDetailed,
   isPlausibleRadarJob,
   normalizeRadarProfile,
+  opportunityContentKey,
+  opportunityKey,
   readSingleJobPosting,
   scoreRadarOpportunity,
   rankCareerLinks,
@@ -418,4 +420,38 @@ test("radar rejects marketing cards even when their URLs look like job details",
 
 test("radar still trusts ATS feeds without a role-shaped title", () => {
   assert.equal(isPlausibleRadarJob({ title: "Growth Marketing", sourceUrl: "https://boards.greenhouse.io/example/jobs/7654321", sourceType: "greenhouse" }), true);
+});
+
+test("one posting reached by several routes has one identity", () => {
+  // Greenhouse alone serves the same posting under four spellings. Treating
+  // them as four postings is what filled the inbox with repeats.
+  const greenhouse = [
+    "https://boards.greenhouse.io/figma/jobs/5711913004",
+    "https://job-boards.greenhouse.io/figma/jobs/5711913004",
+    "https://job-boards.greenhouse.io/figma/jobs/5711913004?gh_jid=5711913004&gh_src=abc",
+    "https://boards.greenhouse.io/embed/job_app?for=figma&token=5711913004",
+  ].map(opportunityKey);
+  assert.equal(new Set(greenhouse).size, 1, `expected one identity, got ${[...new Set(greenhouse)].join(" / ")}`);
+
+  // The apply and confirmation pages are the same posting as the listing.
+  assert.equal(opportunityKey("https://jobs.lever.co/plaid/abc-123/apply"), opportunityKey("https://jobs.lever.co/plaid/abc-123"));
+  assert.equal(opportunityKey("https://jobs.ashbyhq.com/notion/uuid-1/application"), opportunityKey("https://jobs.ashbyhq.com/notion/uuid-1"));
+
+  // Two genuinely different postings must stay apart.
+  assert.notEqual(opportunityKey("https://boards.greenhouse.io/figma/jobs/1"), opportunityKey("https://boards.greenhouse.io/figma/jobs/2"));
+  assert.notEqual(opportunityKey("https://boards.greenhouse.io/figma/jobs/1"), opportunityKey("https://boards.greenhouse.io/notion/jobs/1"));
+});
+
+test("the content identity collapses one job published under unrelated URLs", () => {
+  const onBoard = opportunityContentKey({ company: "VaynerMedia", title: "Senior Creative Producer", location: "San Francisco, CA" });
+  const onCareersPage = opportunityContentKey({ company: "vaynermedia", title: "Senior  Creative   Producer", location: "San Francisco, CA" });
+  assert.equal(onBoard, onCareersPage);
+
+  // Same title in another city is a different job, and must not collapse.
+  assert.notEqual(onBoard, opportunityContentKey({ company: "VaynerMedia", title: "Senior Creative Producer", location: "New York, NY" }));
+  // Different employers never collapse, however similar the title.
+  assert.notEqual(onBoard, opportunityContentKey({ company: "R/GA", title: "Senior Creative Producer", location: "San Francisco, CA" }));
+  // Too little to identify anything is no identity at all, never a false match.
+  assert.equal(opportunityContentKey({ company: "", title: "Producer" }), "");
+  assert.equal(opportunityContentKey({ company: "VaynerMedia", title: "PM" }), "");
 });

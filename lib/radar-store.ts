@@ -1,4 +1,4 @@
-import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
+import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import { DEFAULT_RADAR_MONITORS } from "./default-radar-monitors";
@@ -301,17 +301,32 @@ export async function setRadarOpportunityStatus(db: D1Database, userId: string, 
  * unique constraint to lean on and adding one would need a migration the
  * deployment path does not control.
  */
+/*
+ * Every identity a stored posting answers to.
+ *
+ * The canonical URL is the primary one. The content key is the safety net for
+ * the same job published under two unrelated URLs — a company careers page and
+ * a board, say — which URL canonicalization alone can never catch.
+ */
+function opportunityIdentities(row: { source_url: string | null; title?: string | null; company_name?: string | null; location?: string | null }) {
+  return [
+    opportunityKey(row.source_url || ""),
+    opportunityContentKey({ company: row.company_name || "", title: row.title || "", location: row.location || "" }),
+  ].filter(Boolean);
+}
+
 async function loadOpportunityIndex(db: D1Database, userId: string) {
-  const rows = await db.prepare("SELECT id, source_url, status, discovered_at FROM job_opportunities WHERE user_id = ?")
-    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string }>();
+  const rows = await db.prepare(`SELECT o.id, o.source_url, o.status, o.discovered_at, o.title, o.location, c.name AS company_name
+    FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id WHERE o.user_id = ?`)
+    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string; title: string; location: string | null; company_name: string | null }>();
   const index = new Map<string, { id: string; status: string; discovered_at: string }>();
   for (const row of rows.results || []) {
-    const key = opportunityKey(row.source_url || "");
-    if (!key) continue;
-    const current = index.get(key);
-    // Keep the earliest row so a merge preserves the original discovery date.
-    if (!current || String(row.discovered_at) < String(current.discovered_at)) {
-      index.set(key, { id: row.id, status: row.status, discovered_at: row.discovered_at });
+    for (const key of opportunityIdentities(row)) {
+      const current = index.get(key);
+      // Keep the earliest row so a merge preserves the original discovery date.
+      if (!current || String(row.discovered_at) < String(current.discovered_at)) {
+        index.set(key, { id: row.id, status: row.status, discovered_at: row.discovered_at });
+      }
     }
   }
   return index;
@@ -327,15 +342,23 @@ async function loadOpportunityIndex(db: D1Database, userId: string) {
  * or applied to never reverts to "new" because a later copy was untouched.
  */
 export async function mergeDuplicateOpportunities(db: D1Database, userId: string) {
-  const rows = await db.prepare("SELECT id, source_url, status, discovered_at, updated_at FROM job_opportunities WHERE user_id = ? ORDER BY discovered_at ASC, rowid ASC")
-    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string; updated_at: string }>();
+  const rows = await db.prepare(`SELECT o.id, o.source_url, o.status, o.discovered_at, o.updated_at, o.title, o.location, c.name AS company_name
+    FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
+    WHERE o.user_id = ? ORDER BY o.discovered_at ASC, o.rowid ASC`)
+    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string; updated_at: string; title: string; location: string | null; company_name: string | null }>();
 
   const groups = new Map<string, Array<{ id: string; status: string; updated_at: string }>>();
+  // A row joins the group of whichever of its identities was claimed first, so
+  // three copies under two URLs and one shared title collapse into one group
+  // rather than two.
+  const groupOfKey = new Map<string, string>();
   for (const row of rows.results || []) {
-    const key = opportunityKey(row.source_url || "");
-    if (!key) continue;
-    const group = groups.get(key);
-    if (group) group.push(row); else groups.set(key, [row]);
+    const keys = opportunityIdentities(row);
+    if (!keys.length) continue;
+    const groupKey = keys.map((key) => groupOfKey.get(key)).find(Boolean) || keys[0];
+    for (const key of keys) if (!groupOfKey.has(key)) groupOfKey.set(key, groupKey);
+    const group = groups.get(groupKey);
+    if (group) group.push(row); else groups.set(groupKey, [row]);
   }
 
   let merged = 0;
@@ -359,9 +382,17 @@ export async function mergeDuplicateOpportunities(db: D1Database, userId: string
   return merged;
 }
 
-function rememberOpportunity(index: Map<string, { id: string; status: string; discovered_at: string }>, url: string, id: string) {
-  const key = opportunityKey(url);
-  if (key && !index.has(key)) index.set(key, { id, status: "new", discovered_at: "" });
+function rememberOpportunity(
+  index: Map<string, { id: string; status: string; discovered_at: string }>,
+  url: string,
+  id: string,
+  job: { company?: string; title?: string; location?: string } = {},
+) {
+  // Both identities are registered, so a second copy arriving later in the
+  // same run under a different URL is recognized before it is inserted.
+  for (const key of [opportunityKey(url), opportunityContentKey(job)]) {
+    if (key && !index.has(key)) index.set(key, { id, status: "new", discovered_at: "" });
+  }
 }
 
 export async function importJobWatchBatch(db: D1Database, userId: string) {
@@ -729,7 +760,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
           const discoveredId = crypto.randomUUID();
           jobStatements.push(db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)")
             .bind(discoveredId, userId, monitor.companyId, job.title, job.location || null, job.sourceUrl, job.sourceType || "public-careers-page", match.score, match.summary, "new"));
-          rememberOpportunity(index, job.sourceUrl || "", discoveredId);
+          rememberOpportunity(index, job.sourceUrl || "", discoveredId, { company: monitor.company, title: job.title, location: job.location });
           added += 1;
           monitorAdded += 1;
           if (match.passes) {

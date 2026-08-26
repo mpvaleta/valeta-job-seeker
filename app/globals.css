@@ -237,3 +237,13 @@ input,textarea,select{border-radius:12px}
 .followup-alert{margin:6px 0 0;color:#9d5d00;font-size:11px;font-weight:800}
 .application-list article.followup-overdue{background:#fffaf3;box-shadow:inset 4px 0 #f0a121}
 .application-list label.followup-due input{border-color:#f0a121;background:#fff7ea}
+.opportunity-copy small .collected-on{color:#1d1d1f;font-weight:900}
+.radar-category-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid #e5e5ea;background:#fff;padding:12px 22px}
+.radar-category-chips>small{margin-right:2px;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.radar-category-chips .chip{border:1px solid #d9d9e0;border-radius:999px;background:#fff;padding:6px 11px;color:#48484a;font-size:11px;font-weight:800;cursor:pointer;transition:.15s ease}
+.radar-category-chips .chip b{margin-left:4px;color:var(--muted);font-weight:900}
+.radar-category-chips .chip:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
+.radar-category-chips .chip.active{border-color:#1d1d1f;background:#1d1d1f;color:#fff}
+.radar-category-chips .chip.active b{color:#9d9da2}
+.radar-category-chips .chip:disabled{opacity:.4;cursor:default}
+.radar-category-chips .chip.clear{border-color:#c0392b;color:#c0392b}
