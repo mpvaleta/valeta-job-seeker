@@ -7,6 +7,7 @@ import {
   discoverTargetJobs,
   discoverTargetJobsDetailed,
   isPlausibleRadarJob,
+  hasAuthoritativeJobId,
   normalizeRadarProfile,
   opportunityContentKey,
   opportunityKey,
@@ -440,6 +441,20 @@ test("one posting reached by several routes has one identity", () => {
   // Two genuinely different postings must stay apart.
   assert.notEqual(opportunityKey("https://boards.greenhouse.io/figma/jobs/1"), opportunityKey("https://boards.greenhouse.io/figma/jobs/2"));
   assert.notEqual(opportunityKey("https://boards.greenhouse.io/figma/jobs/1"), opportunityKey("https://boards.greenhouse.io/notion/jobs/1"));
+});
+
+test("two requisitions on the same board stay two jobs, however alike they read", () => {
+  // Employers really do open several identical roles: Jack Morton runs
+  // multiple warehouse reqs in one town. The board's own posting id settles
+  // it, so a posting that has one gets no content key to be merged by.
+  const first = { company: "Jack Morton Worldwide", title: "Warehouse Associate (Trade Shows & Events)", location: "Addison, Illinois, United States", sourceUrl: "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4380946009" };
+  const second = { ...first, sourceUrl: "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4342626009" };
+  assert.equal(opportunityContentKey(first), "");
+  assert.equal(opportunityContentKey(second), "");
+  assert.notEqual(opportunityKey(first.sourceUrl), opportunityKey(second.sourceUrl));
+
+  assert.equal(hasAuthoritativeJobId("https://jobs.ashbyhq.com/perplexity/3c16733a-07d1-42d9-ac54-ff9065f702cf"), true);
+  assert.equal(hasAuthoritativeJobId("https://example.com/careers/senior-producer"), false);
 });
 
 test("the content identity collapses one job published under unrelated URLs", () => {

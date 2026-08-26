@@ -311,7 +311,7 @@ export async function setRadarOpportunityStatus(db: D1Database, userId: string, 
 function opportunityIdentities(row: { source_url: string | null; title?: string | null; company_name?: string | null; location?: string | null }) {
   return [
     opportunityKey(row.source_url || ""),
-    opportunityContentKey({ company: row.company_name || "", title: row.title || "", location: row.location || "" }),
+    opportunityContentKey({ company: row.company_name || "", title: row.title || "", location: row.location || "", sourceUrl: row.source_url || "" }),
   ].filter(Boolean);
 }
 
@@ -386,7 +386,7 @@ function rememberOpportunity(
   index: Map<string, { id: string; status: string; discovered_at: string }>,
   url: string,
   id: string,
-  job: { company?: string; title?: string; location?: string } = {},
+  job: { company?: string; title?: string; location?: string; sourceUrl?: string } = {},
 ) {
   // Both identities are registered, so a second copy arriving later in the
   // same run under a different URL is recognized before it is inserted.
@@ -766,7 +766,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
           const discoveredId = crypto.randomUUID();
           jobStatements.push(db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)")
             .bind(discoveredId, userId, monitor.companyId, job.title, job.location || null, job.sourceUrl, job.sourceType || "public-careers-page", match.score, match.summary, "new"));
-          rememberOpportunity(index, job.sourceUrl || "", discoveredId, { company: monitor.company, title: job.title, location: job.location });
+          rememberOpportunity(index, job.sourceUrl || "", discoveredId, { company: monitor.company, title: job.title, location: job.location, sourceUrl: job.sourceUrl });
           added += 1;
           monitorAdded += 1;
           if (match.passes) {

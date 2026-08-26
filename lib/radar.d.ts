@@ -37,4 +37,5 @@ export function isPlausibleRadarJob(job: Partial<RadarOpportunityInput>): boolea
 export function rankCareerLinks(links: Array<{ href?: string; label?: string }>): Array<{ href: string; label: string; score: number }>;
 export function readSingleJobPosting(value: string, options?: { fetchImpl?: typeof fetch }): Promise<Required<Pick<RadarOpportunityInput, "title" | "company" | "location" | "description" | "sourceUrl" | "sourceType" | "datePosted">>>;
 export function opportunityKey(value: unknown): string;
-export function opportunityContentKey(job?: { company?: string; title?: string; location?: string }): string;
+export function opportunityContentKey(job?: { company?: string; title?: string; location?: string; sourceUrl?: string }): string;
+export function hasAuthoritativeJobId(value: unknown): boolean;
