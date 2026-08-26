@@ -131,3 +131,11 @@ test("every board declares the fields the UI renders", () => {
     assert.ok(["general", "startup", "creative"].includes(board.group), `${board.id} has an unknown group`);
   }
 });
+
+test("deselecting the last board builds nothing, rather than every board", () => {
+  // [] is a choice, not an omission: the UI's empty state promises no
+  // searches, and treating it as "unset" searched all twelve boards.
+  assert.deepEqual(buildJobSearchUrls({ keywords: ["Producer"], locationIds: ["bay-area"], boardIds: [] }), []);
+  // An omitted list still means "every board".
+  assert.equal(buildJobSearchUrls({ keywords: ["Producer"], locationIds: ["bay-area"] }).length, JOB_BOARDS.length);
+});

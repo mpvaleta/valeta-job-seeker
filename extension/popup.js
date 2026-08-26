@@ -201,7 +201,10 @@ document.querySelector("#send-list").addEventListener("click", async () => {
     const response = await fetch(`${linked.url}/api/radar`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${linked.token}` },
-      body: JSON.stringify({ action: "import_linkedin_saved_jobs", rows: capture.rows }),
+      // LinkedIn captures keep LinkedIn provenance; an Indeed or other-board
+      // capture is a role picked out by hand, which is what "imported" means.
+      // Filing everything as LinkedIn mislabelled the origin filter.
+      body: JSON.stringify({ action: "import_linkedin_saved_jobs", source: capture.source === "linkedin" ? "linkedin" : "captured", rows: capture.rows }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) {

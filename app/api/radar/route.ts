@@ -158,7 +158,7 @@ export async function POST(request: Request) {
           location: optionalText(entry.location, 240),
           description: optionalText(entry.description, 8_000),
         };
-      }));
+      }), input.source === "captured" ? "imported" : "linkedin-saved");
     } else {
       return error(400, "invalid_action", "Choose a valid radar action.");
     }

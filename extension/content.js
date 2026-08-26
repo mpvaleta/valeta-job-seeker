@@ -349,6 +349,9 @@ function captureVisibleList() {
     schema: "v-jobs-list-capture-v1",
     sourceUrl: location.href,
     pageTitle: document.title,
+    // Which board this came from, so the app can record honest provenance
+    // rather than filing every capture as a LinkedIn one.
+    source: host.includes("linkedin.com") ? "linkedin" : host.includes("indeed.") ? "indeed" : "other",
     capturedAt: new Date().toISOString(),
     rows: VJobsAutofill.normalizeCapturedRows(rows),
   };

@@ -501,6 +501,12 @@ export async function importLinkedInSavedJobs(
   db: D1Database,
   userId: string,
   rows: Array<{ title: string; company: string; url: string; savedAt?: string; location?: string; description?: string }>,
+  // The provenance to record. A LinkedIn export or a LinkedIn capture is
+  // genuinely "linkedin-saved"; an Indeed or other-board capture is a role the
+  // owner picked out themselves, which is what "imported" already means. Both
+  // the origin filter and the row's label read this, so filing everything as
+  // LinkedIn mislabelled every non-LinkedIn capture.
+  sourceType: "linkedin-saved" | "imported" = "linkedin-saved",
 ) {
   const dashboard = await readRadarDashboard(db, userId);
   const index = await loadOpportunityIndex(db, userId);
@@ -518,7 +524,7 @@ export async function importLinkedInSavedJobs(
     if (!company) {
       company = { id: crypto.randomUUID(), company_type: classification.companyCategory };
       await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
-        .bind(company.id, companyName, classification.companyCategory, "United States", "Added from your LinkedIn saved jobs export").run();
+        .bind(company.id, companyName, classification.companyCategory, "United States", sourceType === "linkedin-saved" ? "Added from your LinkedIn saved jobs" : "Added from a job page you captured yourself").run();
     }
     // A LinkedIn data export carries only the title and company, so a score
     // built from it is necessarily thin. A capture taken in the owner's own
@@ -534,13 +540,13 @@ export async function importLinkedInSavedJobs(
     const existing = index.get(opportunityKey(url));
     if (existing) {
       await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = COALESCE(NULLIF(?, ''), location), source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
-        .bind(company.id, title, location, "linkedin-saved", match.score, summary, existing.id, userId).run();
+        .bind(company.id, title, location, sourceType, match.score, summary, existing.id, userId).run();
       updated += 1;
       continue;
     }
     const savedId = crypto.randomUUID();
     await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(savedId, userId, company.id, title, location || null, url, "linkedin-saved", match.score, summary, "new").run();
+      .bind(savedId, userId, company.id, title, location || null, url, sourceType, match.score, summary, "new").run();
     rememberOpportunity(index, url, savedId);
     added += 1;
   }
