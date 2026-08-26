@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-08-25T23:38:48Z",
-  "lastRunAt": "2026-08-25 23:38:47",
+  "fetchedAt": "2026-08-26T00:38:08Z",
+  "lastRunAt": "2026-08-26 00:38:08",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -86,47 +86,47 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 61,
-      "lastCheckedAt": "2026-08-25 14:00:24",
-      "lastRunSummary": "Background scheduled scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-26 00:38:02",
+      "lastRunSummary": "Manual scan · 73 verified roles read · 61 met the 45% minimum · 12 saved below threshold · 8 new (8 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "OpenAI",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-25 14:00:24",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-26 00:38:03",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Perplexity",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 11,
-      "lastCheckedAt": "2026-08-25 14:00:42",
-      "lastRunSummary": "Background scheduled scan · 98 verified roles read · 11 met the 45% minimum · 87 saved below threshold · 0 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
+      "lastCheckedAt": "2026-08-26 00:38:03",
+      "lastRunSummary": "Manual scan · 100 verified roles read · 11 met the 45% minimum · 89 saved below threshold · 3 new (0 matching) · 1 source tried · 1 navigation/non-job link excluded. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Snap",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-25 14:00:45",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-26 00:38:07",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "The Athletic",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-25 14:00:49",
-      "lastRunSummary": "Background scheduled scan · 12 verified roles read · 4 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastRunFoundCount": 5,
+      "lastCheckedAt": "2026-08-26 00:38:07",
+      "lastRunSummary": "Manual scan · 13 verified roles read · 5 met the 45% minimum · 8 saved below threshold · 1 new (1 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Tubi",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 15,
-      "lastCheckedAt": "2026-08-25 14:09:38",
+      "lastCheckedAt": "2026-08-26 00:38:07",
       "lastRunSummary": "Manual scan · 33 verified roles read · 15 met the 45% minimum · 18 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -134,7 +134,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-25 14:09:38",
+      "lastCheckedAt": "2026-08-26 00:38:08",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -147,6 +147,162 @@
     }
   ],
   "opportunities": [
+    {
+      "id": "81e5b5c4-6752-4362-b167-578209d02477",
+      "title": "Senior Strategist (Remote)",
+      "company": "The Athletic",
+      "location": "United States",
+      "sourceUrl": "https://jobs.lever.co/theathletic/653f1e14-62c1-4439-a504-e436f1cc6d53",
+      "sourceType": "lever",
+      "fitScore": 47,
+      "fitSummary": "47% target alignment · skill overlap: Senior Manager · goal overlap: advertising, marketing, sports, roles · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "bf299f46-1f55-47d9-a3c5-7f40677ba0b8",
+      "title": "Member of Technical Staff (Software Engineer, Enterprise Adoption)",
+      "company": "Perplexity",
+      "location": "San Francisco",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/3c16733a-07d1-42d9-ac54-ff9065f702cf",
+      "sourceType": "ashby",
+      "fitScore": 35,
+      "fitSummary": "35% target alignment · skill overlap: creative operations · location: San Francisco Bay Area",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "54b802f5-4e1c-4ca5-9d52-7cabb76f19ba",
+      "title": "Member of Technical Staff (Software Engineer, Models)",
+      "company": "Perplexity",
+      "location": "San Francisco",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/7dedcdea-42be-4bb0-b603-791146ff73f0",
+      "sourceType": "ashby",
+      "fitScore": 25,
+      "fitSummary": "25% target alignment · goal overlap: ownership · location: San Francisco Bay Area",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "70129c8e-666e-4ef8-8970-e58457db5f0a",
+      "title": "Member of Technical Staff (Software Engineer, Agent Harness)",
+      "company": "Perplexity",
+      "location": "San Francisco",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/0a74edd7-830a-4825-946c-28801a057127",
+      "sourceType": "ashby",
+      "fitScore": 25,
+      "fitSummary": "25% target alignment · goal overlap: ownership · location: San Francisco Bay Area",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "80e09815-7682-4d0b-9899-4ed032cb1b59",
+      "title": "Account Manager",
+      "company": "Jack Morton Worldwide",
+      "location": "Dayton, New Jersey, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4360077009",
+      "sourceType": "greenhouse",
+      "fitScore": 62,
+      "fitSummary": "62% target alignment · skill overlap: project management, brand, agency, cross-functional · goal overlap: brand, marketing, agency, meaningful · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "0e80aebb-9559-4c52-8f7a-b963ec51c2ae",
+      "title": "Account Executive - Events",
+      "company": "Jack Morton Worldwide",
+      "location": "Addison, Illinois, United States; Chicago, IL",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4333110009",
+      "sourceType": "greenhouse",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · skill overlap: project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "b6251271-41d5-4ef7-b579-97311add241b",
+      "title": "Account Manager",
+      "company": "Jack Morton Worldwide",
+      "location": "Addison, Illinois, United States; Dayton, New Jersey, United States; Oakville, Ontario, Canada",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4305946009",
+      "sourceType": "greenhouse",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · skill overlap: project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "c2eddc61-de2c-4ea0-8ae3-0dbecb712435",
+      "title": "Event Manager (Congress Meetings & Events - Life Sciences)",
+      "company": "Jack Morton Worldwide",
+      "location": "Dayton, New Jersey, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4249632009",
+      "sourceType": "greenhouse",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · skill overlap: project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "5e0e9791-62c8-4de0-b107-e9e969ca393c",
+      "title": "CNC Programmer / Detailer (Trade Shows & Events)",
+      "company": "Jack Morton Worldwide",
+      "location": "Oakville, Ontario, Canada",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4371056009",
+      "sourceType": "greenhouse",
+      "fitScore": 52,
+      "fitSummary": "52% target alignment · title overlap: program · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "d544b4b3-98ad-4962-aa47-5e78cb2ecfaf",
+      "title": "Warehouse Associate (Trade Shows & Events)",
+      "company": "Jack Morton Worldwide",
+      "location": "Addison, Illinois, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4380946009",
+      "sourceType": "greenhouse",
+      "fitScore": 52,
+      "fitSummary": "52% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "8026389d-3f8d-48dd-90a5-d75383ee2727",
+      "title": "Warehouse Associate (Trade Shows & Events)",
+      "company": "Jack Morton Worldwide",
+      "location": "North Las Vegas, Nevada, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4371059009",
+      "sourceType": "greenhouse",
+      "fitScore": 52,
+      "fitSummary": "52% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "b450ad40-d456-47fc-aea8-65c05c5f768d",
+      "title": "Shipping and Receiving Clerk (Portables & Events)",
+      "company": "Jack Morton Worldwide",
+      "location": "Addison, Illinois, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4371038009",
+      "sourceType": "greenhouse",
+      "fitScore": 47,
+      "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
     {
       "id": "dda7bd07-f592-4031-8882-034e23da43d4",
       "title": "Biostatistician, Quantitative Epidemiology",
@@ -403,19 +559,6 @@
       "sourceType": "greenhouse",
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "c81e84b2-c7fd-4df6-b66c-19fe1e00172b",
-      "title": "Warehouse Associate (Trade Shows & Events)",
-      "company": "Jack Morton Worldwide",
-      "location": "Addison, Illinois, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4380946009",
-      "sourceType": "greenhouse",
-      "fitScore": 52,
-      "fitSummary": "52% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -876,19 +1019,6 @@
       "origin": "monitored"
     },
     {
-      "id": "0c7338da-dfc0-4e1d-b40b-7b2ce774ea22",
-      "title": "Health Economist",
-      "company": "Hinge Health",
-      "location": "San Francisco-HQ · Remote",
-      "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/e3e8a208-2e0a-43c5-8ca4-9ccc5282f197",
-      "sourceType": "ashby",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · skill overlap: cross-functional, Lead Creative Program Manager · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "48a4b352-e88a-41ed-ae78-bbce53a1fa1c",
       "title": "Senior Customer Success Manager, Strategic (West Coast)",
       "company": "Attentive",
@@ -1063,19 +1193,6 @@
       "company": "e.l.f. Cosmetics",
       "location": "Ahmedabad, Gujarat",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/0475d403-3dfb-4dd8-8877-a0ff7dca1106",
-      "sourceType": "lever",
-      "fitScore": 24,
-      "fitSummary": "24% target alignment · skill overlap: brand · goal overlap: brand",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "e0f008ab-03f4-4df0-848e-33a3b20fa209",
-      "title": "Specialist, SAP Master Data",
-      "company": "e.l.f. Cosmetics",
-      "location": "Ahmedabad, Gujarat",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/dad746e1-24e5-4205-aef3-478231f62b6f",
       "sourceType": "lever",
       "fitScore": 24,
       "fitSummary": "24% target alignment · skill overlap: brand · goal overlap: brand",
@@ -2166,7 +2283,7 @@
       "id": "b60e0d95-50bc-4e21-97bc-a038bfd556f0",
       "title": "Sr. Manager, Standards & Brand Safety - Advertising",
       "company": "Tubi",
-      "location": "Los Angeles, CA; New York, NY (Hybrid)",
+      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid)",
       "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8100069",
       "sourceType": "greenhouse",
       "fitScore": 76,
@@ -2179,7 +2296,7 @@
       "id": "316e9e41-7789-4d31-a0a3-602ba75f0beb",
       "title": "Manager, Standards & Brand Safety - Content",
       "company": "Tubi",
-      "location": "Los Angeles, CA (Hybrid)",
+      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid)",
       "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8100163",
       "sourceType": "greenhouse",
       "fitScore": 65,
@@ -2875,45 +2992,6 @@
       "fitSummary": "28% target alignment · goal overlap: roles, ownership · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "94ff6e72-0860-4982-9e90-6b5d1974e13b",
-      "title": "Shipping and Receiving Clerk (Portables & Events)",
-      "company": "Jack Morton Worldwide",
-      "location": "Addison, Illinois, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4371038009",
-      "sourceType": "greenhouse",
-      "fitScore": 47,
-      "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "e5120b60-1b7c-49a3-9459-72a5b1e5573b",
-      "title": "Warehouse Associate (Trade Shows & Events)",
-      "company": "Jack Morton Worldwide",
-      "location": "North Las Vegas, Nevada, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4371059009",
-      "sourceType": "greenhouse",
-      "fitScore": 52,
-      "fitSummary": "52% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "25f42a91-1c58-4271-8e6f-aa3a964fc4ef",
-      "title": "CNC Programmer / Detailer (Trade Shows & Events)",
-      "company": "Jack Morton Worldwide",
-      "location": "Oakville, Ontario, Canada",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4371056009",
-      "sourceType": "greenhouse",
-      "fitScore": 52,
-      "fitSummary": "52% target alignment · title overlap: program · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership",
-      "status": "new",
-      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -3892,19 +3970,6 @@
       "origin": "monitored"
     },
     {
-      "id": "8d5d2840-630e-4f06-b107-28b60d8b4686",
-      "title": "Member of Technical Staff (Software Engineer, Enterprise Adoption)",
-      "company": "Perplexity",
-      "location": "San Francisco",
-      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/3c16733a-07d1-42d9-ac54-ff9065f702cf",
-      "sourceType": "ashby",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · skill overlap: creative operations · location: San Francisco Bay Area",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
       "id": "b8816a5f-9795-432b-9a2b-981fbe41eb9f",
       "title": "Member of Technical Staff (Software Engineer, Computer)",
       "company": "Perplexity",
@@ -4828,19 +4893,6 @@
       "origin": "monitored"
     },
     {
-      "id": "6dd94008-36f7-468c-ae8a-f2aa45fc6254",
-      "title": "Event Manager (Congress Meetings & Events - Life Sciences)",
-      "company": "Jack Morton Worldwide",
-      "location": "Dayton, New Jersey, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4249632009",
-      "sourceType": "greenhouse",
-      "fitScore": 57,
-      "fitSummary": "57% target alignment · skill overlap: project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "d45d5e8d-4c3e-4f93-ba87-7d897bc152d5",
       "title": "Event Planner - Financial Services",
       "company": "Jack Morton Worldwide",
@@ -5088,37 +5140,11 @@
       "origin": "monitored"
     },
     {
-      "id": "cc8ac234-1e75-4775-81e3-d92e32837577",
-      "title": "Account Executive - Events",
-      "company": "Jack Morton Worldwide",
-      "location": "Addison, Illinois, United States; Chicago, IL",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4333110009",
-      "sourceType": "greenhouse",
-      "fitScore": 57,
-      "fitSummary": "57% target alignment · skill overlap: project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "c30cb593-d62a-4b1d-a767-b6a362a918c0",
       "title": "Account Manager",
       "company": "Jack Morton Worldwide",
       "location": "Addison, Illinois, United States; Chicago, IL",
       "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4317083009",
-      "sourceType": "greenhouse",
-      "fitScore": 57,
-      "fitSummary": "57% target alignment · skill overlap: project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "b1447862-44b7-43c3-bf6f-e27d19510c3f",
-      "title": "Account Manager",
-      "company": "Jack Morton Worldwide",
-      "location": "Addison, Illinois, United States; Dayton, New Jersey, United States; Oakville, Ontario, Canada",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4305946009",
       "sourceType": "greenhouse",
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
@@ -5249,19 +5275,6 @@
       "company": "Jack Morton Worldwide",
       "location": "Oakville, Ontario, Canada",
       "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4240844009",
-      "sourceType": "greenhouse",
-      "fitScore": 80,
-      "fitSummary": "80% target alignment · target title: Project Manager · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "afb49536-ed4c-419b-b0df-1db4efa4f736",
-      "title": "Senior Project Manager (Trade Shows, Events, Permanent Installations)",
-      "company": "Jack Morton Worldwide",
-      "location": "Oakville, Ontario, Canada",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4214202009",
       "sourceType": "greenhouse",
       "fitScore": 80,
       "fitSummary": "80% target alignment · target title: Project Manager · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership",
@@ -7181,71 +7194,6 @@
       "origin": "monitored"
     },
     {
-      "id": "05008209-b17c-4575-98b6-c4705a2c1462",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "New York, New York, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343419009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "7c9fff42-c32c-4c16-95f2-8fe84702c36c",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "San Francisco, California, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343420009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "9ceaa2e5-fe36-4a88-9233-899bec0d7254",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "Colorado, United States; Illinois, United States; Maryland, United States; Washington, District of Columbia, United States; Washington, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343421009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "c966f2da-20ae-46bf-9596-b0cd58f1b897",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "California, United States; Massachusetts, United States; New Jersey, United States; New York, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343422009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "33e42478-53f5-4a3e-b9a6-3e3ea6c3cb22",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "Connecticut, United States; Florida, United States; Georgia, United States; Iowa, United States; Kansas, United States; Michigan, United States; New Hampshire, United States; North Carolina, United States; Ohio, United States; Oregon, United States; Pennsylvania, United States; Rhode Island, United States; South Carolina, United States; Tennessee, United States; Texas, United States; Utah, United ",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343423009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "172f68bf-4b5b-42cc-a2a7-57e367d35c0e",
       "title": "Senior Account Executive, Public Relations (Cybersecurity)",
       "company": "Highwire",
@@ -7943,6 +7891,58 @@
       "sourceType": "greenhouse",
       "fitScore": 41,
       "fitSummary": "41% target alignment · skill overlap: brand · goal overlap: brand, marketing · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "1bb87d2f-6679-4da6-8b2e-49e6746eefc4",
+      "title": "Support Engineer",
+      "company": "Attentive",
+      "location": "United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4324314009",
+      "sourceType": "greenhouse",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · skill overlap: brand · goal overlap: brand, marketing · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "a4bf6ddc-258b-465c-87af-f8d542609971",
+      "title": "Business Development Representative",
+      "company": "Aventon",
+      "location": "Brea, California",
+      "sourceUrl": "https://jobs.lever.co/aventon/4725f929-be1b-4587-91b4-8eb0c232469c",
+      "sourceType": "lever",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · skill overlap: brand · goal overlap: brand, roles · location: San Francisco Bay Area, California",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "6909cd6b-1c5a-4b4a-927f-b97b27d95ab0",
+      "title": "Senior Graphic Designer",
+      "company": "Aventon",
+      "location": "Brea, California",
+      "sourceUrl": "https://jobs.lever.co/aventon/3ce17f7b-f355-4345-b3c7-bb93e1f2234e",
+      "sourceType": "lever",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · skill overlap: brand · goal overlap: brand, marketing · location: San Francisco Bay Area, California",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "7ec0469e-a39a-49d0-a2e7-a1173d3c5cd9",
+      "title": "Senior Implementation Consultant, UK (Hybrid)",
+      "company": "Attentive",
+      "location": "London",
+      "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4286733009",
+      "sourceType": "greenhouse",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · skill overlap: project management, brand, cross-functional · goal overlap: brand, marketing, cross-functional",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
