@@ -59,7 +59,10 @@ export default function AppError({ error, reset }: FatalErrorProps) {
       <h1>Something interrupted the app.</h1>
       <p>Your local career data has not been deleted. Try the page again, or download the privacy-safe error report and send that JSON file for support.</p>
       <code>{entry.code}{error.digest ? ` · ${error.digest}` : ""}</code>
-      <div><button className="primary" onClick={reset}>Try again</button><button onClick={downloadReport}>Download error report</button><button onClick={() => navigator.clipboard.writeText(createReport()).then(() => setNotice("Report copied"))}>Copy report</button></div>
+      <div><button className="primary" onClick={reset}>Try again</button><button onClick={downloadReport}>Download error report</button><button onClick={() => navigator.clipboard.writeText(createReport()).then(
+        () => setNotice("Report copied"),
+        () => setNotice("Your browser blocked the copy. Use “Download error report” instead."),
+      )}>Copy report</button></div>
       {notice && <strong>{notice}</strong>}
     </section>
   </main>;

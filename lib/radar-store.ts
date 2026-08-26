@@ -1,4 +1,4 @@
-import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
+import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import { DEFAULT_RADAR_MONITORS } from "./default-radar-monitors";
@@ -46,6 +46,8 @@ type OpportunityRow = {
   status: string;
   discovered_at: string;
   updated_at: string;
+  last_seen_at: string | null;
+  last_listing_read_at: string | null;
 };
 
 export type RadarMonitorInput = {
@@ -72,7 +74,37 @@ export async function ensureRadarUser(db: D1Database, email: string, displayName
   return { id, email: normalizedEmail, display_name: name };
 }
 
+// Source types that come from reading a company's complete public board
+// (Greenhouse / Lever / Ashby / SmartRecruiters APIs). Only these support the
+// "no longer listed" inference below: absence from a *complete* successful
+// listing read means the posting is gone, while absence from a partial page
+// scrape or a web-search lead means nothing at all.
+const COMPLETE_LISTING_SOURCES = new Set(["greenhouse", "lever", "ashby", "smartrecruiters"]);
+
+// Adds the listing-freshness columns to databases created before they
+// existed. Runs at most once per database handle, tolerates the columns
+// already being there, and never requires a manual migration step — the
+// bootstrap workflow re-applies every migration file and fails loudly on
+// re-runs, so shipping this as a migration would have made deploying this
+// feature a hand-run operation.
+const listingColumnsEnsured = new WeakSet<D1Database>();
+async function ensureListingColumns(db: D1Database) {
+  if (listingColumnsEnsured.has(db)) return;
+  for (const statement of [
+    "ALTER TABLE job_opportunities ADD COLUMN last_seen_at text",
+    "ALTER TABLE companies ADD COLUMN last_listing_read_at text",
+  ]) {
+    try {
+      await db.prepare(statement).run();
+    } catch (cause) {
+      if (!/duplicate column/i.test(safeMessage(cause))) throw cause;
+    }
+  }
+  listingColumnsEnsured.add(db);
+}
+
 export async function readRadarDashboard(db: D1Database, userId: string) {
+  await ensureListingColumns(db);
   const [profileRow, monitorResult, opportunityResult, opportunityCountRow] = await Promise.all([
     db.prepare("SELECT id, headline, target_roles_json, target_markets_json, positioning, constraints_json FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<ProfileRow>(),
     // CURRENT_TIMESTAMP only resolves to whole seconds, so two runs of the same
@@ -88,7 +120,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     // Newest 600 travel to the browser; the true total rides alongside so the
     // inbox can say "newest 600 of N" instead of silently plateauing at the cap
     // (the old hard 300 made the radar look frozen once the inbox filled up).
-    db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, c.company_type, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at
+    db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, c.company_type, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at, o.last_seen_at, c.last_listing_read_at
       FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
       WHERE o.user_id = ? ORDER BY o.discovered_at DESC, o.fit_score DESC LIMIT 600`).bind(userId).all<OpportunityRow>(),
     db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE user_id = ?").bind(userId).first<{ count: number }>(),
@@ -120,6 +152,15 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     const exclusionHit = /review exclusion:|startups-only filter/i.test(row.fit_summary || "");
     const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
     const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : row.source_type === "linkedin-saved" ? "linkedin-saved" : "monitored";
+    // The posting came from a complete board read, the board has since been
+    // read completely again, and the posting was not in that newer read — the
+    // employer has most likely closed or unlisted it. Postings refreshed
+    // during the same read carry a last_seen_at at or after the read's start
+    // stamp, so strict less-than never flags what the read just confirmed.
+    const listingLost = origin === "monitored"
+      && COMPLETE_LISTING_SOURCES.has(row.source_type)
+      && Boolean(row.last_listing_read_at)
+      && (row.last_seen_at || "") < (row.last_listing_read_at || "");
     return {
       id: row.id,
       companyId: row.company_id,
@@ -145,6 +186,8 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
       status: normalizeOpportunityStatus(row.status),
       discoveredAt: row.discovered_at,
       updatedAt: row.updated_at,
+      lastSeenAt: row.last_seen_at,
+      listingLost,
     };
   });
   return {
@@ -258,17 +301,32 @@ export async function setRadarOpportunityStatus(db: D1Database, userId: string, 
  * unique constraint to lean on and adding one would need a migration the
  * deployment path does not control.
  */
+/*
+ * Every identity a stored posting answers to.
+ *
+ * The canonical URL is the primary one. The content key is the safety net for
+ * the same job published under two unrelated URLs — a company careers page and
+ * a board, say — which URL canonicalization alone can never catch.
+ */
+function opportunityIdentities(row: { source_url: string | null; title?: string | null; company_name?: string | null; location?: string | null }) {
+  return [
+    opportunityKey(row.source_url || ""),
+    opportunityContentKey({ company: row.company_name || "", title: row.title || "", location: row.location || "" }),
+  ].filter(Boolean);
+}
+
 async function loadOpportunityIndex(db: D1Database, userId: string) {
-  const rows = await db.prepare("SELECT id, source_url, status, discovered_at FROM job_opportunities WHERE user_id = ?")
-    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string }>();
+  const rows = await db.prepare(`SELECT o.id, o.source_url, o.status, o.discovered_at, o.title, o.location, c.name AS company_name
+    FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id WHERE o.user_id = ?`)
+    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string; title: string; location: string | null; company_name: string | null }>();
   const index = new Map<string, { id: string; status: string; discovered_at: string }>();
   for (const row of rows.results || []) {
-    const key = opportunityKey(row.source_url || "");
-    if (!key) continue;
-    const current = index.get(key);
-    // Keep the earliest row so a merge preserves the original discovery date.
-    if (!current || String(row.discovered_at) < String(current.discovered_at)) {
-      index.set(key, { id: row.id, status: row.status, discovered_at: row.discovered_at });
+    for (const key of opportunityIdentities(row)) {
+      const current = index.get(key);
+      // Keep the earliest row so a merge preserves the original discovery date.
+      if (!current || String(row.discovered_at) < String(current.discovered_at)) {
+        index.set(key, { id: row.id, status: row.status, discovered_at: row.discovered_at });
+      }
     }
   }
   return index;
@@ -284,15 +342,23 @@ async function loadOpportunityIndex(db: D1Database, userId: string) {
  * or applied to never reverts to "new" because a later copy was untouched.
  */
 export async function mergeDuplicateOpportunities(db: D1Database, userId: string) {
-  const rows = await db.prepare("SELECT id, source_url, status, discovered_at, updated_at FROM job_opportunities WHERE user_id = ? ORDER BY discovered_at ASC, rowid ASC")
-    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string; updated_at: string }>();
+  const rows = await db.prepare(`SELECT o.id, o.source_url, o.status, o.discovered_at, o.updated_at, o.title, o.location, c.name AS company_name
+    FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
+    WHERE o.user_id = ? ORDER BY o.discovered_at ASC, o.rowid ASC`)
+    .bind(userId).all<{ id: string; source_url: string | null; status: string; discovered_at: string; updated_at: string; title: string; location: string | null; company_name: string | null }>();
 
   const groups = new Map<string, Array<{ id: string; status: string; updated_at: string }>>();
+  // A row joins the group of whichever of its identities was claimed first, so
+  // three copies under two URLs and one shared title collapse into one group
+  // rather than two.
+  const groupOfKey = new Map<string, string>();
   for (const row of rows.results || []) {
-    const key = opportunityKey(row.source_url || "");
-    if (!key) continue;
-    const group = groups.get(key);
-    if (group) group.push(row); else groups.set(key, [row]);
+    const keys = opportunityIdentities(row);
+    if (!keys.length) continue;
+    const groupKey = keys.map((key) => groupOfKey.get(key)).find(Boolean) || keys[0];
+    for (const key of keys) if (!groupOfKey.has(key)) groupOfKey.set(key, groupKey);
+    const group = groups.get(groupKey);
+    if (group) group.push(row); else groups.set(groupKey, [row]);
   }
 
   let merged = 0;
@@ -316,9 +382,17 @@ export async function mergeDuplicateOpportunities(db: D1Database, userId: string
   return merged;
 }
 
-function rememberOpportunity(index: Map<string, { id: string; status: string; discovered_at: string }>, url: string, id: string) {
-  const key = opportunityKey(url);
-  if (key && !index.has(key)) index.set(key, { id, status: "new", discovered_at: "" });
+function rememberOpportunity(
+  index: Map<string, { id: string; status: string; discovered_at: string }>,
+  url: string,
+  id: string,
+  job: { company?: string; title?: string; location?: string } = {},
+) {
+  // Both identities are registered, so a second copy arriving later in the
+  // same run under a different URL is recognized before it is inserted.
+  for (const key of [opportunityKey(url), opportunityContentKey(job)]) {
+    if (key && !index.has(key)) index.set(key, { id, status: "new", discovered_at: "" });
+  }
 }
 
 export async function importJobWatchBatch(db: D1Database, userId: string) {
@@ -426,7 +500,13 @@ export async function importRadarOpportunities(db: D1Database, userId: string, u
 export async function importLinkedInSavedJobs(
   db: D1Database,
   userId: string,
-  rows: Array<{ title: string; company: string; url: string; savedAt?: string }>,
+  rows: Array<{ title: string; company: string; url: string; savedAt?: string; location?: string; description?: string }>,
+  // The provenance to record. A LinkedIn export or a LinkedIn capture is
+  // genuinely "linkedin-saved"; an Indeed or other-board capture is a role the
+  // owner picked out themselves, which is what "imported" already means. Both
+  // the origin filter and the row's label read this, so filing everything as
+  // LinkedIn mislabelled every non-LinkedIn capture.
+  sourceType: "linkedin-saved" | "imported" = "linkedin-saved",
 ) {
   const dashboard = await readRadarDashboard(db, userId);
   const index = await loadOpportunityIndex(db, userId);
@@ -444,22 +524,29 @@ export async function importLinkedInSavedJobs(
     if (!company) {
       company = { id: crypto.randomUUID(), company_type: classification.companyCategory };
       await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
-        .bind(company.id, companyName, classification.companyCategory, "United States", "Added from your LinkedIn saved jobs export").run();
+        .bind(company.id, companyName, classification.companyCategory, "United States", sourceType === "linkedin-saved" ? "Added from your LinkedIn saved jobs" : "Added from a job page you captured yourself").run();
     }
-    // Only the exported title and company are available, so the score reflects
-    // that limited text rather than a full description.
-    const match = scoreRadarOpportunity({ title, company: companyName, location: "", description: "", companyCategory: classification.companyCategory }, dashboard.profile);
-    const summary = `${match.summary} · Scored from your LinkedIn export's title and company only — open the role to review the full description.`;
+    // A LinkedIn data export carries only the title and company, so a score
+    // built from it is necessarily thin. A capture taken in the owner's own
+    // browser carries the location and often the description too — when those
+    // arrive, score against them and say so, rather than warning about a
+    // limitation that no longer applies.
+    const location = clean(row?.location, 240);
+    const description = clean(row?.description, 8_000);
+    const match = scoreRadarOpportunity({ title, company: companyName, location, description, companyCategory: classification.companyCategory }, dashboard.profile);
+    const summary = description
+      ? `${match.summary} · Scored from the job page you captured in your own browser.`
+      : `${match.summary} · Scored from the title${location ? ", company, and location" : " and company"} only — open the role to review the full description.`;
     const existing = index.get(opportunityKey(url));
     if (existing) {
-      await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
-        .bind(company.id, title, "linkedin-saved", match.score, summary, existing.id, userId).run();
+      await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = COALESCE(NULLIF(?, ''), location), source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+        .bind(company.id, title, location, sourceType, match.score, summary, existing.id, userId).run();
       updated += 1;
       continue;
     }
     const savedId = crypto.randomUUID();
     await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(savedId, userId, company.id, title, null, url, "linkedin-saved", match.score, summary, "new").run();
+      .bind(savedId, userId, company.id, title, location || null, url, sourceType, match.score, summary, "new").run();
     rememberOpportunity(index, url, savedId);
     added += 1;
   }
@@ -482,6 +569,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   // Runs on every trigger — manual, app-open catch-up, and the twice-daily
   // background cron — so the general V's Job Watch list stays current
   // without depending on someone opening the app or clicking a button.
+  await ensureListingColumns(db);
   const watchBatch = await importJobWatchBatch(db, userId);
   // Self-heal rows an earlier build duplicated before reading the current state.
   const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
@@ -497,17 +585,28 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   // Least-recently-checked first turns that into a rotation: each run covers
   // a slice it can genuinely finish, and the two-hourly cron works through
   // the whole list. A single-target scan ("Check now") is never throttled.
-  const SCAN_BUDGET = 6;
+  //
+  // The slice is measured in source attempts rather than companies, because
+  // the two are not the same thing. A healthy Greenhouse board costs one
+  // attempt; a company whose careers page has moved costs up to seven. A flat
+  // count of six companies therefore stopped after six subrequests on a good
+  // run and after forty-two on a bad one — too early in the common case and
+  // too late in the case that caused the bug. Counting what is actually spent
+  // covers far more companies per run while lowering the worst case, and the
+  // company cap stays as a second ceiling so no single run monopolizes time.
+  const SCAN_ATTEMPT_BUDGET = 14;
+  const SCAN_COMPANY_CAP = 12;
   const eligible = dashboard.monitors
     .filter((monitor) => monitor.active)
     .filter((monitor) => !options.monitorId || monitor.id === options.monitorId)
     .filter((monitor) => !options.dueOnly || isMonitorDue(monitor));
-  const selected = options.monitorId
+  const queue = options.monitorId
     ? eligible.slice(0, 1)
-    : [...eligible]
-        .sort((left, right) => (left.lastCheckedAt || "").localeCompare(right.lastCheckedAt || ""))
-        .slice(0, SCAN_BUDGET);
-  const deferred = Math.max(0, eligible.length - selected.length);
+    : [...eligible].sort((left, right) => (left.lastCheckedAt || "").localeCompare(right.lastCheckedAt || ""));
+  // A single-target scan always runs, however expensive it turns out to be.
+  const throttled = !options.monitorId;
+  let attemptsUsed = 0;
+  const selected: typeof queue = [];
   let found = 0;
   let discovered = 0;
   let belowThreshold = 0;
@@ -516,8 +615,15 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   let repairedSources = 0;
   const failures: Array<{ monitorId: string; company: string; message: string }> = [];
 
-  for (const monitor of selected) {
+  for (const monitor of queue) {
+    if (throttled && (attemptsUsed >= SCAN_ATTEMPT_BUDGET || selected.length >= SCAN_COMPANY_CAP)) break;
+    selected.push(monitor);
     const runId = crypto.randomUUID();
+    // Charged against the run budget in the finally below, so a company that
+    // fails partway through still pays for the sources it did reach. The
+    // floor of one keeps a monitor that fails before its first fetch from
+    // looking free and letting the loop run away.
+    let monitorAttempts = 1;
     try {
       const searchFocus = [
         monitor.targetPosition,
@@ -619,6 +725,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
         const metaLimitation = discovery.attempts.find((attempt) => /Meta's published robots policy|does not permit automated job collection/i.test(attempt.message || ""));
         if (metaLimitation) throw new Error(metaLimitation.message || "Meta search does not permit automated job collection.");
       }
+      monitorAttempts = Math.max(1, discovery.attempts.length);
       const jobs = discovery.jobs;
       const focus = monitor.focus ? monitor.focus.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) : [];
       const titles = monitor.targetPosition
@@ -639,16 +746,27 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       found += matches.length;
       discovered += scored.length;
       belowThreshold += scored.length - matches.length;
+      // Captured before any row is touched: every posting confirmed by this
+      // read gets a last_seen_at at or after this stamp, so comparing a
+      // posting's last_seen_at against the company's stamp cleanly separates
+      // "confirmed by the newest read" from "absent from it".
+      const listingReadStamp = new Date().toISOString().slice(0, 19).replace("T", " ");
+      // One batch per monitor instead of one awaited round trip per job: a
+      // large board is up to 150 rows, and this loop now covers up to twelve
+      // companies per run, so per-row awaits multiplied into the thousands.
+      // The in-memory index keeps deduplication correct even though the
+      // inserts have not landed yet.
+      const jobStatements: D1PreparedStatement[] = [];
       for (const { job, match } of scored) {
         const existing = index.get(opportunityKey(job.sourceUrl));
         if (existing) {
-          await db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
-            .bind(monitor.companyId, job.title, job.location || null, job.sourceType || "public-careers-page", match.score, match.summary, existing.id, userId).run();
+          jobStatements.push(db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+            .bind(monitor.companyId, job.title, job.location || null, job.sourceType || "public-careers-page", match.score, match.summary, existing.id, userId));
         } else {
           const discoveredId = crypto.randomUUID();
-          await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            .bind(discoveredId, userId, monitor.companyId, job.title, job.location || null, job.sourceUrl, job.sourceType || "public-careers-page", match.score, match.summary, "new").run();
-          rememberOpportunity(index, job.sourceUrl || "", discoveredId);
+          jobStatements.push(db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, location, source_url, source_type, fit_score, fit_summary, status, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)")
+            .bind(discoveredId, userId, monitor.companyId, job.title, job.location || null, job.sourceUrl, job.sourceType || "public-careers-page", match.score, match.summary, "new"));
+          rememberOpportunity(index, job.sourceUrl || "", discoveredId, { company: monitor.company, title: job.title, location: job.location });
           added += 1;
           monitorAdded += 1;
           if (match.passes) {
@@ -657,6 +775,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
           }
         }
       }
+      if (jobStatements.length) await db.batch(jobStatements);
       const savedAttempt = discovery.attempts.find((attempt) => attempt.purpose === "saved-careers");
       const repairedSource = clean(discovery.recommendedCareersUrl, 4_000);
       const shouldRepairSource = Boolean(repairedSource)
@@ -692,6 +811,13 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
           .bind(runId, monitor.id, "completed", matches.length, `${triggerLabel} · ${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${jobs.length - matches.length} saved below threshold · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}${zeroReason}`),
       ];
       if (repairStatement) statements.unshift(repairStatement);
+      // Only a read that produced at least one complete-board posting counts
+      // as a listing read: a failed fetch or a web-search-only run says
+      // nothing about which postings are still up, and must never make older
+      // postings look withdrawn.
+      if (jobs.some((job) => COMPLETE_LISTING_SOURCES.has(job.sourceType || ""))) {
+        statements.push(db.prepare("UPDATE companies SET last_listing_read_at = ? WHERE id = ?").bind(listingReadStamp, monitor.companyId));
+      }
       await db.batch(statements);
     } catch (cause) {
       const message = safeMessage(cause);
@@ -710,8 +836,11 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
               : `${triggerLabel} · Source check failed after automatic careers-page recovery: ${message}`,
           ),
       ]);
+    } finally {
+      attemptsUsed += monitorAttempts;
     }
   }
+  const deferred = Math.max(0, eligible.length - selected.length);
   return { checked: selected.length, deferred, found, discovered, belowThreshold, added, matchedAdded, repairedSources, mergedDuplicates, failures, watchBatch };
 }
 

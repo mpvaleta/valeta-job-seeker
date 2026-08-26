@@ -18,7 +18,8 @@ import {
 import { isLinkedInUrl, validatePublicUrl } from "@/lib/public-link-reader.mjs";
 import { getRuntimeDatabase } from "@/lib/runtime-bindings";
 import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
-import { AGENCY_RADAR_PACK } from "@/lib/agency-radar-pack";
+import { AGENCY_PACK_GROUPS, AGENCY_RADAR_PACK } from "@/lib/agency-radar-pack";
+import { BRAND_RADAR_PACK } from "@/lib/brand-radar-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isTrustedSameOriginMutation(request)) return NextResponse.json({ ok: false, code: "cross_site_request_blocked", message: "This protected action must start inside V’s Job Seeker." }, { status: 403 });
+  // The browser companion posts captured roles here from its extension
+  // origin, proving itself with the access token in an Authorization header.
+  if (!isTrustedSameOriginMutation(request, { allowBearerClients: true })) return NextResponse.json({ ok: false, code: "cross_site_request_blocked", message: "This protected action must start inside V’s Job Seeker." }, { status: 403 });
   const contentLength = Number(request.headers.get("content-length") || "0");
   if (contentLength > MAX_BODY_BYTES) return error(413, "request_too_large", "The radar request is too large.");
   const raw = await request.text();
@@ -102,7 +105,14 @@ export async function POST(request: Request) {
     } else if (action === "seed_default_monitors") {
       result = await seedDefaultRadarMonitors(db, user.id);
     } else if (action === "seed_agency_pack") {
-      result = await seedRadarMonitorPack(db, user.id, AGENCY_RADAR_PACK);
+      // No group named means every discipline, which is what this action
+      // meant before the packs were split.
+      const groupId = text(input.group, 40);
+      const group = groupId ? AGENCY_PACK_GROUPS.find((entry) => entry.id === groupId) : null;
+      if (groupId && !group) return error(400, "invalid_request", "That agency discipline is not one V’s knows.");
+      result = await seedRadarMonitorPack(db, user.id, group ? group.entries : AGENCY_RADAR_PACK);
+    } else if (action === "seed_brand_pack") {
+      result = await seedRadarMonitorPack(db, user.id, BRAND_RADAR_PACK);
     } else if (action === "set_opportunity_status") {
       result = await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40));
     } else if (action === "scan") {
@@ -130,8 +140,10 @@ export async function POST(request: Request) {
       if (!urls.length) return error(400, "invalid_request", "None of those links could be read as a public job page.");
       result = await importRadarOpportunities(db, user.id, urls);
     } else if (action === "import_linkedin_saved_jobs") {
-      // Rows come from the user's own official LinkedIn export and are used as
-      // exported; no LinkedIn page is fetched, so no scan budget is consumed.
+      // Rows come from the owner's own official LinkedIn export, or from a
+      // page they were already looking at in their own browser. Either way the
+      // rows are used as given — the server never fetches a LinkedIn page, so
+      // no scan budget is consumed and no automated collection takes place.
       const rows = Array.isArray(input.rows) ? input.rows : [];
       if (!rows.length) return error(400, "invalid_request", "No saved jobs were found in that LinkedIn export.");
       result = await importLinkedInSavedJobs(db, user.id, rows.slice(0, 200).map((row) => {
@@ -141,8 +153,12 @@ export async function POST(request: Request) {
           company: optionalText(entry.company, 180),
           url: optionalText(entry.url, 4_000),
           savedAt: optionalText(entry.savedAt, 40),
+          // Present when the row came from a browser capture rather than an
+          // export file; absent rows still score exactly as they did before.
+          location: optionalText(entry.location, 240),
+          description: optionalText(entry.description, 8_000),
         };
-      }));
+      }), input.source === "captured" ? "imported" : "linkedin-saved");
     } else {
       return error(400, "invalid_action", "Choose a valid radar action.");
     }

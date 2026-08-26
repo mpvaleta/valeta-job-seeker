@@ -146,6 +146,81 @@ fillButton.addEventListener("click", async () => {
   }
 });
 
+const appUrlInput = document.querySelector("#app-url");
+const appTokenInput = document.querySelector("#app-token");
+const connectionState = document.querySelector("#connection-state");
+
+chrome.storage.local.get(["valetaAppUrl", "valetaAppToken"], ({ valetaAppUrl, valetaAppToken }) => {
+  if (valetaAppUrl) appUrlInput.value = valetaAppUrl;
+  if (valetaAppToken) appTokenInput.value = valetaAppToken;
+  showConnectionState(valetaAppUrl, valetaAppToken);
+});
+
+function showConnectionState(url, token) {
+  connectionState.textContent = url && token ? `connected to ${new URL(url).hostname}` : "not connected";
+}
+
+document.querySelector("#save-connection").addEventListener("click", async () => {
+  const url = appUrlInput.value.trim().replace(/\/+$/, "");
+  const token = appTokenInput.value.trim();
+  if (!/^https:\/\//i.test(url) || !token) {
+    status.textContent = "Enter the app's https address and your access token, then save.";
+    return;
+  }
+  await chrome.storage.local.set({ valetaAppUrl: url, valetaAppToken: token });
+  showConnectionState(url, token);
+  status.textContent = "Connection saved in this browser only. Captured roles can now go straight to your inbox.";
+});
+
+async function connection() {
+  const { valetaAppUrl, valetaAppToken } = await chrome.storage.local.get(["valetaAppUrl", "valetaAppToken"]);
+  if (!valetaAppUrl || !valetaAppToken) return null;
+  return { url: valetaAppUrl, token: valetaAppToken };
+}
+
+document.querySelector("#send-list").addEventListener("click", async () => {
+  const linked = await connection();
+  if (!linked) {
+    status.textContent = "Open “Send straight to V’s” above and save the app address and your access token first.";
+    return;
+  }
+  let capture;
+  try {
+    const tab = await activeTab();
+    capture = await chrome.tabs.sendMessage(tab.id, { type: "VJOBS_CAPTURE_LIST" });
+  } catch {
+    status.textContent = "Could not read this page. Refresh the search results and try again.";
+    return;
+  }
+  if (!capture?.rows?.length) {
+    status.textContent = "No job results were found on this page. Open a search-results page, scroll so the results render, then try again.";
+    return;
+  }
+  status.textContent = `Sending ${capture.rows.length} roles…`;
+  try {
+    const response = await fetch(`${linked.url}/api/radar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${linked.token}` },
+      // LinkedIn captures keep LinkedIn provenance; an Indeed or other-board
+      // capture is a role picked out by hand, which is what "imported" means.
+      // Filing everything as LinkedIn mislabelled the origin filter.
+      body: JSON.stringify({ action: "import_linkedin_saved_jobs", source: capture.source === "linkedin" ? "linkedin" : "captured", rows: capture.rows }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) {
+      // The app's own message is far more useful than a status code — an
+      // expired token and a full workspace fail very differently.
+      status.textContent = data.message || `V’s refused the upload (${response.status}). Check the address and token above.`;
+      return;
+    }
+    const added = data.result?.added || 0;
+    const updated = data.result?.updated || 0;
+    status.textContent = `${added} new ${added === 1 ? "role" : "roles"} filed in your Discovery Inbox${updated ? `, ${updated} refreshed` : ""}. Open V’s Job radar to review them.`;
+  } catch {
+    status.textContent = "Could not reach V’s. Check the app address above and that you are online.";
+  }
+});
+
 document.querySelector("#capture").addEventListener("click", async () => {
   try {
     const tab = await activeTab();

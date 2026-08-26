@@ -830,44 +830,152 @@ test("startups-only mismatch stays filtered out even when minScore is set to the
 // once burned through it and stamped the tail of the list "completed · 0
 // found" without ever fetching them — the same five companies reported zero
 // on every run for weeks. A run must now cover only what it can finish.
-test("a full scan covers a bounded slice, oldest first, and defers the rest", async () => {
+const greenhouseJob = (index) => ({
+  jobs: [{
+    id: 1000 + index,
+    title: "Senior Creative Producer",
+    absolute_url: `https://boards.greenhouse.io/company${index}/jobs/${1000 + index}`,
+    location: { name: "San Francisco, CA" },
+    updated_at: new Date().toISOString(),
+    content: "Lead integrated production for brand campaigns.",
+  }],
+});
+
+async function addMonitors(worker, env, count) {
+  for (let index = 0; index < count; index += 1) {
+    const added = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: { company: `Company ${index}`, careersUrl: `https://boards.greenhouse.io/company${index}`, cadence: "manual" } }),
+    }), env, context);
+    assert.equal(added.status, 200);
+  }
+}
+
+test("a full scan is bounded, covers the longest-waiting targets first, and reports the rest", async () => {
   const { mf, db } = await createDatabase();
   const worker = await loadWorker();
   const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
   const originalFetch = globalThis.fetch;
   try {
-    for (let index = 0; index < 9; index += 1) {
-      const added = await worker.fetch(new Request("http://localhost/api/radar", {
-        method: "POST", headers,
-        body: JSON.stringify({ action: "add_monitor", monitor: { company: `Company ${index}`, careersUrl: `https://boards.greenhouse.io/company${index}`, cadence: "manual" } }),
-      }), env, context);
-      assert.equal(added.status, 200);
-    }
+    await addMonitors(worker, env, 9);
 
+    // Every source comes back empty, which is the expensive shape: each
+    // company falls through careers-page recovery and the web-search
+    // fallback before giving up.
     globalThis.fetch = async () => Response.json({ jobs: [] });
     const scanned = await worker.fetch(new Request("http://localhost/api/radar", {
       method: "POST", headers, body: JSON.stringify({ action: "scan" }),
     }), env, context);
     const data = await scanned.json();
     assert.equal(scanned.status, 200);
-    assert.equal(data.result.checked, 6, "one run must stay inside the subrequest budget");
-    assert.equal(data.result.deferred, 3, "the remaining targets are reported, not silently zeroed");
+    // The exact count depends on what each company costs, but a run must
+    // never try to take the whole list — that is the bug this guards.
+    assert.ok(data.result.checked > 0 && data.result.checked < 9, `expected a partial slice, got ${data.result.checked}`);
+    assert.equal(data.result.deferred, 9 - data.result.checked, "the remaining targets are reported, not silently zeroed");
 
-    // Never-checked targets sort first, so a second run reaches the rest
-    // instead of re-scanning the same six forever.
-    const secondRun = await worker.fetch(new Request("http://localhost/api/radar", {
-      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
-    }), env, context);
-    const secondData = await secondRun.json();
-    assert.equal(secondData.monitors.filter((monitor) => monitor.lastCheckedAt).length, 9, "every target is reached within two runs");
+    // Never-checked targets sort first, so later runs reach the rest instead
+    // of re-scanning the same few forever.
+    let reached = 0;
+    for (let run = 0; run < 4 && reached < 9; run += 1) {
+      const next = await worker.fetch(new Request("http://localhost/api/radar", {
+        method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+      }), env, context);
+      reached = (await next.json()).monitors.filter((monitor) => monitor.lastCheckedAt).length;
+    }
+    assert.equal(reached, 9, "every target is reached by repeated runs");
 
     // A single-target "Check now" is never throttled.
+    const dashboard = await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
+    const monitors = (await dashboard.json()).monitors;
     const single = await worker.fetch(new Request("http://localhost/api/radar", {
-      method: "POST", headers, body: JSON.stringify({ action: "scan", monitorId: secondData.monitors[0].id }),
+      method: "POST", headers, body: JSON.stringify({ action: "scan", monitorId: monitors[0].id }),
     }), env, context);
     const singleData = await single.json();
     assert.equal(singleData.result.checked, 1);
     assert.equal(singleData.result.deferred, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
+test("a posting that vanishes from a re-read board is flagged, not deleted", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  const originalFetch = globalThis.fetch;
+  try {
+    await addMonitors(worker, env, 1);
+    const board = (titles) => Response.json({
+      jobs: titles.map((title, index) => ({
+        id: 100 + index,
+        title,
+        absolute_url: `https://boards.greenhouse.io/company0/jobs/${100 + index}`,
+        location: { name: "San Francisco, CA" },
+        updated_at: new Date().toISOString(),
+        content: "Own integrated production for brand campaigns.",
+      })),
+    });
+
+    globalThis.fetch = async () => board(["Senior Creative Producer", "Brand Program Manager"]);
+    const first = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    assert.equal((await first.json()).result.added, 2);
+
+    // The board is read again later and only one of the two postings is still
+    // on it. Both runs land in the same test second, so the vanished row is
+    // backdated the way real time would have separated them.
+    globalThis.fetch = async () => board(["Senior Creative Producer"]);
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    await db.prepare("UPDATE job_opportunities SET last_seen_at = '2026-01-01 00:00:00' WHERE title = 'Brand Program Manager'").run();
+
+    const dashboard = await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
+    const opportunities = (await dashboard.json()).opportunities;
+    const kept = opportunities.find((item) => item.title === "Senior Creative Producer");
+    const vanished = opportunities.find((item) => item.title === "Brand Program Manager");
+    assert.ok(kept && vanished, "both rows stay in the inbox — nothing is deleted");
+    assert.equal(kept.listingLost, false, "a posting the newest read confirmed is not flagged");
+    assert.equal(vanished.listingLost, true, "a posting absent from the newest complete read is flagged");
+
+    // A failed read must say nothing about listing freshness: after every
+    // source stops responding, the flags stay exactly as they were.
+    globalThis.fetch = async () => new Response("gone", { status: 500 });
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const after = await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
+    const keptAfter = (await after.json()).opportunities.find((item) => item.title === "Senior Creative Producer");
+    assert.equal(keptAfter.listingLost, false, "a failed read never turns a live posting into a lost one");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
+test("a run of healthy boards covers far more companies than a run of broken ones", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  const originalFetch = globalThis.fetch;
+  try {
+    await addMonitors(worker, env, 10);
+
+    // A board that answers on the first try costs one source attempt, so the
+    // run budget stretches much further than it does over broken sources.
+    // Charging per company instead of per attempt used to stop a healthy run
+    // early for no reason.
+    let index = 0;
+    globalThis.fetch = async () => Response.json(greenhouseJob(index++));
+    const scanned = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const data = await scanned.json();
+    assert.equal(scanned.status, 200);
+    assert.equal(data.result.checked, 10, "ten healthy boards fit inside one run");
+    assert.equal(data.result.deferred, 0);
   } finally {
     globalThis.fetch = originalFetch;
     await mf.dispose();

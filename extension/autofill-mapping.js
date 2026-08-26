@@ -111,5 +111,38 @@
     return { status: "unknown", reason: "No approved mapping", ruleKey: null, confidence: "none" };
   }
 
-  root.VJobsAutofill = { SENSITIVE, CONTROLLED_TYPES, RULES, matchingRules, decideField };
+  /**
+   * Clean up the rows a results-list capture pulled out of the page.
+   *
+   * The DOM half of that capture is board-specific and changes whenever a
+   * board reskins; this half is the part with rules worth pinning down. A row
+   * without a title or an http(s) URL is not a job. Two rows are the same job
+   * when their URLs match ignoring the query string, because boards append
+   * tracking parameters that differ on every render. And the upload is capped
+   * so one very long results page cannot turn into an oversized request.
+   */
+  function normalizeCapturedRows(rows, limit = 100) {
+    const text = (value, max) => String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max);
+    const seen = new Set();
+    const result = [];
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const title = text(row?.title, 240);
+      const url = text(row?.url, 4000);
+      if (!title || !/^https?:\/\//i.test(url)) continue;
+      const key = url.split("?")[0].replace(/\/+$/, "").toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({
+        title,
+        company: text(row?.company, 180),
+        location: text(row?.location, 240),
+        url,
+        description: text(row?.description, 600),
+      });
+      if (result.length >= limit) break;
+    }
+    return result;
+  }
+
+  root.VJobsAutofill = { SENSITIVE, CONTROLLED_TYPES, RULES, matchingRules, decideField, normalizeCapturedRows };
 })(typeof globalThis === "undefined" ? this : globalThis);

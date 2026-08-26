@@ -8,6 +8,17 @@
     <div class="actions"><button id="save">Save profile</button><button id="scan">Scan page</button><button id="fill" disabled>Fill ready fields</button></div>
     <button id="capture" class="capture">Copy visible job page</button>
     <small class="capture-note">For LinkedIn or login-only pages: open the job in your own browser, click this, then paste the capture into V&apos;s Role Workspace. No password or cookie leaves your browser.</small>
+    <details id="connection">
+      <summary>Send straight to V&apos;s <em id="connection-state">not connected</em></summary>
+      <div>
+        <label>App address<input id="app-url" type="url" placeholder="https://valeta-job-seeker.marcos-valeta.workers.dev"></label>
+        <label>Access token<input id="app-token" type="password" placeholder="Your APP_TOKEN"></label>
+        <button id="save-connection">Save connection</button>
+        <small>Stored only in this browser&apos;s extension storage and sent only to the address above. Once connected, captured roles go into your Discovery Inbox without the clipboard.</small>
+      </div>
+    </details>
+    <button id="send-list" class="capture">Send this results list to V&apos;s</button>
+    <small class="capture-note">On a LinkedIn or Indeed search page, this reads the results already rendered in front of you and files them in your Discovery Inbox, scored. It opens nothing and fetches nothing on its own.</small>
     <section id="results" aria-live="polite"></section>
     <p id="status">Scan first. Nothing is submitted automatically.</p>
     <script src="popup.js"></script>
