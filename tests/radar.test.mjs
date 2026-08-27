@@ -3,7 +3,9 @@ import test from "node:test";
 import {
   DEFAULT_RADAR_PROFILE,
   classifyRadarOpportunity,
+  deriveDismissalSignal,
   deriveRadarProfileFromCareer,
+  dismissalPenalty,
   detectCareerSource,
   discoverTargetJobs,
   discoverTargetJobsDetailed,
@@ -592,4 +594,112 @@ test("the content identity collapses one job published under unrelated URLs", ()
   // Too little to identify anything is no identity at all, never a false match.
   assert.equal(opportunityContentKey({ company: "", title: "Producer" }), "");
   assert.equal(opportunityContentKey({ company: "VaynerMedia", title: "PM" }), "");
+});
+
+const DISMISSAL_PROFILE = {
+  titles: ["Brand Project Manager", "Integrated Producer"],
+  skills: ["creative operations", "brand programs"],
+  locations: ["San Francisco Bay Area"],
+  workModes: ["Hybrid"],
+  goals: "Lead brand and creative delivery.",
+  exclusions: [],
+  minScore: 45,
+};
+
+const notRelevant = (title, companyCategory) => ({ title, companyCategory, reason: "not_relevant" });
+
+test("one dismissal teaches the radar nothing", () => {
+  const signal = deriveDismissalSignal([notRelevant("Senior Software Engineer")], DISMISSAL_PROFILE);
+  assert.equal(signal.ready, false);
+  assert.deepEqual(signal.words, []);
+  // The copy has to say what is still missing, not just refuse.
+  assert.match(signal.reason, /at least 4/);
+  assert.equal(signal.stats.teachingDismissals, 1);
+});
+
+test("a word repeated across dismissed roles is learned and lowers a similar role", () => {
+  const signal = deriveDismissalSignal([
+    notRelevant("Senior Software Engineer"),
+    notRelevant("Staff Software Engineer"),
+    notRelevant("Software Development Manager"),
+    notRelevant("Principal Engineer, Platform"),
+  ], DISMISSAL_PROFILE);
+  assert.equal(signal.ready, true);
+  assert.ok(signal.words.includes("software"), `expected "software" in ${JSON.stringify(signal.words)}`);
+  assert.ok(signal.words.includes("engineer"), `expected "engineer" in ${JSON.stringify(signal.words)}`);
+
+  // A word that appeared only once never makes the list.
+  assert.ok(!signal.words.includes("platform"), "a single mention must not teach");
+
+  const engineering = scoreRadarOpportunity({ title: "Software Engineer", location: "Oakland, CA" }, DISMISSAL_PROFILE, signal);
+  const unpenalized = scoreRadarOpportunity({ title: "Software Engineer", location: "Oakland, CA" }, DISMISSAL_PROFILE);
+  assert.ok(engineering.score < unpenalized.score, "a learned word must lower the score");
+  assert.ok(engineering.reasons.some((line) => /dismissed/.test(line)), "the reason must say why it sank");
+});
+
+test("learning never contradicts the roles the user asked for", () => {
+  // Four project roles dismissed -- but "project" is in a saved target title,
+  // so it must never become a penalty. Otherwise the radar would learn to bury
+  // exactly what the user told it to look for.
+  const signal = deriveDismissalSignal([
+    notRelevant("Project Coordinator"),
+    notRelevant("Project Administrator"),
+    notRelevant("Junior Project Assistant"),
+    notRelevant("Project Scheduling Clerk"),
+  ], DISMISSAL_PROFILE);
+  assert.ok(!signal.words.includes("project"), `"project" is a saved target word and must be protected, got ${JSON.stringify(signal.words)}`);
+
+  const target = scoreRadarOpportunity({ title: "Brand Project Manager", location: "Oakland, CA" }, DISMISSAL_PROFILE, signal);
+  const untaught = scoreRadarOpportunity({ title: "Brand Project Manager", location: "Oakland, CA" }, DISMISSAL_PROFILE);
+  assert.equal(target.score, untaught.score, "a saved target title must score identically before and after learning");
+});
+
+test("dismissing something you already applied to teaches nothing", () => {
+  const applied = [
+    { title: "Senior Software Engineer", reason: "already_applied" },
+    { title: "Staff Software Engineer", reason: "already_applied" },
+    { title: "Software Development Manager", reason: "already_applied" },
+    { title: "Principal Software Architect", reason: "already_applied" },
+  ];
+  const signal = deriveDismissalSignal(applied, DISMISSAL_PROFILE);
+  assert.equal(signal.ready, false, "applying to a role is interest, not rejection");
+  assert.deepEqual(signal.words, []);
+  assert.equal(signal.stats.teachingDismissals, 0);
+  assert.equal(signal.stats.dismissalsRead, 4, "they are still read, just not learned from");
+});
+
+test("a learned penalty is bounded and never vetoes a strong match", () => {
+  const signal = deriveDismissalSignal([
+    notRelevant("Software Engineer"),
+    notRelevant("Software Developer"),
+    notRelevant("Engineering Manager Software"),
+    notRelevant("Software Platform Engineer"),
+  ], DISMISSAL_PROFILE);
+
+  // Every learned word present at once, plus an exact target title.
+  const strong = scoreRadarOpportunity(
+    { title: "Brand Project Manager, Software Engineer Programs", location: "Oakland, CA" },
+    DISMISSAL_PROFILE,
+    signal,
+  );
+  assert.ok(strong.passes, "learning nudges the ranking; it must not gate a role out");
+  assert.ok(strong.score >= DISMISSAL_PROFILE.minScore);
+
+  // The penalty itself is capped regardless of how many words match.
+  const { penalty } = dismissalPenalty("software engineer developer platform engineering", "", signal);
+  assert.ok(penalty <= 22, `penalty must stay bounded, got ${penalty}`);
+});
+
+test("restoring a role removes its teaching signal", () => {
+  // The store clears dismissed_reason on any non-dismissed status, so a
+  // restored role arrives here with no reason and drops out of the sample.
+  const afterRestore = [
+    notRelevant("Software Engineer"),
+    notRelevant("Software Developer"),
+    { title: "Software Architect", reason: null },
+    { title: "Software Analyst", reason: null },
+  ];
+  const signal = deriveDismissalSignal(afterRestore, DISMISSAL_PROFILE);
+  assert.equal(signal.ready, false, "two restored roles drop the sample below the learning threshold");
+  assert.equal(signal.stats.teachingDismissals, 2);
 });

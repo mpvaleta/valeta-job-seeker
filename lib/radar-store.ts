@@ -1,4 +1,4 @@
-import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
+import { classifyRadarOpportunity, deriveDismissalSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import { DEFAULT_RADAR_MONITORS } from "./default-radar-monitors";
@@ -93,6 +93,9 @@ async function ensureListingColumns(db: D1Database) {
   for (const statement of [
     "ALTER TABLE job_opportunities ADD COLUMN last_seen_at text",
     "ALTER TABLE companies ADD COLUMN last_listing_read_at text",
+    // Why a dismissal happened, not just that it did. Only "not_relevant"
+    // teaches the scorer; "already_applied" is recorded and deliberately inert.
+    "ALTER TABLE job_opportunities ADD COLUMN dismissed_reason text",
   ]) {
     try {
       await db.prepare(statement).run();
@@ -286,11 +289,41 @@ export async function deleteRadarMonitor(db: D1Database, userId: string, monitor
   await db.prepare("UPDATE company_monitors SET is_active = 0 WHERE id = ? AND user_id = ?").bind(monitorId, userId).run();
 }
 
-export async function setRadarOpportunityStatus(db: D1Database, userId: string, opportunityId: string, status: string) {
+export async function setRadarOpportunityStatus(db: D1Database, userId: string, opportunityId: string, status: string, reason?: string) {
+  await ensureListingColumns(db);
   const normalized = normalizeOpportunityStatus(status);
-  await db.prepare("UPDATE job_opportunities SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
-    .bind(normalized, opportunityId, userId).run();
+  // A reason only means anything on a dismissal. Restoring a role, or moving it
+  // anywhere else, clears the stored reason so a role the user changed their
+  // mind about stops teaching the scorer.
+  const normalizedReason = normalized === "dismissed" ? normalizeDismissalReason(reason) : null;
+  await db.prepare("UPDATE job_opportunities SET status = ?, dismissed_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+    .bind(normalized, normalizedReason, opportunityId, userId).run();
   return normalized;
+}
+
+/*
+ * Reading back what the user has rejected.
+ *
+ * Capped well above the sample the learner needs, and ordered newest first, so
+ * a long-running inbox teaches from recent taste rather than from whatever was
+ * dismissed a year ago.
+ */
+export async function readDismissalHistory(db: D1Database, userId: string) {
+  await ensureListingColumns(db);
+  const result = await db.prepare(`SELECT o.title, o.dismissed_reason, o.fit_summary, c.name AS company_name, c.company_type
+    FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
+    WHERE o.user_id = ? AND o.status = 'dismissed' AND o.dismissed_reason IS NOT NULL
+    ORDER BY o.updated_at DESC LIMIT 200`)
+    .bind(userId).all<{ title: string; dismissed_reason: string; fit_summary: string | null; company_name: string | null; company_type: string | null }>();
+  return (result.results || []).map((row) => ({
+    title: row.title,
+    reason: row.dismissed_reason,
+    companyCategory: classifyRadarOpportunity({
+      company: row.company_name || "",
+      title: row.title,
+      fitSummary: row.fit_summary || "",
+    }, { kind: row.company_type || "" }).companyCategory,
+  }));
 }
 
 /*
@@ -613,6 +646,10 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
   let expired = await expireStaleWatchBatch(db, userId);
   const dashboard = await readRadarDashboard(db, userId);
+  // What the user keeps rejecting, read once per scan. Applied only to roles
+  // the radar found on its own — a link the user imported by hand is their
+  // explicit choice and is never down-ranked by this.
+  const dismissalSignal = deriveDismissalSignal(await readDismissalHistory(db, userId), dashboard.profile);
   const index = await loadOpportunityIndex(db, userId);
   // A Worker request has a hard subrequest budget, and one monitor can spend
   // seven of them when its careers page needs recovery plus a web-search
@@ -783,7 +820,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
         // when adding this target, so it overrides text/source-based signals
         // the same way classifyRadarOpportunity already does for display.
         const classification = classifyRadarOpportunity(job, monitor);
-        return { job, match: scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, profile) };
+        return { job, match: scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, profile, dismissalSignal) };
       }).sort((left, right) => right.match.score - left.match.score)
         .slice(0, 150);
       const matches = scored.filter(({ match }) => match.passes);
@@ -1016,6 +1053,12 @@ function parseArray(value: string | null | undefined): string[] {
 
 function normalizeOpportunityStatus(value: string) {
   return ["new", "reviewing", "shortlisted", "dismissed", "applied", "archived", "expired"].includes(value) ? value : "new";
+}
+
+// An unrecognised reason becomes null rather than a default, so a client that
+// sends nothing never accidentally teaches the scorer.
+function normalizeDismissalReason(value: unknown) {
+  return value === "not_relevant" || value === "already_applied" ? value : null;
 }
 
 function clean(value: unknown, limit: number) {

@@ -1093,3 +1093,141 @@ test("a run of healthy boards covers far more companies than a run of broken one
     await mf.dispose();
   }
 });
+
+// The whole path, not just the deriving function: a dismissal reason has to
+// survive the HTTP route, land in the column, come back out through the
+// history read, and actually move a score on the next scan.
+test("a not-relevant dismissal is stored, teaches the next scan, and stops teaching once restored", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    let boardTitles = ["Software Engineer I", "Software Engineer II", "Software Developer", "Software Architect", "Brand Project Manager"];
+    globalThis.fetch = async () => Response.json({ jobs: boardTitles.map((title, index) => ({
+      title,
+      location: { name: "Oakland, CA" },
+      content: "<p>Build and ship product across cross-functional teams.</p>",
+      absolute_url: `https://boards.greenhouse.io/example/jobs/${900 + index}`,
+      updated_at: "2026-08-01T00:00:00Z",
+    })) });
+
+    const post = async (body) => {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", { method: "POST", headers, body: JSON.stringify(body) }), env, context);
+      const data = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(data));
+      return data;
+    };
+
+    await post({ action: "save_profile", profile: {
+      titles: ["Brand Project Manager"],
+      skills: ["brand programs"],
+      locations: ["San Francisco Bay Area"],
+      workModes: ["Hybrid"],
+      goals: "Lead brand delivery.",
+      exclusions: [],
+      minScore: 20,
+    } });
+    await post({ action: "add_monitor", monitor: {
+      company: "Example Studio",
+      kind: "Technology",
+      careersUrl: "https://boards.greenhouse.io/example",
+      cadence: "daily",
+    } });
+
+    const first = await post({ action: "scan" });
+    const board = (payload) => payload.opportunities.filter((item) => item.sourceUrl.startsWith("https://boards.greenhouse.io/example/"));
+    const engineering = board(first).filter((item) => /Software/.test(item.title));
+    assert.equal(engineering.length, 4, "four engineering roles to reject");
+    const scoreBefore = engineering.find((item) => item.title === "Software Engineer I").fitScore;
+
+    // Reject all four as not relevant, through the real route.
+    for (const role of engineering) {
+      await post({ action: "set_opportunity_status", opportunityId: role.id, status: "dismissed", reason: "not_relevant" });
+    }
+
+    // The reason actually reached the column — not merely the status.
+    const stored = await db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE dismissed_reason = 'not_relevant'").first();
+    assert.equal(Number(stored.count), 4, "each dismissal must persist its reason");
+
+    // A brand-new engineering posting on the next scan is ranked lower than the
+    // identical role was before the radar learned anything.
+    boardTitles = [...boardTitles, "Software Engineer III"];
+    const second = await post({ action: "scan" });
+    const learned = board(second).find((item) => item.title === "Software Engineer III");
+    assert.ok(learned, "the new role should have been discovered");
+    assert.ok(learned.fitScore < scoreBefore, `learned score ${learned.fitScore} should be under the pre-learning ${scoreBefore}`);
+    assert.match(learned.fitSummary, /dismissed/, "the summary must explain why it sank");
+
+    // The saved target is untouched by any of it.
+    const target = board(second).find((item) => item.title === "Brand Project Manager");
+    assert.ok(target.fitScore >= scoreBefore, "a saved target title must not be dragged down by learning");
+
+    // Restoring two drops the sample under the threshold, and the signal stops.
+    for (const role of engineering.slice(0, 2)) {
+      await post({ action: "set_opportunity_status", opportunityId: role.id, status: "reviewing" });
+    }
+    const cleared = await db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE dismissed_reason = 'not_relevant'").first();
+    assert.equal(Number(cleared.count), 2, "restoring a role clears the reason it was teaching from");
+
+    const third = await post({ action: "scan" });
+    const unlearned = board(third).find((item) => item.title === "Software Engineer III");
+    assert.ok(unlearned.fitScore > learned.fitScore, "with the sample below threshold the penalty must lift");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
+// "Saw it / applied" is a filing action, not feedback about fit.
+test("an already-applied dismissal never changes what the radar looks for", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    let boardTitles = ["Software Engineer I", "Software Engineer II", "Software Developer", "Software Architect"];
+    globalThis.fetch = async () => Response.json({ jobs: boardTitles.map((title, index) => ({
+      title,
+      location: { name: "Oakland, CA" },
+      content: "<p>Build and ship product across cross-functional teams.</p>",
+      absolute_url: `https://boards.greenhouse.io/example/jobs/${800 + index}`,
+      updated_at: "2026-08-01T00:00:00Z",
+    })) });
+
+    const post = async (body) => {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", { method: "POST", headers, body: JSON.stringify(body) }), env, context);
+      const data = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(data));
+      return data;
+    };
+
+    await post({ action: "save_profile", profile: {
+      titles: ["Brand Project Manager"], skills: ["brand programs"], locations: ["San Francisco Bay Area"],
+      workModes: ["Hybrid"], goals: "Lead brand delivery.", exclusions: [], minScore: 20,
+    } });
+    await post({ action: "add_monitor", monitor: {
+      company: "Example Studio", kind: "Technology", careersUrl: "https://boards.greenhouse.io/example", cadence: "daily",
+    } });
+
+    const first = await post({ action: "scan" });
+    const board = (payload) => payload.opportunities.filter((item) => item.sourceUrl.startsWith("https://boards.greenhouse.io/example/"));
+    const engineering = board(first).filter((item) => /Software/.test(item.title));
+    const scoreBefore = engineering.find((item) => item.title === "Software Engineer I").fitScore;
+
+    for (const role of engineering) {
+      await post({ action: "set_opportunity_status", opportunityId: role.id, status: "dismissed", reason: "already_applied" });
+    }
+    const stored = await db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE dismissed_reason = 'already_applied'").first();
+    assert.equal(Number(stored.count), 4, "the reason is still recorded");
+
+    boardTitles = [...boardTitles, "Software Engineer III"];
+    const second = await post({ action: "scan" });
+    const fresh = board(second).find((item) => item.title === "Software Engineer III");
+    assert.equal(fresh.fitScore, scoreBefore, "applying to a role must not down-rank its siblings");
+    assert.ok(!/dismissed/.test(fresh.fitSummary), "no learned-penalty reason should appear");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
