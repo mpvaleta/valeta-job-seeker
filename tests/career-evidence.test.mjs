@@ -51,6 +51,36 @@ test("facts kept under a tight limit still appear in their original order", () =
   assert.deepEqual(positions, [...positions].sort((left, right) => left - right));
 });
 
+// Regression: the code filter used to match bare keywords, so ordinary résumé
+// English — error, stack, schema, timestamp, function, return, true — silently
+// deleted real accomplishment bullets before they ever reached the résumé.
+test("résumé prose that merely contains developer-adjacent words survives the code filter", () => {
+  const bullets = [
+    "Cut delivery error rates by 34% by introducing a structured creative brief and a single approval gate.",
+    "Owned the marketing function for three product lines, from brand strategy through launch measurement.",
+    "Improved return on investment across paid and organic channels for a $5M annual budget.",
+    "Rebuilt the agency's production tech stack, consolidating six tools into two.",
+    "Defined the taxonomy and schema used by the global asset library across four regions.",
+    "Became a true partner to the sales organisation, joining every quarterly business review.",
+    "Delivered campaigns with <10% budget variance and >$5M in incremental revenue.",
+  ];
+  const result = prepareResumeEvidence(bullets);
+  assert.deepEqual(result.facts, bullets, `rejected: ${JSON.stringify(result.omitted)}`);
+  assert.equal(result.omitted.length, 0);
+});
+
+test("real pasted code and log noise is still rejected", () => {
+  const result = prepareResumeEvidence([
+    "const payload = buildRequest(profile);",
+    "function renderRow(item) { return item.title; }",
+    '{ "requestId": "abc-123", "error": "timeout", "timestamp": 1730000000 }',
+    "<div className=\"card\"><span>Untitled</span></div>",
+    "if (left === right && !done) doSomething();",
+  ]);
+  assert.equal(result.facts.length, 0, `unexpectedly kept: ${JSON.stringify(result.facts)}`);
+  assert.ok(result.omitted.every((item) => item.reason === "code"), JSON.stringify(result.omitted));
+});
+
 test("playbook preparation keeps useful rules and removes code and duplicate guidance", () => {
   const rules = preparePlaybookLibrary([
     "Use specific accomplishment bullets supported by verified evidence.",

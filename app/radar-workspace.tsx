@@ -112,6 +112,7 @@ type ProfileDraft = {
   exclusions: string;
   minScore: number;
   companyStagePreference: RadarProfile["companyStagePreference"];
+  locationPolicy: RadarProfile["locationPolicy"];
 };
 
 const STAGE_PREFERENCE_OPTIONS: Array<{ value: RadarProfile["companyStagePreference"]; label: string }> = [
@@ -370,7 +371,12 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
   }
 
   async function runScan(options: { monitorId?: string; dueOnly?: boolean; automatic?: boolean } = {}) {
-    const data = await mutate({ action: "scan", monitorId: options.monitorId, dueOnly: Boolean(options.dueOnly), trigger: options.automatic ? "catch_up" : "manual", profile: draftToProfile(profileDraft) }, "scan", "Checking saved sources, repairing stale careers links, following official ATS boards, and retaining every role with its alignment score…");
+    // An automatic catch-up scan sends no profile at all. It fires from a mount
+    // effect whose closure can still hold the pre-load default form state, so
+    // sending profileDraft here would overwrite the user's saved goals with
+    // defaults. The server refuses a non-manual profile too; this is the
+    // matching half, so a stale draft never leaves the browser.
+    const data = await mutate({ action: "scan", monitorId: options.monitorId, dueOnly: Boolean(options.dueOnly), trigger: options.automatic ? "catch_up" : "manual", profile: options.automatic ? undefined : draftToProfile(profileDraft) }, "scan", "Checking saved sources, repairing stale careers links, following official ATS boards, and retaining every role with its alignment score…");
     if (!data) return;
     const result = data.result || {};
     const failures = result.failures?.length || 0;
@@ -464,7 +470,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
         <div className="card-heading"><div><span>01 · SEARCH GOALS</span><h3>What should count as a good lead?</h3></div><button className="primary" onClick={saveProfile} disabled={Boolean(busy)}>{busy === "profile" ? "Saving…" : "Save goals"}</button></div>
         <label>Target positions<textarea value={profileDraft.titles} onChange={(event) => setProfileDraft({ ...profileDraft, titles: event.target.value })} placeholder="One per line: Brand Project Manager…" /></label>
         <label>Skills and themes<textarea value={profileDraft.skills} onChange={(event) => setProfileDraft({ ...profileDraft, skills: event.target.value })} placeholder="Creative operations, integrated production…" /></label>
-        <div className="radar-two"><label>Markets<textarea value={profileDraft.locations} onChange={(event) => setProfileDraft({ ...profileDraft, locations: event.target.value })} /></label><label>Exclude<textarea value={profileDraft.exclusions} onChange={(event) => setProfileDraft({ ...profileDraft, exclusions: event.target.value })} placeholder="Commission only, unpaid…" /></label></div>
+        <div className="radar-two"><label>Markets<textarea value={profileDraft.locations} onChange={(event) => setProfileDraft({ ...profileDraft, locations: event.target.value })} /><select aria-label="How strictly to apply your markets" value={profileDraft.locationPolicy} onChange={(event) => setProfileDraft({ ...profileDraft, locationPolicy: event.target.value as RadarProfile["locationPolicy"] })}><option value="required">Only these markets (plus remote, if allowed below)</option><option value="preferred">Prefer these markets, but keep roles elsewhere</option></select></label><label>Exclude<textarea value={profileDraft.exclusions} onChange={(event) => setProfileDraft({ ...profileDraft, exclusions: event.target.value })} placeholder="Commission only, unpaid…" /></label></div>
         <label>Career goals<textarea value={profileDraft.goals} onChange={(event) => setProfileDraft({ ...profileDraft, goals: event.target.value })} /></label>
         <div className="radar-preferences"><fieldset><legend>Work style</legend>{["On-site", "Hybrid", "Remote"].map((mode) => <label key={mode}><input type="checkbox" checked={profileDraft.workModes.includes(mode)} onChange={(event) => setProfileDraft({ ...profileDraft, workModes: event.target.checked ? [...profileDraft.workModes, mode] : profileDraft.workModes.filter((item) => item !== mode) })} />{mode}</label>)}</fieldset><label>Minimum alignment <strong>{profileDraft.minScore}%</strong><input type="range" min="20" max="90" step="5" value={profileDraft.minScore} onChange={(event) => setProfileDraft({ ...profileDraft, minScore: Number(event.target.value) })} /></label><label>Company stage<select value={profileDraft.companyStagePreference} onChange={(event) => setProfileDraft({ ...profileDraft, companyStagePreference: event.target.value as RadarProfile["companyStagePreference"] })}>{STAGE_PREFERENCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div>
       </article>
@@ -604,6 +610,7 @@ function profileToDraft(profile: RadarProfile): ProfileDraft {
     exclusions: profile.exclusions.join("\n"),
     minScore: profile.minScore,
     companyStagePreference: profile.companyStagePreference,
+    locationPolicy: profile.locationPolicy,
   };
 }
 
@@ -617,6 +624,7 @@ function draftToProfile(draft: ProfileDraft): RadarProfile {
     exclusions: list(draft.exclusions),
     minScore: draft.minScore,
     companyStagePreference: draft.companyStagePreference,
+    locationPolicy: draft.locationPolicy,
   };
 }
 

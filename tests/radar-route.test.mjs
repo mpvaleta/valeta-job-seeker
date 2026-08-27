@@ -133,13 +133,28 @@ test("private radar persists goals, targets, discoveries, and approval state", a
     assert.equal(scannedData.monitors[0].due, false);
     assert.equal(scannedData.automation.backgroundScheduler, "enabled");
 
+    // A catch-up scan is fired from the client's mount effect, whose closure can
+    // still hold the pre-load default form state. If the route honoured that
+    // profile it would wipe the saved one on every app open, so a profile sent
+    // with trigger "catch_up" must be ignored entirely.
     const catchUp = await worker.fetch(new Request("http://localhost/api/radar", {
       method: "POST", headers,
-      body: JSON.stringify({ action: "scan", trigger: "catch_up" }),
+      body: JSON.stringify({ action: "scan", trigger: "catch_up", profile: {
+        titles: ["Creative Operations", "Project Manager", "Producer"],
+        skills: ["creative operations", "project management"],
+        locations: ["San Francisco Bay Area", "California", "United States"],
+        workModes: ["Hybrid", "On-site", "Remote"],
+        goals: "Generic default goals that must never replace the saved profile.",
+        exclusions: [],
+        minScore: 45,
+      } }),
     }), env, context);
     const catchUpData = await catchUp.json();
     assert.equal(catchUp.status, 200);
     assert.match(catchUpData.monitors[0].lastRunSummary, /^App-open catch-up scan · /);
+    assert.equal(catchUpData.profile.minScore, 55, "a catch-up scan must not overwrite the saved profile");
+    assert.deepEqual(catchUpData.profile.titles, ["Creative Operations Manager"]);
+    assert.deepEqual(catchUpData.profile.locations, ["San Francisco Bay Area"]);
     const below = scannedData.opportunities.find((item) => item.title === "Accounting Analyst");
     assert.ok(below);
     assert.equal(below.alignmentPasses, false);
@@ -620,6 +635,103 @@ test("a distinct posting at the same employer is never merged away", async () =>
     assert.equal(response.status, 200, JSON.stringify(data));
     assert.equal(data.result.imported.length, 2);
     assert.equal(data.opportunities.length, 2, "two different jobs must stay two rows");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
+// Nothing in the radar ever retired a row, so a filled role stayed in the inbox
+// next to live ones forever. A role the employer's board no longer lists is no
+// longer open — but a role the user has acted on keeps its status regardless.
+// Delisting is reported, never enforced by a status write. An earlier local
+// branch flipped the row to status "expired"; that was dropped because a
+// truncated or failed board read makes a live role look absent, and the write
+// would then bury a role the user had already shortlisted. The row keeps its
+// status and gains a derived listingLost flag instead.
+test("a role the employer stopped listing is flagged, and the user's own decision is untouched", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    // Distinct titles per id on purpose: the radar merges rows that read alike,
+    // so three same-titled postings would collapse into one and this test would
+    // be asserting against a merged row rather than three separate requisitions.
+    const titleFor = { 200: "Creative Operations Manager", 201: "Brand Programs Manager", 202: "Integrated Producer" };
+    let openJobIds = ["200", "201", "202"];
+    globalThis.fetch = async (url) => {
+      assert.match(String(url), /greenhouse\.io/);
+      return Response.json({ jobs: openJobIds.map((id) => ({
+        title: titleFor[id],
+        location: { name: "Oakland, CA" },
+        content: "<p>Lead integrated production and brand programs across cross-functional teams.</p>",
+        absolute_url: `https://boards.greenhouse.io/example/jobs/${id}`,
+        updated_at: "2026-08-01T00:00:00Z",
+      })) });
+    };
+
+    const post = async (body) => {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", { method: "POST", headers, body: JSON.stringify(body) }), env, context);
+      const data = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(data));
+      return data;
+    };
+
+    await post({ action: "save_profile", profile: {
+      titles: ["Creative Operations Manager", "Integrated Producer"],
+      skills: ["integrated production", "brand programs"],
+      locations: ["San Francisco Bay Area"],
+      workModes: ["Hybrid"],
+      goals: "Lead creative and brand delivery.",
+      exclusions: [],
+      minScore: 40,
+    } });
+    await post({ action: "add_monitor", monitor: {
+      company: "Example Studio",
+      kind: "Creative / Advertising Agency",
+      careersUrl: "https://boards.greenhouse.io/example",
+      targetPosition: "Creative Operations Manager",
+      cadence: "daily",
+    } });
+
+    // A scan also imports the hand-verified V's Job Watch batch, so the inbox
+    // holds those rows alongside this employer's three. Assert on this board's
+    // rows specifically rather than on the total.
+    const first = await post({ action: "scan" });
+    const boardRows = (payload) => payload.opportunities.filter((item) => item.sourceUrl.startsWith("https://boards.greenhouse.io/example/"));
+    assert.equal(boardRows(first).length, 3);
+    assert.ok(boardRows(first).every((item) => item.status === "new"));
+
+    // The user approves one of the roles that is about to disappear.
+    const doomedShortlist = boardRows(first).find((item) => item.sourceUrl.endsWith("/201"));
+    await post({ action: "set_opportunity_status", opportunityId: doomedShortlist.id, status: "shortlisted" });
+
+    // Both scans run inside the same second here, and last_seen_at /
+    // last_listing_read_at are both second-granularity, so the strict
+    // less-than that detects absence cannot separate them. Real scans are
+    // hours apart. Age these rows by an hour to stand in for that gap — the
+    // still-listed one gets refreshed by the next scan, the dropped ones do not.
+    await db.prepare("UPDATE job_opportunities SET last_seen_at = datetime('now', '-1 hour') WHERE source_url LIKE 'https://boards.greenhouse.io/example/%'").run();
+
+    openJobIds = ["200"];
+    const second = await post({ action: "scan" });
+
+    const byUrl = new Map(second.opportunities.map((item) => [item.sourceUrl, item]));
+    const still = byUrl.get("https://boards.greenhouse.io/example/jobs/200");
+    const dropped = byUrl.get("https://boards.greenhouse.io/example/jobs/202");
+    const shortlisted = byUrl.get("https://boards.greenhouse.io/example/jobs/201");
+
+    // No status anywhere is rewritten by the board going quiet.
+    assert.equal(still.status, "new", "a still-listed role is untouched");
+    assert.equal(dropped.status, "new", "a delisted role keeps its status — delisting is reported, not enforced");
+    assert.equal(shortlisted.status, "shortlisted", "the user's own decision survives the posting closing");
+
+    // The role the board dropped is the one flagged, and only it.
+    assert.equal(dropped.listingLost, true, "the delisted role is flagged as gone from the board");
+    assert.ok(!still.listingLost, "a role still on the board is not flagged");
+
+    assert.equal(boardRows(second).length, 3, "flagging never deletes a row");
   } finally {
     globalThis.fetch = originalFetch;
     await mf.dispose();
