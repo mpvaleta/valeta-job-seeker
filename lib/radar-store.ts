@@ -1,4 +1,4 @@
-import { classifyRadarOpportunity, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
+import { classifyRadarOpportunity, deriveDismissalSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import { DEFAULT_RADAR_MONITORS } from "./default-radar-monitors";
@@ -93,6 +93,9 @@ async function ensureListingColumns(db: D1Database) {
   for (const statement of [
     "ALTER TABLE job_opportunities ADD COLUMN last_seen_at text",
     "ALTER TABLE companies ADD COLUMN last_listing_read_at text",
+    // Why a dismissal happened, not just that it did. Only "not_relevant"
+    // teaches the scorer; "already_applied" is recorded and deliberately inert.
+    "ALTER TABLE job_opportunities ADD COLUMN dismissed_reason text",
   ]) {
     try {
       await db.prepare(statement).run();
@@ -148,8 +151,9 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     // scoreRadarOpportunity can produce, not just plain exclusions: a
     // startups-only mismatch caps score at 20, and the minScore slider goes
     // as low as 20, so missing this here would show a filtered-out role as
-    // passing right at that boundary.
-    const exclusionHit = /review exclusion:|startups-only filter/i.test(row.fit_summary || "");
+    // passing right at that boundary. The location gate caps at 24 for the
+    // same reason and has to be listed here too.
+    const exclusionHit = /review exclusion:|startups-only filter|location filter/i.test(row.fit_summary || "");
     const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
     const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : row.source_type === "linkedin-saved" ? "linkedin-saved" : "monitored";
     // The posting came from a complete board read, the board has since been
@@ -204,7 +208,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
 export async function saveRadarProfile(db: D1Database, userId: string, value: Partial<RadarProfile>) {
   const profile = normalizeRadarProfile(value);
   const existing = await db.prepare("SELECT id FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<{ id: string }>();
-  const constraints = JSON.stringify({ skills: profile.skills, workModes: profile.workModes, exclusions: profile.exclusions, minScore: profile.minScore, companyStagePreference: profile.companyStagePreference });
+  const constraints = JSON.stringify({ skills: profile.skills, workModes: profile.workModes, exclusions: profile.exclusions, minScore: profile.minScore, companyStagePreference: profile.companyStagePreference, locationPolicy: profile.locationPolicy });
   if (existing) {
     await db.prepare("UPDATE career_profiles SET headline = ?, target_roles_json = ?, target_markets_json = ?, positioning = ?, constraints_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
       .bind(profile.titles[0] || "Job radar", JSON.stringify(profile.titles), JSON.stringify(profile.locations), profile.goals || "Target-role radar", constraints, existing.id, userId).run();
@@ -285,11 +289,41 @@ export async function deleteRadarMonitor(db: D1Database, userId: string, monitor
   await db.prepare("UPDATE company_monitors SET is_active = 0 WHERE id = ? AND user_id = ?").bind(monitorId, userId).run();
 }
 
-export async function setRadarOpportunityStatus(db: D1Database, userId: string, opportunityId: string, status: string) {
+export async function setRadarOpportunityStatus(db: D1Database, userId: string, opportunityId: string, status: string, reason?: string) {
+  await ensureListingColumns(db);
   const normalized = normalizeOpportunityStatus(status);
-  await db.prepare("UPDATE job_opportunities SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
-    .bind(normalized, opportunityId, userId).run();
+  // A reason only means anything on a dismissal. Restoring a role, or moving it
+  // anywhere else, clears the stored reason so a role the user changed their
+  // mind about stops teaching the scorer.
+  const normalizedReason = normalized === "dismissed" ? normalizeDismissalReason(reason) : null;
+  await db.prepare("UPDATE job_opportunities SET status = ?, dismissed_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+    .bind(normalized, normalizedReason, opportunityId, userId).run();
   return normalized;
+}
+
+/*
+ * Reading back what the user has rejected.
+ *
+ * Capped well above the sample the learner needs, and ordered newest first, so
+ * a long-running inbox teaches from recent taste rather than from whatever was
+ * dismissed a year ago.
+ */
+export async function readDismissalHistory(db: D1Database, userId: string) {
+  await ensureListingColumns(db);
+  const result = await db.prepare(`SELECT o.title, o.dismissed_reason, o.fit_summary, c.name AS company_name, c.company_type
+    FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
+    WHERE o.user_id = ? AND o.status = 'dismissed' AND o.dismissed_reason IS NOT NULL
+    ORDER BY o.updated_at DESC LIMIT 200`)
+    .bind(userId).all<{ title: string; dismissed_reason: string; fit_summary: string | null; company_name: string | null; company_type: string | null }>();
+  return (result.results || []).map((row) => ({
+    title: row.title,
+    reason: row.dismissed_reason,
+    companyCategory: classifyRadarOpportunity({
+      company: row.company_name || "",
+      title: row.title,
+      fitSummary: row.fit_summary || "",
+    }, { kind: row.company_type || "" }).companyCategory,
+  }));
 }
 
 /*
@@ -398,6 +432,13 @@ function rememberOpportunity(
 export async function importJobWatchBatch(db: D1Database, userId: string) {
   let added = 0;
   let updated = 0;
+  // Once the hand-verified batch has aged past its shelf life, its roles are no
+  // longer credible as open postings, so it stops seeding the inbox instead of
+  // filing month-old listings as fresh discoveries.
+  if (isWatchBatchStale()) {
+    const staleExpired = await expireStaleWatchBatch(db, userId);
+    return { batchId: JOB_WATCH_BATCH_ID, checked: 0, added, updated, expired: staleExpired, stale: true };
+  }
   const index = await loadOpportunityIndex(db, userId);
   for (const role of JOB_WATCH_ROLES) {
     const existing = index.get(opportunityKey(role.sourceUrl));
@@ -423,6 +464,36 @@ export async function importJobWatchBatch(db: D1Database, userId: string) {
     added += 1;
   }
   return { batchId: JOB_WATCH_BATCH_ID, checked: JOB_WATCH_ROLES.length, added, updated };
+}
+
+/*
+ * Retiring postings that no longer exist.
+ *
+ * Employer-board delisting is handled non-destructively: last_seen_at on the
+ * row and last_listing_read_at on the company together derive a "no longer on
+ * the company board" badge at read time, without mutating status. That is
+ * strictly safer than flipping status, because a truncated or failed read can
+ * make a live role look absent, and a status write would then bury a role the
+ * user had already shortlisted.
+ *
+ * The one case the badge cannot cover is the V's Job Watch batch: a
+ * hand-verified snapshot with no live source to re-read, so absence can never
+ * be observed for it. That batch ages out on the calendar instead.
+ */
+const WATCH_BATCH_SHELF_LIFE_DAYS = 45;
+
+export function isWatchBatchStale(now = Date.now()) {
+  const verifiedAt = Date.parse(`${JOB_WATCH_BATCH_ID.slice(-10)}T00:00:00Z`);
+  if (!Number.isFinite(verifiedAt)) return false;
+  return now - verifiedAt >= WATCH_BATCH_SHELF_LIFE_DAYS * 24 * 60 * 60 * 1_000;
+}
+
+export async function expireStaleWatchBatch(db: D1Database, userId: string) {
+  if (!isWatchBatchStale()) return 0;
+  const result = await db.prepare("UPDATE job_opportunities SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND source_type = 'v-watch' AND status IN ('new', 'reviewing')")
+    .bind(userId).run();
+  const changes = result.meta?.changes;
+  return typeof changes === "number" ? changes : 0;
 }
 
 export type RadarScanTrigger = "manual" | "catch_up" | "background";
@@ -573,7 +644,12 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   const watchBatch = await importJobWatchBatch(db, userId);
   // Self-heal rows an earlier build duplicated before reading the current state.
   const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
+  let expired = await expireStaleWatchBatch(db, userId);
   const dashboard = await readRadarDashboard(db, userId);
+  // What the user keeps rejecting, read once per scan. Applied only to roles
+  // the radar found on its own — a link the user imported by hand is their
+  // explicit choice and is never down-ranked by this.
+  const dismissalSignal = deriveDismissalSignal(await readDismissalHistory(db, userId), dashboard.profile);
   const index = await loadOpportunityIndex(db, userId);
   // A Worker request has a hard subrequest budget, and one monitor can spend
   // seven of them when its careers page needs recovery plus a web-search
@@ -667,6 +743,13 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
           message: webSearch.message,
         });
         if (webSearch.sources.length) {
+          // An aggregator lead is kept deliberately: this branch only runs when
+          // the employer's own source produced nothing, and for an employer
+          // whose robots policy blocks collection it is the only way the role
+          // surfaces at all. It does create a second row when a later run does
+          // reach the employer's board directly -- that copy is retired by
+          // expireMissingOpportunities on the run that supersedes it, which is
+          // safer than dropping the lead outright.
           const citedDirectJobs = webSearch.sources.map((source) => ({
             title: source.title,
             company: monitor.company,
@@ -737,7 +820,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
         // when adding this target, so it overrides text/source-based signals
         // the same way classifyRadarOpportunity already does for display.
         const classification = classifyRadarOpportunity(job, monitor);
-        return { job, match: scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, profile) };
+        return { job, match: scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, profile, dismissalSignal) };
       }).sort((left, right) => right.match.score - left.match.score)
         .slice(0, 150);
       const matches = scored.filter(({ match }) => match.passes);
@@ -775,6 +858,13 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
           }
         }
       }
+      // Delisting is handled by the non-destructive last_seen_at /
+      // last_listing_read_at pair below, which derives a "no longer on the
+      // company board" badge at read time. An earlier local branch flipped
+      // status to "expired" here instead; that was dropped deliberately —
+      // mutating status on a scan that merely looked truncated would bury
+      // roles the user had already shortlisted, and the badge conveys the
+      // same fact without touching the row's state.
       if (jobStatements.length) await db.batch(jobStatements);
       const savedAttempt = discovery.attempts.find((attempt) => attempt.purpose === "saved-careers");
       const repairedSource = clean(discovery.recommendedCareersUrl, 4_000);
@@ -841,7 +931,9 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
     }
   }
   const deferred = Math.max(0, eligible.length - selected.length);
-  return { checked: selected.length, deferred, found, discovered, belowThreshold, added, matchedAdded, repairedSources, mergedDuplicates, failures, watchBatch };
+  // `expired` now counts only the V's Job Watch batch ageing out; per-board
+  // delisting is reported through the derived listingLost badge instead.
+  return { checked: selected.length, deferred, found, discovered, belowThreshold, added, matchedAdded, repairedSources, mergedDuplicates, expired, failures, watchBatch };
 }
 
 export async function scanAllDueRadars(db: D1Database) {
@@ -867,6 +959,7 @@ function profileFromRow(row: ProfileRow | null): RadarProfile {
     // Validated for real by normalizeRadarProfile's own allow-list below; this
     // cast only satisfies the stricter Partial<RadarProfile> input type.
     companyStagePreference: typeof constraints.companyStagePreference === "string" ? (constraints.companyStagePreference as RadarProfile["companyStagePreference"]) : undefined,
+    locationPolicy: typeof constraints.locationPolicy === "string" ? (constraints.locationPolicy as RadarProfile["locationPolicy"]) : undefined,
   });
 }
 
@@ -959,7 +1052,13 @@ function parseArray(value: string | null | undefined): string[] {
 }
 
 function normalizeOpportunityStatus(value: string) {
-  return ["new", "reviewing", "shortlisted", "dismissed", "applied", "archived"].includes(value) ? value : "new";
+  return ["new", "reviewing", "shortlisted", "dismissed", "applied", "archived", "expired"].includes(value) ? value : "new";
+}
+
+// An unrecognised reason becomes null rather than a default, so a client that
+// sends nothing never accidentally teaches the scorer.
+function normalizeDismissalReason(value: unknown) {
+  return value === "not_relevant" || value === "already_applied" ? value : null;
 }
 
 function clean(value: unknown, limit: number) {

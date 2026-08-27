@@ -1,4 +1,5 @@
 export type CompanyStagePreference = "no_preference" | "prefer_startups" | "startups_only";
+export type LocationPolicy = "preferred" | "required";
 
 export type RadarProfile = {
   titles: string[];
@@ -9,6 +10,7 @@ export type RadarProfile = {
   exclusions: string[];
   minScore: number;
   companyStagePreference: CompanyStagePreference;
+  locationPolicy: LocationPolicy;
 };
 
 export type RadarOpportunityInput = {
@@ -26,8 +28,28 @@ export type RadarOpportunityInput = {
 export const RADAR_TRACKS: Array<{ id: string; label: string }>;
 export const RADAR_COMPANY_CATEGORIES: string[];
 export const DEFAULT_RADAR_PROFILE: RadarProfile;
+export function isBayAreaLocation(value: unknown): boolean;
+export function isUnitedStatesLocation(value: unknown): boolean;
 export function normalizeRadarProfile(value?: Partial<RadarProfile>): RadarProfile;
-export function scoreRadarOpportunity(opportunity: RadarOpportunityInput, profile: Partial<RadarProfile>): { score: number; reasons: string[]; summary: string; passes: boolean };
+export function deriveRadarProfileFromCareer(input?: { headline?: string; summary?: string; location?: string; facts?: string[] }): {
+  titles: string[];
+  skills: string[];
+  goals: string;
+  locations: string[];
+  evidence: { factsRead: number; titlesFromHeadline: number; recurringPhrases: number; recurringWords: number };
+};
+export type DismissalReason = "not_relevant" | "already_applied";
+export type DismissalRecord = { title: string; reason: string; companyCategory?: string };
+export type DismissalSignal = {
+  ready: boolean;
+  words: string[];
+  categories: string[];
+  reason: string;
+  stats: { dismissalsRead: number; teachingDismissals: number; protectedWords: number };
+};
+export function deriveDismissalSignal(dismissals: DismissalRecord[], profile?: Partial<RadarProfile>): DismissalSignal;
+export function dismissalPenalty(titleLower: string, companyCategory: string, signal?: DismissalSignal): { penalty: number; matched: string[]; categoryHit?: boolean };
+export function scoreRadarOpportunity(opportunity: RadarOpportunityInput, profile: Partial<RadarProfile>, dismissalSignal?: DismissalSignal): { score: number; reasons: string[]; summary: string; passes: boolean };
 export function detectCareerSource(value: string): { type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday" | "apple" | "google-careers" | "meta-search" | "meta-job" | "public-page"; token: string; url: URL };
 export function classifyCompanyCategory(value?: string, context?: string): string;
 export function classifyRadarOpportunity(opportunity?: RadarOpportunityInput, target?: { company?: string; name?: string; kind?: string; companyType?: string; focus?: string }): { trackId: string; trackLabel: string; companyCategory: string };

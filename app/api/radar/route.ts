@@ -114,15 +114,25 @@ export async function POST(request: Request) {
     } else if (action === "seed_brand_pack") {
       result = await seedRadarMonitorPack(db, user.id, BRAND_RADAR_PACK);
     } else if (action === "set_opportunity_status") {
-      result = await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40));
+      // reason is only meaningful on a dismissal, and the store discards
+      // anything it does not recognise rather than defaulting, so a client that
+      // omits it can never accidentally teach the scorer.
+      result = await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40), typeof input.reason === "string" ? input.reason.slice(0, 40) : undefined);
     } else if (action === "scan") {
       if (isScanRateLimited(identity.email)) return error(429, "scan_rate_limited", "The radar has run several times recently. Wait a little before scanning again.");
-      if (input.profile) await saveRadarProfile(db, user.id, object(input.profile));
+      // "background" is reserved for the secret-protected cron route.
+      const trigger = input.trigger === "catch_up" ? "catch_up" : "manual";
+      // Only a scan the user started by hand may rewrite the saved profile. An
+      // app-open catch-up scan fires from a mount effect whose closure can still
+      // hold the pre-load form state, so honouring its profile would silently
+      // overwrite the user's saved roles, skills, and locations with defaults.
+      // saveRadarProfile is a full-column write with no merge, so this is a
+      // total replacement, not a partial one.
+      if (input.profile && trigger === "manual") await saveRadarProfile(db, user.id, object(input.profile));
       result = await scanRadar(db, user.id, {
         monitorId: typeof input.monitorId === "string" ? input.monitorId.slice(0, 100) : undefined,
         dueOnly: Boolean(input.dueOnly),
-        // "background" is reserved for the secret-protected cron route.
-        trigger: input.trigger === "catch_up" ? "catch_up" : "manual",
+        trigger,
       });
     } else if (action === "import_watch_batch") {
       result = await importJobWatchBatch(db, user.id);

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_RADAR_PROFILE, RADAR_COMPANY_CATEGORIES, RADAR_TRACKS } from "@/lib/radar.mjs";
 import { AGENCY_PACK_GROUPS } from "@/lib/agency-radar-pack";
 import { readJsonResponse } from "@/lib/http-json.mjs";
-import type { RadarProfile } from "@/lib/radar.mjs";
+import type { DismissalReason, RadarProfile } from "@/lib/radar.mjs";
 
 export type RadarOpportunity = {
   id: string;
@@ -112,6 +112,7 @@ type ProfileDraft = {
   exclusions: string;
   minScore: number;
   companyStagePreference: RadarProfile["companyStagePreference"];
+  locationPolicy: RadarProfile["locationPolicy"];
 };
 
 const STAGE_PREFERENCE_OPTIONS: Array<{ value: RadarProfile["companyStagePreference"]; label: string }> = [
@@ -370,7 +371,12 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
   }
 
   async function runScan(options: { monitorId?: string; dueOnly?: boolean; automatic?: boolean } = {}) {
-    const data = await mutate({ action: "scan", monitorId: options.monitorId, dueOnly: Boolean(options.dueOnly), trigger: options.automatic ? "catch_up" : "manual", profile: draftToProfile(profileDraft) }, "scan", "Checking saved sources, repairing stale careers links, following official ATS boards, and retaining every role with its alignment score…");
+    // An automatic catch-up scan sends no profile at all. It fires from a mount
+    // effect whose closure can still hold the pre-load default form state, so
+    // sending profileDraft here would overwrite the user's saved goals with
+    // defaults. The server refuses a non-manual profile too; this is the
+    // matching half, so a stale draft never leaves the browser.
+    const data = await mutate({ action: "scan", monitorId: options.monitorId, dueOnly: Boolean(options.dueOnly), trigger: options.automatic ? "catch_up" : "manual", profile: options.automatic ? undefined : draftToProfile(profileDraft) }, "scan", "Checking saved sources, repairing stale careers links, following official ATS boards, and retaining every role with its alignment score…");
     if (!data) return;
     const result = data.result || {};
     const failures = result.failures?.length || 0;
@@ -433,10 +439,12 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
     if (data) onNotice("Radar target archived. Its discoveries and history remain in your inbox.");
   }
 
-  async function updateOpportunity(opportunity: RadarOpportunity, status: RadarOpportunity["status"]) {
-    const data = await mutate({ action: "set_opportunity_status", opportunityId: opportunity.id, status }, `opportunity-${opportunity.id}`, "Updating this opportunity…");
+  async function updateOpportunity(opportunity: RadarOpportunity, status: RadarOpportunity["status"], reason?: DismissalReason) {
+    const data = await mutate({ action: "set_opportunity_status", opportunityId: opportunity.id, status, reason }, `opportunity-${opportunity.id}`, "Updating this opportunity…");
     if (data && status === "shortlisted") onNotice("Role approved for preparation. V’s will not submit anything without you.");
-    if (data && status === "reviewing" && (opportunity.status === "dismissed" || opportunity.status === "archived")) onNotice("Role restored to the active inbox. Its discovery history was never deleted.");
+    if (data && status === "reviewing" && (opportunity.status === "dismissed" || opportunity.status === "archived")) onNotice("Role restored to the active inbox. Its discovery history was never deleted. It no longer teaches the radar either.");
+    if (data && reason === "already_applied") onNotice("Filed as already handled. This one does not change what the radar looks for — you wanted it.");
+    if (data && reason === "not_relevant") onNotice("Noted as not relevant. Once a few roles share a pattern, V’s starts ranking similar ones lower. Words from your own target titles and skills are never learned against you.");
   }
 
   async function prepare(opportunity: RadarOpportunity) {
@@ -464,7 +472,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
         <div className="card-heading"><div><span>01 · SEARCH GOALS</span><h3>What should count as a good lead?</h3></div><button className="primary" onClick={saveProfile} disabled={Boolean(busy)}>{busy === "profile" ? "Saving…" : "Save goals"}</button></div>
         <label>Target positions<textarea value={profileDraft.titles} onChange={(event) => setProfileDraft({ ...profileDraft, titles: event.target.value })} placeholder="One per line: Brand Project Manager…" /></label>
         <label>Skills and themes<textarea value={profileDraft.skills} onChange={(event) => setProfileDraft({ ...profileDraft, skills: event.target.value })} placeholder="Creative operations, integrated production…" /></label>
-        <div className="radar-two"><label>Markets<textarea value={profileDraft.locations} onChange={(event) => setProfileDraft({ ...profileDraft, locations: event.target.value })} /></label><label>Exclude<textarea value={profileDraft.exclusions} onChange={(event) => setProfileDraft({ ...profileDraft, exclusions: event.target.value })} placeholder="Commission only, unpaid…" /></label></div>
+        <div className="radar-two"><label>Markets<textarea value={profileDraft.locations} onChange={(event) => setProfileDraft({ ...profileDraft, locations: event.target.value })} /><select aria-label="How strictly to apply your markets" value={profileDraft.locationPolicy} onChange={(event) => setProfileDraft({ ...profileDraft, locationPolicy: event.target.value as RadarProfile["locationPolicy"] })}><option value="required">Only these markets (plus remote, if allowed below)</option><option value="preferred">Prefer these markets, but keep roles elsewhere</option></select></label><label>Exclude<textarea value={profileDraft.exclusions} onChange={(event) => setProfileDraft({ ...profileDraft, exclusions: event.target.value })} placeholder="Commission only, unpaid…" /></label></div>
         <label>Career goals<textarea value={profileDraft.goals} onChange={(event) => setProfileDraft({ ...profileDraft, goals: event.target.value })} /></label>
         <div className="radar-preferences"><fieldset><legend>Work style</legend>{["On-site", "Hybrid", "Remote"].map((mode) => <label key={mode}><input type="checkbox" checked={profileDraft.workModes.includes(mode)} onChange={(event) => setProfileDraft({ ...profileDraft, workModes: event.target.checked ? [...profileDraft.workModes, mode] : profileDraft.workModes.filter((item) => item !== mode) })} />{mode}</label>)}</fieldset><label>Minimum alignment <strong>{profileDraft.minScore}%</strong><input type="range" min="20" max="90" step="5" value={profileDraft.minScore} onChange={(event) => setProfileDraft({ ...profileDraft, minScore: Number(event.target.value) })} /></label><label>Company stage<select value={profileDraft.companyStagePreference} onChange={(event) => setProfileDraft({ ...profileDraft, companyStagePreference: event.target.value as RadarProfile["companyStagePreference"] })}>{STAGE_PREFERENCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div>
       </article>
@@ -576,7 +584,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
         <label>Career trail<select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}><option value="all">All trails</option>{RADAR_TRACKS.map((track) => <option key={track.id} value={track.id}>{track.label}</option>)}</select></label>
         <label>Company type<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All company types</option>{RADAR_COMPANY_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
       </div>
-      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : opportunity.origin === "monitored" ? "monitored" : "imported"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : opportunity.origin === "imported" ? "Imported by you" : opportunity.origin === "linkedin-saved" ? "Saved on LinkedIn" : "Company you monitor"}</em>{!opportunity.alignmentPasses && <em className="below">Below {profileDraft.minScore}% threshold</em>}{opportunity.listingLost && <em className="closed" title="This role came from the company's public board, and the newest complete read of that board no longer includes it. Open the original to confirm before spending time on it.">No longer on the company board</em>}</div><p>{opportunity.fitSummary}</p><small><b className="collected-on">Collected {compactDateTime(opportunity.discoveredAt)}</b>{opportunity.lastSeenAt && opportunity.lastSeenAt.slice(0, 10) !== opportunity.discoveredAt.slice(0, 10) && <> · still listed {compactDate(opportunity.lastSeenAt)}</>} · {opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : opportunity.origin === "imported" ? "Imported from a link you provided" : opportunity.origin === "linkedin-saved" ? "From your official LinkedIn saved-jobs export" : "Found from a monitored company"} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button onClick={() => updateOpportunity(opportunity, "dismissed")}>Dismiss</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}{(opportunity.status === "dismissed" || opportunity.status === "archived") && <button onClick={() => updateOpportunity(opportunity, "reviewing")}>Restore</button>}</div></article>)}</div>}
+      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : opportunity.origin === "monitored" ? "monitored" : "imported"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : opportunity.origin === "imported" ? "Imported by you" : opportunity.origin === "linkedin-saved" ? "Saved on LinkedIn" : "Company you monitor"}</em>{!opportunity.alignmentPasses && <em className="below">Below {profileDraft.minScore}% threshold</em>}{opportunity.listingLost && <em className="closed" title="This role came from the company's public board, and the newest complete read of that board no longer includes it. Open the original to confirm before spending time on it.">No longer on the company board</em>}</div><p>{opportunity.fitSummary}</p><small><b className="collected-on">Collected {compactDateTime(opportunity.discoveredAt)}</b>{opportunity.lastSeenAt && opportunity.lastSeenAt.slice(0, 10) !== opportunity.discoveredAt.slice(0, 10) && <> · still listed {compactDate(opportunity.lastSeenAt)}</>} · {opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : opportunity.origin === "imported" ? "Imported from a link you provided" : opportunity.origin === "linkedin-saved" ? "From your official LinkedIn saved-jobs export" : "Found from a monitored company"} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button title="You already applied to this one, or you have seen it before. Hides it without changing what the radar looks for." onClick={() => updateOpportunity(opportunity, "dismissed", "already_applied")}>Saw it / applied</button>}{opportunity.status !== "dismissed" && <button title="This is not the kind of role you want. Hides it, and once a few share a pattern V's ranks similar roles lower." onClick={() => updateOpportunity(opportunity, "dismissed", "not_relevant")}>Not for me</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}{(opportunity.status === "dismissed" || opportunity.status === "archived") && <button onClick={() => updateOpportunity(opportunity, "reviewing")}>Restore</button>}</div></article>)}</div>}
     </section>
   </section>;
 }
@@ -604,6 +612,7 @@ function profileToDraft(profile: RadarProfile): ProfileDraft {
     exclusions: profile.exclusions.join("\n"),
     minScore: profile.minScore,
     companyStagePreference: profile.companyStagePreference,
+    locationPolicy: profile.locationPolicy,
   };
 }
 
@@ -617,6 +626,7 @@ function draftToProfile(draft: ProfileDraft): RadarProfile {
     exclusions: list(draft.exclusions),
     minScore: draft.minScore,
     companyStagePreference: draft.companyStagePreference,
+    locationPolicy: draft.locationPolicy,
   };
 }
 

@@ -3,10 +3,15 @@ import test from "node:test";
 import {
   DEFAULT_RADAR_PROFILE,
   classifyRadarOpportunity,
+  deriveDismissalSignal,
+  deriveRadarProfileFromCareer,
+  dismissalPenalty,
   detectCareerSource,
   discoverTargetJobs,
   discoverTargetJobsDetailed,
+  isBayAreaLocation,
   isPlausibleRadarJob,
+  isUnitedStatesLocation,
   normalizeRadarProfile,
   opportunityContentKey,
   opportunityKey,
@@ -42,6 +47,141 @@ test("radar treats named Silicon Valley locations as Bay Area roles", () => {
     location: "Cupertino",
   }, DEFAULT_RADAR_PROFILE);
   assert.match(result.summary, /location: San Francisco Bay Area/i);
+});
+
+// The Bay Area test used to accept "california" and a bare "ca", so the whole
+// state read as one market and a San Diego role scored as a local one.
+test("Bay Area matching excludes the rest of California", () => {
+  for (const location of ["Oakland, CA", "Palo Alto, California", "San Jose", "Berkeley, CA", "San Francisco Bay Area"]) {
+    assert.equal(isBayAreaLocation(location), true, location);
+  }
+  for (const location of ["San Diego, CA", "Los Angeles, California", "Sacramento, CA", "Irvine, CA", "Austin, TX"]) {
+    assert.equal(isBayAreaLocation(location), false, location);
+  }
+});
+
+// Newark, Richmond, Fremont, Concord, and Dublin all name a Bay Area city and
+// a city somewhere else, so they only count with California alongside them.
+test("cities that exist in two places need a California marker", () => {
+  assert.equal(isBayAreaLocation("Newark, CA"), true);
+  assert.equal(isBayAreaLocation("Newark, NJ"), false);
+  assert.equal(isBayAreaLocation("Dublin, CA"), true);
+  assert.equal(isBayAreaLocation("Dublin, Ireland"), false);
+  assert.equal(isBayAreaLocation("Richmond, California"), true);
+  assert.equal(isBayAreaLocation("Richmond, VA"), false);
+});
+
+// The old United States test was `\b[a-z .]+, [a-z]{2}\b`, which reads any
+// "City, XX" on earth as American.
+test("United States matching does not accept foreign City, XX locations", () => {
+  for (const location of ["Austin, TX", "Boston, MA", "United States", "Seattle, Washington"]) {
+    assert.equal(isUnitedStatesLocation(location), true, location);
+  }
+  for (const location of ["Toronto, ON", "Tokyo, JP", "London, UK", "Bengaluru, IN", "Munich, DE", "São Paulo, Brazil"]) {
+    assert.equal(isUnitedStatesLocation(location), false, location);
+  }
+});
+
+test("a strong role outside the target market cannot pass while the market is required", () => {
+  const opportunity = {
+    title: "Creative Operations Manager",
+    description: "Lead integrated production, brand programs, agency partners, and cross-functional delivery.",
+  };
+  const inside = scoreRadarOpportunity({ ...opportunity, location: "Oakland, CA" }, DEFAULT_RADAR_PROFILE);
+  assert.equal(inside.passes, true);
+  assert.ok(inside.score >= 80);
+
+  for (const location of ["San Diego, CA", "Austin, TX", "Tokyo, JP", "Toronto, ON"]) {
+    const outside = scoreRadarOpportunity({ ...opportunity, location }, DEFAULT_RADAR_PROFILE);
+    assert.equal(outside.passes, false, `${location} must not pass`);
+    assert.ok(outside.score <= 24, `${location} scored ${outside.score}`);
+    assert.match(outside.summary, /location filter/i);
+  }
+});
+
+test("remote substitutes for the market only when it is not scoped somewhere else", () => {
+  const opportunity = {
+    title: "Brand Program Manager",
+    description: "Own integrated production and brand programs with cross-functional partners.",
+  };
+  const open = scoreRadarOpportunity({ ...opportunity, location: "Remote" }, DEFAULT_RADAR_PROFILE);
+  assert.equal(open.passes, true);
+  assert.match(open.summary, /remote option/i);
+
+  const elsewhere = scoreRadarOpportunity({ ...opportunity, location: "Remote — EMEA" }, DEFAULT_RADAR_PROFILE);
+  assert.equal(elsewhere.passes, false);
+  assert.match(elsewhere.summary, /location filter/i);
+
+  // With Remote unchecked, an open remote role stops standing in for the market.
+  const noRemote = scoreRadarOpportunity({ ...opportunity, location: "Remote" }, { ...DEFAULT_RADAR_PROFILE, workModes: ["Hybrid", "On-site"] });
+  assert.equal(noRemote.passes, false);
+});
+
+test("locationPolicy preferred keeps the old behaviour of scoring geography without gating on it", () => {
+  const opportunity = {
+    title: "Creative Operations Manager",
+    description: "Lead integrated production, brand programs, agency partners, and cross-functional delivery.",
+    location: "Austin, TX",
+  };
+  assert.equal(scoreRadarOpportunity(opportunity, DEFAULT_RADAR_PROFILE).passes, false);
+  assert.equal(scoreRadarOpportunity(opportunity, { ...DEFAULT_RADAR_PROFILE, locationPolicy: "preferred" }).passes, true);
+  assert.equal(normalizeRadarProfile({ locationPolicy: "whatever" }).locationPolicy, "required");
+});
+
+// "manager" is a stop word, so the generic phrase matcher reduced the target
+// "Project Manager" to "project" and handed the full exact-title bonus to every
+// "Project …" role in existence.
+test("a target title is not matched by an unrelated role that shares one word", () => {
+  const profile = { ...DEFAULT_RADAR_PROFILE, skills: [], goals: "", titles: ["Project Manager"] };
+  const exact = scoreRadarOpportunity({ title: "Senior Project Manager", location: "Oakland, CA" }, profile);
+  assert.match(exact.summary, /target title/i);
+
+  for (const title of ["Project Engineer", "Project Coordinator", "Structural Project Architect"]) {
+    const result = scoreRadarOpportunity({ title, location: "Oakland, CA" }, profile);
+    assert.doesNotMatch(result.summary, /target title/i, title);
+    assert.ok(result.score < exact.score, `${title} scored ${result.score}`);
+  }
+});
+
+test("radar goals derived from career evidence read roles from job headers, never from accomplishment bullets", () => {
+  const derived = deriveRadarProfileFromCareer({
+    headline: "Creative Operations Manager",
+    summary: "Brand and creative production leader focused on integrated campaigns.",
+    location: "Oakland, CA",
+    facts: [
+      "Senior Project Manager, Acme Studios — Jan 2019 to Present",
+      "Led cross-functional creative production programs from brief through launch with brand and media teams.",
+      "Managed integrated campaign timelines, budgets, and delivery risks across creative workstreams.",
+      "Producer, Northwind Agency — March 2015 – December 2018",
+      "Ran production schedules, crews, and location logistics for national broadcast shoots.",
+      "Owned the integrated production budget and quarterly forecast for brand campaigns.",
+      "Delivered brand campaigns with agency partners and cross-functional creative teams.",
+    ],
+  });
+  assert.deepEqual(derived.titles, ["Creative Operations Manager", "Senior Project Manager", "Producer"]);
+  assert.deepEqual(derived.locations, ["San Francisco Bay Area"]);
+  assert.ok(derived.skills.length >= 3, JSON.stringify(derived.skills));
+  // Every proposed skill must actually recur in the evidence it was read from.
+  const bullets = [
+    "Led cross-functional creative production programs from brief through launch with brand and media teams.",
+    "Managed integrated campaign timelines, budgets, and delivery risks across creative workstreams.",
+    "Ran production schedules, crews, and location logistics for national broadcast shoots.",
+    "Owned the integrated production budget and quarterly forecast for brand campaigns.",
+    "Delivered brand campaigns with agency partners and cross-functional creative teams.",
+  ].map((bullet) => bullet.toLowerCase());
+  for (const skill of derived.skills) {
+    const hits = bullets.filter((bullet) => bullet.includes(skill)).length;
+    assert.ok(hits >= 2, `"${skill}" appears in ${hits} of the source facts`);
+  }
+  // Action verbs that open every bullet are not themes.
+  assert.ok(!derived.skills.some((skill) => /^(?:led|managed|ran|owned|delivered)\b/.test(skill)), JSON.stringify(derived.skills));
+});
+
+test("career-derived goals stay empty rather than guessing from thin evidence", () => {
+  const derived = deriveRadarProfileFromCareer({ headline: "", summary: "", location: "", facts: ["Did some things."] });
+  assert.deepEqual(derived.titles, []);
+  assert.deepEqual(derived.skills, []);
+  assert.deepEqual(derived.locations, []);
 });
 
 test("radar exclusions prevent a superficially matching role from passing", () => {
@@ -454,4 +594,112 @@ test("the content identity collapses one job published under unrelated URLs", ()
   // Too little to identify anything is no identity at all, never a false match.
   assert.equal(opportunityContentKey({ company: "", title: "Producer" }), "");
   assert.equal(opportunityContentKey({ company: "VaynerMedia", title: "PM" }), "");
+});
+
+const DISMISSAL_PROFILE = {
+  titles: ["Brand Project Manager", "Integrated Producer"],
+  skills: ["creative operations", "brand programs"],
+  locations: ["San Francisco Bay Area"],
+  workModes: ["Hybrid"],
+  goals: "Lead brand and creative delivery.",
+  exclusions: [],
+  minScore: 45,
+};
+
+const notRelevant = (title, companyCategory) => ({ title, companyCategory, reason: "not_relevant" });
+
+test("one dismissal teaches the radar nothing", () => {
+  const signal = deriveDismissalSignal([notRelevant("Senior Software Engineer")], DISMISSAL_PROFILE);
+  assert.equal(signal.ready, false);
+  assert.deepEqual(signal.words, []);
+  // The copy has to say what is still missing, not just refuse.
+  assert.match(signal.reason, /at least 4/);
+  assert.equal(signal.stats.teachingDismissals, 1);
+});
+
+test("a word repeated across dismissed roles is learned and lowers a similar role", () => {
+  const signal = deriveDismissalSignal([
+    notRelevant("Senior Software Engineer"),
+    notRelevant("Staff Software Engineer"),
+    notRelevant("Software Development Manager"),
+    notRelevant("Principal Engineer, Platform"),
+  ], DISMISSAL_PROFILE);
+  assert.equal(signal.ready, true);
+  assert.ok(signal.words.includes("software"), `expected "software" in ${JSON.stringify(signal.words)}`);
+  assert.ok(signal.words.includes("engineer"), `expected "engineer" in ${JSON.stringify(signal.words)}`);
+
+  // A word that appeared only once never makes the list.
+  assert.ok(!signal.words.includes("platform"), "a single mention must not teach");
+
+  const engineering = scoreRadarOpportunity({ title: "Software Engineer", location: "Oakland, CA" }, DISMISSAL_PROFILE, signal);
+  const unpenalized = scoreRadarOpportunity({ title: "Software Engineer", location: "Oakland, CA" }, DISMISSAL_PROFILE);
+  assert.ok(engineering.score < unpenalized.score, "a learned word must lower the score");
+  assert.ok(engineering.reasons.some((line) => /dismissed/.test(line)), "the reason must say why it sank");
+});
+
+test("learning never contradicts the roles the user asked for", () => {
+  // Four project roles dismissed -- but "project" is in a saved target title,
+  // so it must never become a penalty. Otherwise the radar would learn to bury
+  // exactly what the user told it to look for.
+  const signal = deriveDismissalSignal([
+    notRelevant("Project Coordinator"),
+    notRelevant("Project Administrator"),
+    notRelevant("Junior Project Assistant"),
+    notRelevant("Project Scheduling Clerk"),
+  ], DISMISSAL_PROFILE);
+  assert.ok(!signal.words.includes("project"), `"project" is a saved target word and must be protected, got ${JSON.stringify(signal.words)}`);
+
+  const target = scoreRadarOpportunity({ title: "Brand Project Manager", location: "Oakland, CA" }, DISMISSAL_PROFILE, signal);
+  const untaught = scoreRadarOpportunity({ title: "Brand Project Manager", location: "Oakland, CA" }, DISMISSAL_PROFILE);
+  assert.equal(target.score, untaught.score, "a saved target title must score identically before and after learning");
+});
+
+test("dismissing something you already applied to teaches nothing", () => {
+  const applied = [
+    { title: "Senior Software Engineer", reason: "already_applied" },
+    { title: "Staff Software Engineer", reason: "already_applied" },
+    { title: "Software Development Manager", reason: "already_applied" },
+    { title: "Principal Software Architect", reason: "already_applied" },
+  ];
+  const signal = deriveDismissalSignal(applied, DISMISSAL_PROFILE);
+  assert.equal(signal.ready, false, "applying to a role is interest, not rejection");
+  assert.deepEqual(signal.words, []);
+  assert.equal(signal.stats.teachingDismissals, 0);
+  assert.equal(signal.stats.dismissalsRead, 4, "they are still read, just not learned from");
+});
+
+test("a learned penalty is bounded and never vetoes a strong match", () => {
+  const signal = deriveDismissalSignal([
+    notRelevant("Software Engineer"),
+    notRelevant("Software Developer"),
+    notRelevant("Engineering Manager Software"),
+    notRelevant("Software Platform Engineer"),
+  ], DISMISSAL_PROFILE);
+
+  // Every learned word present at once, plus an exact target title.
+  const strong = scoreRadarOpportunity(
+    { title: "Brand Project Manager, Software Engineer Programs", location: "Oakland, CA" },
+    DISMISSAL_PROFILE,
+    signal,
+  );
+  assert.ok(strong.passes, "learning nudges the ranking; it must not gate a role out");
+  assert.ok(strong.score >= DISMISSAL_PROFILE.minScore);
+
+  // The penalty itself is capped regardless of how many words match.
+  const { penalty } = dismissalPenalty("software engineer developer platform engineering", "", signal);
+  assert.ok(penalty <= 22, `penalty must stay bounded, got ${penalty}`);
+});
+
+test("restoring a role removes its teaching signal", () => {
+  // The store clears dismissed_reason on any non-dismissed status, so a
+  // restored role arrives here with no reason and drops out of the sample.
+  const afterRestore = [
+    notRelevant("Software Engineer"),
+    notRelevant("Software Developer"),
+    { title: "Software Architect", reason: null },
+    { title: "Software Analyst", reason: null },
+  ];
+  const signal = deriveDismissalSignal(afterRestore, DISMISSAL_PROFILE);
+  assert.equal(signal.ready, false, "two restored roles drop the sample below the learning threshold");
+  assert.equal(signal.stats.teachingDismissals, 2);
 });
