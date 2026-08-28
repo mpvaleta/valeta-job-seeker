@@ -21,6 +21,14 @@ export type AgencyPackEntry = {
   focus: string;
 };
 
+import {
+  DIRECTORY_ADVERTISING_PACK,
+  DIRECTORY_DIGITAL_PACK,
+  DIRECTORY_MARKETING_PACK,
+  DIRECTORY_PR_PACK,
+  DIRECTORY_PRODUCTION_PACK,
+} from "./bay-area-agency-directory.ts";
+
 // Traditional creative and advertising shops: brand campaigns, broadcast and
 // integrated production, creative project management.
 export const ADVERTISING_AGENCY_PACK: readonly AgencyPackEntry[] = [
@@ -69,16 +77,26 @@ export const PRODUCTION_AGENCY_PACK: readonly AgencyPackEntry[] = [
   { company: "Legs Media", kind: "Production Company", careersUrl: "", websiteUrl: "https://www.legsmedia.com/careers", focus: "Branded content and campaign production" },
 ];
 
+// The curated entries above carry hand-verified careers URLs and focus text.
+// The directory adds the rest of the owner's own SF Bay Area research on top,
+// de-duplicated by company name so a shop appearing in both keeps the curated
+// version, which is the better-verified one.
+function withDirectory(curated: readonly AgencyPackEntry[], directory: readonly AgencyPackEntry[]): readonly AgencyPackEntry[] {
+  const seen = new Set(curated.map((entry) => entry.company.toLowerCase()));
+  return [...curated, ...directory.filter((entry) => !seen.has(entry.company.toLowerCase()))];
+}
+
 export const AGENCY_PACK_GROUPS: ReadonlyArray<{
   id: string;
   label: string;
   blurb: string;
   entries: readonly AgencyPackEntry[];
 }> = [
-  { id: "advertising", label: "Advertising", blurb: "Creative shops: brand campaigns, broadcast, integrated production.", entries: ADVERTISING_AGENCY_PACK },
-  { id: "digital", label: "Digital", blurb: "Product, experience, and interactive builds.", entries: DIGITAL_AGENCY_PACK },
-  { id: "marketing", label: "Marketing", blurb: "Performance, brand, and communications firms.", entries: MARKETING_AGENCY_PACK },
-  { id: "production", label: "Production", blurb: "Content, experiential, and film production companies.", entries: PRODUCTION_AGENCY_PACK },
+  { id: "advertising", label: "Advertising", blurb: "Creative shops: brand campaigns, broadcast, integrated production.", entries: withDirectory(ADVERTISING_AGENCY_PACK, DIRECTORY_ADVERTISING_PACK) },
+  { id: "digital", label: "Digital", blurb: "Product, experience, and interactive builds.", entries: withDirectory(DIGITAL_AGENCY_PACK, DIRECTORY_DIGITAL_PACK) },
+  { id: "marketing", label: "Marketing", blurb: "Performance, brand, and communications firms.", entries: withDirectory(MARKETING_AGENCY_PACK, DIRECTORY_MARKETING_PACK) },
+  { id: "pr", label: "PR & comms", blurb: "PR, communications, and content-marketing firms.", entries: DIRECTORY_PR_PACK },
+  { id: "production", label: "Production", blurb: "Content, experiential, and film production companies.", entries: withDirectory(PRODUCTION_AGENCY_PACK, DIRECTORY_PRODUCTION_PACK) },
 ];
 
 // The union, kept so the original "add every agency" action still means the
