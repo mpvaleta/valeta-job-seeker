@@ -784,7 +784,7 @@ test("a word repeated across shortlisted roles is learned and lifts a similar di
   const boosted = scoreRadarOpportunity({ title: "Sports Production Lead", location: "Oakland, CA" }, DISMISSAL_PROFILE, undefined, signal);
   const plain = scoreRadarOpportunity({ title: "Sports Production Lead", location: "Oakland, CA" }, DISMISSAL_PROFILE);
   assert.ok(boosted.score > plain.score, "a learned interest word must raise the score");
-  assert.ok(boosted.reasons.some((line) => /shortlisted or applied/.test(line)), "the reason must say why it rose");
+  assert.ok(boosted.reasons.some((line) => /roles you pursued/.test(line)), "the reason must say why it rose");
 });
 
 test("an interest boost is bounded and never overrides a hard gate", () => {

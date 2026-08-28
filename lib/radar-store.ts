@@ -337,14 +337,21 @@ export async function readDismissalHistory(db: D1Database, userId: string) {
  * Reading back what the user has pursued.
  *
  * Shortlisting and applying are the strongest positive signals the radar can
- * observe, so they feed the interest learner the same way dismissals feed the
- * dismissal learner: newest first and capped, so long-running inboxes teach
- * from recent taste.
+ * observe. A link the user imported by hand — a pasted job page, a captured
+ * board row, a LinkedIn saved job — is the same kind of signal: they picked
+ * that exact role themselves, so it teaches from the moment it arrives, not
+ * only once it is also shortlisted. A pursued role the user later dismissed
+ * is excluded — the dismissal is the newer opinion, and the same role must
+ * never teach both learners at once. Newest first and capped, so long-running
+ * inboxes teach from recent taste.
  */
 export async function readPursuitHistory(db: D1Database, userId: string) {
   const result = await db.prepare(`SELECT o.title, o.fit_summary, c.name AS company_name, c.company_type
     FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
-    WHERE o.user_id = ? AND o.status IN ('shortlisted', 'applied')
+    WHERE o.user_id = ? AND (
+      o.status IN ('shortlisted', 'applied')
+      OR (o.source_type IN ('imported', 'linkedin-saved') AND o.status NOT IN ('dismissed'))
+    )
     ORDER BY o.updated_at DESC LIMIT 200`)
     .bind(userId).all<{ title: string; fit_summary: string | null; company_name: string | null; company_type: string | null }>();
   return (result.results || []).map((row) => ({
@@ -681,9 +688,10 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   // the radar found on its own — a link the user imported by hand is their
   // explicit choice and is never down-ranked by this.
   const dismissalSignal = deriveDismissalSignal(await readDismissalHistory(db, userId), dashboard.profile);
-  // The mirror signal: what the user shortlists and applies to, boosting
-  // similar discoveries. Like the dismissal signal, it applies only to roles
-  // the radar finds on its own — imported links are already chosen.
+  // The mirror signal: what the user shortlists, applies to, or imported by
+  // hand, boosting similar discoveries. Like the dismissal signal, it is
+  // APPLIED only to roles the radar finds on its own — imported links are
+  // already chosen — but imported links do TEACH it.
   const interestSignal = deriveInterestSignal(await readPursuitHistory(db, userId), dashboard.profile);
   const index = await loadOpportunityIndex(db, userId);
   // A Worker request has a hard subrequest budget, and one monitor can spend

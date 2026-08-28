@@ -1281,3 +1281,70 @@ test("an agency contact the user supplies is stored, and a malformed one is not"
     await mf.dispose();
   }
 });
+
+// A link the user imports by hand is a positive signal in itself: once a few
+// imported roles share a pattern, a scan's own discoveries that match the
+// pattern say so and rank higher — without the user ever shortlisting anything.
+test("imported links teach the interest signal that boosts scanned discoveries", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  const originalFetch = globalThis.fetch;
+  try {
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "save_profile", profile: {
+        titles: ["Creative Operations Manager"],
+        skills: ["integrated production", "brand programs"],
+        locations: ["San Francisco Bay Area"],
+        workModes: ["Hybrid"],
+        goals: "Lead creative and brand delivery.",
+        exclusions: [],
+        minScore: 40,
+      } }),
+    }), env, context);
+
+    const owner = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind("owner@example.com").first();
+    const companyId = crypto.randomUUID();
+    await db.prepare("INSERT INTO companies (id, name, company_type, primary_market, notes) VALUES (?, ?, ?, ?, ?)")
+      .bind(companyId, "Sports Org", "Sports / Entertainment", "United States", "Added from an imported job link").run();
+    for (const title of ["Sports Partnerships Manager", "Sports Marketing Manager", "Sports Events Manager"]) {
+      await db.prepare("INSERT INTO job_opportunities (id, user_id, company_id, title, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(crypto.randomUUID(), owner.id, companyId, title, `https://sportsorg.example/jobs/${encodeURIComponent(title)}`, "imported", 60, "Imported by hand.", "new").run();
+    }
+
+    await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: {
+        company: "Example Studio",
+        kind: "Creative / Advertising Agency",
+        careersUrl: "https://boards.greenhouse.io/example",
+        cadence: "daily",
+      } }),
+    }), env, context);
+
+    globalThis.fetch = async (url) => {
+      assert.match(String(url), /boards-api\.greenhouse\.io/);
+      return Response.json({ jobs: [{
+        title: "Sports Production Coordinator",
+        location: { name: "San Francisco, CA" },
+        content: "<p>Coordinate live event production for league broadcast partners.</p>",
+        absolute_url: "https://boards.greenhouse.io/example/jobs/200",
+        updated_at: "2026-08-20T00:00:00Z",
+      }] });
+    };
+    const scanned = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const scannedData = await scanned.json();
+    assert.equal(scanned.status, 200);
+    const discovered = scannedData.opportunities.find((item) => item.sourceType === "greenhouse");
+    assert.ok(discovered, "the scanned role must reach the inbox");
+    assert.match(discovered.fitSummary, /similar to roles you pursued: sports/,
+      "roles imported by hand must teach the interest signal without ever being shortlisted");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
