@@ -273,12 +273,19 @@ export async function seedDefaultRadarMonitors(db: D1Database, userId: string) {
   return seedRadarMonitorPack(db, userId, DEFAULT_RADAR_MONITORS);
 }
 
-export async function updateRadarMonitor(db: D1Database, userId: string, monitorId: string, patch: { active?: boolean; cadence?: string; focus?: string; targetPosition?: string }) {
+export async function updateRadarMonitor(db: D1Database, userId: string, monitorId: string, patch: { active?: boolean; cadence?: string; focus?: string; targetPosition?: string; contactEmail?: string; contactNote?: string }) {
   const current = await ownedMonitor(db, userId, monitorId);
   if (!current) throw new Error("That radar target could not be found.");
   const query = parseObject(current.query);
   if (patch.focus != null) query.focus = clean(patch.focus, 1_000);
   if (patch.targetPosition != null) query.targetPosition = clean(patch.targetPosition, 180);
+  // Contact details the user supplies themselves. A survey of these agencies
+  // found that essentially none publish a careers or HR address, so there is
+  // nothing to look up automatically — this is a place to record a contact the
+  // user already has, from their own network or an application they sent.
+  // Stored in the existing query JSON, so no migration is needed.
+  if (patch.contactEmail != null) query.contactEmail = normalizeContactEmail(patch.contactEmail);
+  if (patch.contactNote != null) query.contactNote = clean(patch.contactNote, 400);
   const cadence = patch.cadence === "manual" ? "manual" : patch.cadence === "twice_daily" ? "twice_daily" : patch.cadence === "daily" || patch.cadence === "weekly" ? "daily" : current.cadence;
   const active = patch.active == null ? Boolean(current.is_active) : Boolean(patch.active);
   await db.prepare("UPDATE company_monitors SET query = ?, cadence = ?, is_active = ? WHERE id = ? AND user_id = ?")
@@ -979,6 +986,8 @@ function monitorFromRow(row: MonitorRow) {
     targetPosition: typeof query.targetPosition === "string" ? query.targetPosition : "",
     referenceUrl: typeof query.referenceUrl === "string" ? query.referenceUrl : "",
     sourceKind: typeof query.sourceKind === "string" ? query.sourceKind : "",
+    contactEmail: typeof query.contactEmail === "string" ? query.contactEmail : "",
+    contactNote: typeof query.contactNote === "string" ? query.contactNote : "",
     cadence,
     active: Boolean(row.is_active),
     lastCheckedAt: row.last_checked_at,
@@ -1059,6 +1068,16 @@ function normalizeOpportunityStatus(value: string) {
 // sends nothing never accidentally teaches the scorer.
 function normalizeDismissalReason(value: unknown) {
   return value === "not_relevant" || value === "already_applied" ? value : null;
+}
+
+// Deliberately permissive beyond the shape check: this field holds whatever
+// address the user actually has, and rejecting an unusual but valid one would
+// be worse than storing it. Anything without a single @ and a dotted domain is
+// cleared rather than saved, so a half-typed entry does not look recorded.
+function normalizeContactEmail(value: unknown) {
+  const trimmed = clean(value, 200).toLowerCase();
+  if (!trimmed) return "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed) ? trimmed : "";
 }
 
 function clean(value: unknown, limit: number) {

@@ -41,6 +41,8 @@ type RadarMonitor = {
   careersUrl: string;
   referenceUrl: string;
   sourceKind: string;
+  contactEmail: string;
+  contactNote: string;
   kind: string;
   market: string;
   notes: string;
@@ -206,6 +208,10 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
   const [targetPosition, setTargetPosition] = useState("");
   const [cadence, setCadence] = useState<"twice_daily" | "daily" | "manual">("twice_daily");
   const autoScanStarted = useRef(false);
+  // Contact fields are edited locally and saved on blur. Writing on every
+  // keystroke would fire a request per character; holding the draft here keeps
+  // the input responsive and the save deliberate.
+  const [contactDrafts, setContactDrafts] = useState<Record<string, { email: string; note: string }>>({});
 
   const savedTargetPositions = useMemo(() => list(profileDraft.titles), [profileDraft.titles]);
   const companyOptions = useMemo(() => [...new Set([
@@ -434,6 +440,27 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
     await mutate({ action: "update_monitor", monitorId, patch }, `monitor-${monitorId}`, "Updating this radar target…");
   }
 
+  async function saveContact(monitor: RadarMonitor, patch: { contactEmail?: string; contactNote?: string }) {
+    const currentValue = patch.contactEmail != null ? monitor.contactEmail : monitor.contactNote;
+    const nextValue = patch.contactEmail ?? patch.contactNote ?? "";
+    // Blur fires even when nothing was typed. Saving anyway would write on
+    // every click-through of the list.
+    if (nextValue.trim() === currentValue.trim()) return;
+    const data = await mutate({ action: "update_monitor", monitorId: monitor.id, patch }, `monitor-${monitor.id}`, "Saving this contact…");
+    if (!data) return;
+    // The store clears an address that is not a plausible email rather than
+    // storing a half-typed one, so re-sync the draft from what came back
+    // instead of leaving the input showing something that was not saved.
+    setContactDrafts((current) => {
+      const next = { ...current };
+      delete next[monitor.id];
+      return next;
+    });
+    if (patch.contactEmail != null && patch.contactEmail.trim() && !data.monitors?.find((item) => item.id === monitor.id)?.contactEmail) {
+      onNotice("That did not look like an email address, so nothing was saved for this company.");
+    }
+  }
+
   async function removeMonitor(monitorId: string) {
     const data = await mutate({ action: "delete_monitor", monitorId }, `monitor-${monitorId}`, "Archiving this radar target while preserving its discoveries…");
     if (data) onNotice("Radar target archived. Its discoveries and history remain in your inbox.");
@@ -505,6 +532,32 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
             {monitor.lastRunSummary && <p className={`monitor-run-summary ${coverage.tone}`}>{monitor.lastRunSummary}</p>}
             {(monitor.careersUrl || monitor.websiteUrl) && <a href={monitor.careersUrl || monitor.websiteUrl} target="_blank" rel="noreferrer">Open scan source ↗</a>}
             {monitor.referenceUrl && <a href={monitor.referenceUrl} target="_blank" rel="noreferrer">Open {monitor.sourceKind || "reference"} ↗</a>}
+            <div className="monitor-contact">
+              <label>
+                <span>Contact</span>
+                <input
+                  type="email"
+                  aria-label={`Contact email for ${monitor.company}`}
+                  placeholder="Nobody found — add one you have"
+                  value={contactDrafts[monitor.id]?.email ?? monitor.contactEmail}
+                  onChange={(event) => setContactDrafts((current) => ({ ...current, [monitor.id]: { email: event.target.value, note: current[monitor.id]?.note ?? monitor.contactNote } }))}
+                  onBlur={(event) => saveContact(monitor, { contactEmail: event.target.value })}
+                  disabled={Boolean(busy)}
+                />
+              </label>
+              <label>
+                <span>Note</span>
+                <input
+                  aria-label={`Contact note for ${monitor.company}`}
+                  placeholder="How you know them, or where it came from"
+                  value={contactDrafts[monitor.id]?.note ?? monitor.contactNote}
+                  onChange={(event) => setContactDrafts((current) => ({ ...current, [monitor.id]: { email: current[monitor.id]?.email ?? monitor.contactEmail, note: event.target.value } }))}
+                  onBlur={(event) => saveContact(monitor, { contactNote: event.target.value })}
+                  disabled={Boolean(busy)}
+                />
+              </label>
+              {monitor.contactEmail && <a href={`mailto:${monitor.contactEmail}`}>Write to {monitor.contactEmail} ↗</a>}
+            </div>
           </div>
           <div className="radar-target-status">
             <strong>{coverage.label}</strong>

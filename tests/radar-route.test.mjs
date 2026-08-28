@@ -1231,3 +1231,53 @@ test("an already-applied dismissal never changes what the radar looks for", asyn
     await mf.dispose();
   }
 });
+
+// The agencies in the directory publish no careers address, so this field
+// exists to hold a contact the user already has. It has to survive the route
+// and come back on the monitor, and a half-typed entry must not look saved.
+test("an agency contact the user supplies is stored, and a malformed one is not", async () => {
+  const { mf, db } = await createDatabase();
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    const post = async (body) => {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", { method: "POST", headers, body: JSON.stringify(body) }), env, context);
+      const data = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(data));
+      return data;
+    };
+
+    const added = await post({ action: "add_monitor", monitor: {
+      company: "Duncan Channon",
+      kind: "Creative / Advertising Agency",
+      websiteUrl: "https://duncanchannon.com/",
+      cadence: "manual",
+    } });
+    const monitorId = added.monitors[0].id;
+    assert.equal(added.monitors[0].contactEmail, "", "a new target starts with no contact");
+    assert.equal(added.monitors[0].contactNote, "");
+
+    const saved = await post({ action: "update_monitor", monitorId, patch: {
+      contactEmail: "Careers@DuncanChannon.com",
+      contactNote: "Met their producer at a portfolio night",
+    } });
+    const withContact = saved.monitors.find((item) => item.id === monitorId);
+    assert.equal(withContact.contactEmail, "careers@duncanchannon.com", "the address is normalised and kept");
+    assert.equal(withContact.contactNote, "Met their producer at a portfolio night");
+
+    // Half-typed input is cleared rather than stored, so the UI cannot show a
+    // saved-looking value that would fail if the user actually mailed it.
+    const rejected = await post({ action: "update_monitor", monitorId, patch: { contactEmail: "careers@" } });
+    assert.equal(rejected.monitors.find((item) => item.id === monitorId).contactEmail, "", "an incomplete address is not stored");
+
+    // Clearing the note must not disturb the address, and vice versa.
+    const noteOnly = await post({ action: "update_monitor", monitorId, patch: { contactEmail: "jobs@duncanchannon.com" } });
+    assert.equal(noteOnly.monitors.find((item) => item.id === monitorId).contactNote, "Met their producer at a portfolio night", "editing one field must leave the other alone");
+
+    // A contact survives a scan, which rewrites the monitor's query blob.
+    const rescanned = await post({ action: "scan", monitorId });
+    assert.equal(rescanned.monitors.find((item) => item.id === monitorId).contactEmail, "jobs@duncanchannon.com", "a scan must not wipe the stored contact");
+  } finally {
+    await mf.dispose();
+  }
+});
