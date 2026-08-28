@@ -99,6 +99,8 @@ export async function POST(request: Request) {
         cadence: patch.cadence === "manual" || patch.cadence === "twice_daily" || patch.cadence === "daily" || patch.cadence === "weekly" ? String(patch.cadence) : undefined,
         focus: typeof patch.focus === "string" ? patch.focus : undefined,
         targetPosition: typeof patch.targetPosition === "string" ? patch.targetPosition : undefined,
+        contactEmail: typeof patch.contactEmail === "string" ? patch.contactEmail : undefined,
+        contactNote: typeof patch.contactNote === "string" ? patch.contactNote : undefined,
       });
     } else if (action === "delete_monitor") {
       await deleteRadarMonitor(db, user.id, text(input.monitorId, 100));
