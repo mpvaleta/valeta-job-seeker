@@ -1,4 +1,4 @@
-import { classifyRadarOpportunity, deriveDismissalSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
+import { classifyRadarOpportunity, deriveDismissalSignal, deriveInterestSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import { DEFAULT_RADAR_MONITORS } from "./default-radar-monitors";
@@ -334,6 +334,30 @@ export async function readDismissalHistory(db: D1Database, userId: string) {
 }
 
 /*
+ * Reading back what the user has pursued.
+ *
+ * Shortlisting and applying are the strongest positive signals the radar can
+ * observe, so they feed the interest learner the same way dismissals feed the
+ * dismissal learner: newest first and capped, so long-running inboxes teach
+ * from recent taste.
+ */
+export async function readPursuitHistory(db: D1Database, userId: string) {
+  const result = await db.prepare(`SELECT o.title, o.fit_summary, c.name AS company_name, c.company_type
+    FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
+    WHERE o.user_id = ? AND o.status IN ('shortlisted', 'applied')
+    ORDER BY o.updated_at DESC LIMIT 200`)
+    .bind(userId).all<{ title: string; fit_summary: string | null; company_name: string | null; company_type: string | null }>();
+  return (result.results || []).map((row) => ({
+    title: row.title,
+    companyCategory: classifyRadarOpportunity({
+      company: row.company_name || "",
+      title: row.title,
+      fitSummary: row.fit_summary || "",
+    }, { kind: row.company_type || "" }).companyCategory,
+  }));
+}
+
+/*
  * Index the user's existing discoveries by canonical job identity.
  *
  * Every dedup check used to compare the raw source_url as an exact string, so
@@ -651,12 +675,16 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   const watchBatch = await importJobWatchBatch(db, userId);
   // Self-heal rows an earlier build duplicated before reading the current state.
   const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
-  let expired = await expireStaleWatchBatch(db, userId);
+  const expired = await expireStaleWatchBatch(db, userId);
   const dashboard = await readRadarDashboard(db, userId);
   // What the user keeps rejecting, read once per scan. Applied only to roles
   // the radar found on its own — a link the user imported by hand is their
   // explicit choice and is never down-ranked by this.
   const dismissalSignal = deriveDismissalSignal(await readDismissalHistory(db, userId), dashboard.profile);
+  // The mirror signal: what the user shortlists and applies to, boosting
+  // similar discoveries. Like the dismissal signal, it applies only to roles
+  // the radar finds on its own — imported links are already chosen.
+  const interestSignal = deriveInterestSignal(await readPursuitHistory(db, userId), dashboard.profile);
   const index = await loadOpportunityIndex(db, userId);
   // A Worker request has a hard subrequest budget, and one monitor can spend
   // seven of them when its careers page needs recovery plus a web-search
@@ -827,7 +855,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
         // when adding this target, so it overrides text/source-based signals
         // the same way classifyRadarOpportunity already does for display.
         const classification = classifyRadarOpportunity(job, monitor);
-        return { job, match: scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, profile, dismissalSignal) };
+        return { job, match: scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, profile, dismissalSignal, interestSignal) };
       }).sort((left, right) => right.match.score - left.match.score)
         .slice(0, 150);
       const matches = scored.filter(({ match }) => match.passes);

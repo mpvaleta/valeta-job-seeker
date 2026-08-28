@@ -31,10 +31,17 @@ test("identifying parameters still separate distinct jobs", () => {
   same("https://acme.com/careers?gh_jid=4012&utm_source=x", "https://acme.com/careers?gh_jid=4012");
 });
 
+test("Workable and Recruitee postings dedupe on board plus posting id", () => {
+  same("https://apply.workable.com/acme/j/AB12CD/", "https://apply.workable.com/acme/j/ab12cd/apply/");
+  same("https://acme.recruitee.com/o/senior-producer", "https://acme.recruitee.com/o/senior-producer/c/new");
+});
+
 test("genuinely different postings never collapse together", () => {
   different("https://boards.greenhouse.io/acme/jobs/4012", "https://boards.greenhouse.io/acme/jobs/4013");
   different("https://boards.greenhouse.io/acme/jobs/4012", "https://boards.greenhouse.io/other/jobs/4012");
   different("https://acme.com/careers/pm", "https://acme.com/careers/producer");
+  different("https://apply.workable.com/acme/j/AB12CD/", "https://apply.workable.com/acme/j/EF34GH/");
+  different("https://acme.recruitee.com/o/senior-producer", "https://other.recruitee.com/o/senior-producer");
 });
 
 // Some ATS platforms use case-sensitive identifiers, so merging on a

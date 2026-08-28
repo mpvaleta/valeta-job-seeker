@@ -8,8 +8,32 @@ chrome.storage.local.get("valetaPackage", ({ valetaPackage }) => {
   if (valetaPackage) {
     profile.value = JSON.stringify(valetaPackage, null, 2);
     showPackageMeta(valetaPackage);
+    reportScanFreshness(valetaPackage);
   }
 });
+
+/*
+ * Warn about a stale scan the moment the popup opens, not at Fill time.
+ *
+ * Multi-step ATS forms add and remove fields after a Scan, and the fill
+ * deliberately skips anything it never previewed. Asking the page whether the
+ * reviewed field set still matches reality costs nothing and turns "why were
+ * three fields skipped?" into "rescan before filling" up front. Silent on any
+ * failure: a tab with no content script is the normal case, not an error.
+ */
+async function reportScanFreshness(value) {
+  try {
+    const tab = await activeTab();
+    const freshness = await chrome.tabs.sendMessage(tab.id, { type: "VALETA_STATUS", payload: value });
+    if (!freshness?.hasScan) return;
+    const changed = (freshness.appearedSinceScan || 0) + (freshness.missingSinceScan || 0);
+    if (changed > 0) {
+      status.textContent = `This page changed since your last scan (${freshness.appearedSinceScan} new, ${freshness.missingSinceScan} removed). Rescan to review before filling.`;
+    }
+  } catch {
+    // No content script on this tab, or no page scanned yet — nothing to say.
+  }
+}
 
 function showPackageMeta(value) {
   const resume = value?.resume;

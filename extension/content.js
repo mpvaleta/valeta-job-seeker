@@ -190,12 +190,7 @@ function fill(data) {
   // Anything fillable- or review-looking now that the reviewed scan never
   // saw is reported, never filled sight-unseen -- the user rescans to bring
   // it into a reviewed preview first.
-  let appearedSinceScan = 0;
-  currentFields.forEach((field) => {
-    if (lastScan.has(field)) return;
-    const decision = decideCandidate(field, data);
-    if (decision.status === "fillable" || decision.status === "review") appearedSinceScan += 1;
-  });
+  const appearedSinceScan = appearedSinceScanCount(currentFields, data);
 
   const counts = { fillable: 0, review: 0, unknown: 0, existing: 0, filled: 0 };
   const fields = [];
@@ -216,6 +211,45 @@ function fill(data) {
     hiddenFieldCount: fields.length - reported.length,
     appearedSinceScan,
     filled,
+  };
+}
+
+// How many actionable fields exist now that the reviewed scan never saw.
+function appearedSinceScanCount(currentFields, data) {
+  if (!lastScan) return 0;
+  let appeared = 0;
+  currentFields.forEach((field) => {
+    if (lastScan.has(field)) return;
+    const decision = decideCandidate(field, data);
+    if (decision.status === "fillable" || decision.status === "review") appeared += 1;
+  });
+  return appeared;
+}
+
+/*
+ * Live freshness check for the popup: is the last reviewed scan still an
+ * accurate picture of this page?
+ *
+ * Multi-step ATS forms and "Add another employer" sections change the DOM
+ * after the Scan click, and the user only found out at Fill time, when the
+ * new fields were already skipped. This costs nothing to answer on demand --
+ * it compares the live field set against the reviewed one without touching
+ * the page -- so the popup can say "rescan first" the moment it opens instead
+ * of after a fill that quietly left fields behind.
+ */
+function scanFreshness(data) {
+  if (!lastScan) return { hasScan: false, appearedSinceScan: 0, missingSinceScan: 0, platform: platformName() };
+  const currentFields = candidateFields();
+  const currentFieldSet = new Set(currentFields);
+  let missingSinceScan = 0;
+  lastScan.forEach((entry, field) => {
+    if (!currentFieldSet.has(field) || !document.contains(field)) missingSinceScan += 1;
+  });
+  return {
+    hasScan: true,
+    appearedSinceScan: appearedSinceScanCount(currentFields, data),
+    missingSinceScan,
+    platform: platformName(),
   };
 }
 
@@ -360,6 +394,7 @@ function captureVisibleList() {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "VALETA_SCAN") sendResponse(scan(message.payload, true));
   if (message.type === "VALETA_FILL") sendResponse(fill(message.payload));
+  if (message.type === "VALETA_STATUS") sendResponse(scanFreshness(message.payload));
   if (message.type === "VJOBS_CAPTURE_ROLE") sendResponse(captureVisibleRole());
   if (message.type === "VJOBS_CAPTURE_LIST") sendResponse(captureVisibleList());
 });

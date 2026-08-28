@@ -24,6 +24,14 @@
   // never choose a value.
   const CONTROLLED_TYPES = new Set(["number", "range", "date", "datetime-local", "time", "month", "week", "checkbox", "radio", "color"]);
 
+  // Questions whose honest answer is specific to this one application: a cover
+  // letter, or how the candidate found the role. Not sensitive, but a stored
+  // generic answer typed into them reads as exactly what it is — so they are
+  // routed to review with a reason instead of being left as unmapped noise.
+  // "referral" needs both boundaries: without the leading one it matches
+  // inside "Preferred name", which is a routine fillable ATS field.
+  const ROLE_SPECIFIC = /\bcover\s?letter\b|how did you (?:hear|find|learn)|where did you (?:hear|find|see)|\breferr(?:al|ed(?: by)?)\b|who referred/i;
+
   // Ordered only for readability — a label matching two rules is reported as
   // ambiguous rather than resolved by position, so order carries no meaning.
   const RULES = [
@@ -42,7 +50,7 @@
     { key: "portfolio", match: /\bportfolio\b|\bpersonal.?(?:web)?site\b|\bwebsite\b/i, read: (data) => data.profile.portfolio },
     { key: "headline", match: /\bheadline\b|\bprofessional.?title\b|\bcurrent.?title\b/i, read: (data) => data.answers.headline },
     { key: "summary", match: /\babout.?you\b|\bsummary\b|\bbackground\b|tell.?us.?about|\bprofessional.?profile\b|\bbio\b/i, read: (data) => data.answers.summary },
-    { key: "interest", match: /why.*(role|position|company|join|apply)|interest.*(role|position|company)|why do you want/i, read: (data) => data.answers.interest },
+    { key: "interest", match: /why.*(role|position|company|join|apply)|interest.*(role|position|company)|why do you want|what (?:interests|excites) you/i, read: (data) => data.answers.interest },
   ];
 
   function matchingRules(label) {
@@ -79,6 +87,9 @@
     }
     if (SENSITIVE.test(combined)) {
       return { status: "review", reason: "Sensitive or legal answer — complete this personally", ruleKey: null, confidence: "manual" };
+    }
+    if (ROLE_SPECIFIC.test(combined)) {
+      return { status: "review", reason: "Role-specific answer — write or paste the version you reviewed for this application", ruleKey: null, confidence: "manual" };
     }
     if (tag === "SELECT") return { status: "review", reason: "Dropdown — choose the exact option yourself", ruleKey: null, confidence: "manual" };
     if (CONTROLLED_TYPES.has(type)) return { status: "review", reason: "Choice or numeric field — confirm the exact value yourself", ruleKey: null, confidence: "manual" };
@@ -144,5 +155,5 @@
     return result;
   }
 
-  root.VJobsAutofill = { SENSITIVE, CONTROLLED_TYPES, RULES, matchingRules, decideField, normalizeCapturedRows };
+  root.VJobsAutofill = { SENSITIVE, ROLE_SPECIFIC, CONTROLLED_TYPES, RULES, matchingRules, decideField, normalizeCapturedRows };
 })(typeof globalThis === "undefined" ? this : globalThis);

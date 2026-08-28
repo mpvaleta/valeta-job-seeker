@@ -49,8 +49,18 @@ export type DismissalSignal = {
 };
 export function deriveDismissalSignal(dismissals: DismissalRecord[], profile?: Partial<RadarProfile>): DismissalSignal;
 export function dismissalPenalty(titleLower: string, companyCategory: string, signal?: DismissalSignal): { penalty: number; matched: string[]; categoryHit?: boolean };
-export function scoreRadarOpportunity(opportunity: RadarOpportunityInput, profile: Partial<RadarProfile>, dismissalSignal?: DismissalSignal): { score: number; reasons: string[]; summary: string; passes: boolean };
-export function detectCareerSource(value: string): { type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday" | "apple" | "google-careers" | "meta-search" | "meta-job" | "public-page"; token: string; url: URL };
+export type InterestRecord = { title: string; companyCategory?: string };
+export type InterestSignal = {
+  ready: boolean;
+  words: string[];
+  categories: string[];
+  reason: string;
+  stats: { pursuitsRead: number; knownWords: number };
+};
+export function deriveInterestSignal(pursuits: InterestRecord[], profile?: Partial<RadarProfile>): InterestSignal;
+export function interestBoost(titleLower: string, companyCategory: string, signal?: InterestSignal): { boost: number; matched: string[]; categoryHit?: boolean };
+export function scoreRadarOpportunity(opportunity: RadarOpportunityInput, profile: Partial<RadarProfile>, dismissalSignal?: DismissalSignal, interestSignal?: InterestSignal): { score: number; reasons: string[]; summary: string; passes: boolean };
+export function detectCareerSource(value: string): { type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workable" | "recruitee" | "workday" | "apple" | "google-careers" | "meta-search" | "meta-job" | "icims" | "teamwork-online" | "public-page"; token: string; url: URL };
 export function classifyCompanyCategory(value?: string, context?: string): string;
 export function classifyRadarOpportunity(opportunity?: RadarOpportunityInput, target?: { company?: string; name?: string; kind?: string; companyType?: string; focus?: string }): { trackId: string; trackLabel: string; companyCategory: string };
 export function discoverTargetJobs(target: { company?: string; name?: string; careersUrl?: string; careers?: string; websiteUrl?: string; website?: string; referenceUrl?: string; searchUrls?: string[] }, options?: { fetchImpl?: typeof fetch }): Promise<RadarOpportunityInput[]>;

@@ -101,7 +101,7 @@ test("an unanswered control is reported rather than treated as already answered"
 });
 
 test("an unrecognized field is reported as unmapped rather than filled", () => {
-  const decision = decideField(field({ strong: "How did you hear about us?" }), data);
+  const decision = decideField(field({ strong: "T-shirt size" }), data);
   assert.equal(decision.status, "unknown");
   assert.equal(decision.ruleKey, null);
 });
@@ -238,4 +238,25 @@ test("a very long results page is capped instead of becoming an oversized upload
 test("a capture that found nothing returns an empty list, not a crash", () => {
   assert.equal(normalizeCapturedRows(undefined).length, 0);
   assert.equal(normalizeCapturedRows([]).length, 0);
+});
+
+test("role-specific questions route to review instead of unmapped noise", () => {
+  for (const label of ["Cover letter", "How did you hear about us?", "Who referred you?", "Referral source"]) {
+    const decision = decideField(field({ strong: label, tag: "TEXTAREA", type: "textarea" }), data);
+    assert.equal(decision.status, "review", `${label} should be review, got ${decision.status}`);
+    assert.match(decision.reason, /Role-specific/);
+  }
+});
+
+test("sensitive wording still outranks the role-specific routing", () => {
+  // "How did you hear about our visa sponsorship program" carries a sensitive
+  // term; the sensitive reason must win so the user reads the stronger warning.
+  const decision = decideField(field({ strong: "How did you hear about our visa sponsorship program" }), data);
+  assert.match(decision.reason, /Sensitive or legal/);
+});
+
+test("the broadened interest matcher still maps to the approved interest answer", () => {
+  const decision = decideField(field({ strong: "What interests you about this opportunity?", tag: "TEXTAREA", type: "textarea" }), data);
+  assert.equal(decision.status, "fillable");
+  assert.equal(decision.ruleKey, "interest");
 });

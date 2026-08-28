@@ -22,5 +22,5 @@ export type ResumeAudit = {
   };
 };
 
-export function auditResume(text: string, options?: { roleText?: string }): ResumeAudit;
+export function auditResume(text: string, options?: { roleText?: string; approvedFacts?: string[] }): ResumeAudit;
 export const RESUME_STANDARD_DIMENSIONS: Array<{ key: ResumeStandardDimension; label: string; detail: string }>;

@@ -468,7 +468,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
 
   async function updateOpportunity(opportunity: RadarOpportunity, status: RadarOpportunity["status"], reason?: DismissalReason) {
     const data = await mutate({ action: "set_opportunity_status", opportunityId: opportunity.id, status, reason }, `opportunity-${opportunity.id}`, "Updating this opportunity…");
-    if (data && status === "shortlisted") onNotice("Role approved for preparation. V’s will not submit anything without you.");
+    if (data && status === "shortlisted") onNotice("Role approved for preparation. V’s will not submit anything without you. Once a few shortlisted or applied roles share a pattern, similar discoveries start ranking higher.");
     if (data && status === "reviewing" && (opportunity.status === "dismissed" || opportunity.status === "archived")) onNotice("Role restored to the active inbox. Its discovery history was never deleted. It no longer teaches the radar either.");
     if (data && reason === "already_applied") onNotice("Filed as already handled. This one does not change what the radar looks for — you wanted it.");
     if (data && reason === "not_relevant") onNotice("Noted as not relevant. Once a few roles share a pattern, V’s starts ranking similar ones lower. Words from your own target titles and skills are never learned against you.");

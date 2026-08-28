@@ -4,8 +4,10 @@ import {
   DEFAULT_RADAR_PROFILE,
   classifyRadarOpportunity,
   deriveDismissalSignal,
+  deriveInterestSignal,
   deriveRadarProfileFromCareer,
   dismissalPenalty,
+  interestBoost,
   detectCareerSource,
   discoverTargetJobs,
   discoverTargetJobsDetailed,
@@ -256,6 +258,8 @@ test("official ATS career URLs are detected without arbitrary endpoint access", 
   assert.deepEqual(detectCareerSource("https://jobs.lever.co/example").type, "lever");
   assert.deepEqual(detectCareerSource("https://jobs.ashbyhq.com/example").type, "ashby");
   assert.deepEqual(detectCareerSource("https://jobs.smartrecruiters.com/example").type, "smartrecruiters");
+  assert.deepEqual(detectCareerSource("https://apply.workable.com/example/").type, "workable");
+  assert.deepEqual(detectCareerSource("https://example.recruitee.com/").type, "recruitee");
   assert.deepEqual(detectCareerSource("https://example.wd5.myworkdayjobs.com/en-US/External").type, "workday");
   assert.deepEqual(detectCareerSource("https://jobs.apple.com/en-us/search?location=united-states-USA").type, "apple");
   assert.deepEqual(detectCareerSource("https://www.google.com/about/careers/applications/jobs/results/").type, "google-careers");
@@ -516,6 +520,69 @@ test("Workday discovery uses the employer's public tenant endpoint", async () =>
   assert.equal(calls[0].init.method, "POST");
 });
 
+test("a Workday board larger than one page is read across pages, and a short page ends the read", async () => {
+  const offsets = [];
+  const page = (offset, count) => Array.from({ length: count }, (_, index) => ({
+    title: `Program Manager ${offset + index}`,
+    locationsText: "San Francisco, CA",
+    externalPath: `/job/San-Francisco/Program-Manager_R${offset + index}`,
+    postedOn: "Posted Today",
+  }));
+  const jobs = await discoverTargetJobs({ company: "Example", careersUrl: "https://example.wd5.myworkdayjobs.com/en-US/External" }, {
+    fetchImpl: async (url, init) => {
+      const offset = JSON.parse(init.body).offset;
+      offsets.push(offset);
+      return Response.json({ jobPostings: offset === 0 ? page(0, 100) : page(100, 20) });
+    },
+  });
+  assert.equal(jobs.length, 120, "the second page's postings must be kept, not truncated at 100");
+  assert.deepEqual(offsets, [0, 100], "a short second page must end the read without a third request");
+});
+
+test("Workable discovery uses the public widget feed and links each posting's own page", async () => {
+  const calls = [];
+  const jobs = await discoverTargetJobs({ company: "Example", careersUrl: "https://apply.workable.com/example/" }, {
+    fetchImpl: async (url) => {
+      calls.push(String(url));
+      return Response.json({ jobs: [{
+        title: "Creative Producer",
+        city: "Oakland",
+        state: "California",
+        country: "United States",
+        shortcode: "AB12CD",
+        url: "https://apply.workable.com/example/j/AB12CD/",
+        published_on: "2026-08-01",
+      }] });
+    },
+  });
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].sourceType, "workable");
+  assert.equal(jobs[0].sourceUrl, "https://apply.workable.com/example/j/AB12CD/");
+  assert.equal(jobs[0].location, "Oakland, California, United States");
+  assert.match(calls[0], /apply\.workable\.com\/api\/v1\/widget\/accounts\/example$/);
+});
+
+test("Recruitee discovery reads the tenant's public offers feed", async () => {
+  const calls = [];
+  const jobs = await discoverTargetJobs({ company: "Example", careersUrl: "https://example.recruitee.com/" }, {
+    fetchImpl: async (url) => {
+      calls.push(String(url));
+      return Response.json({ offers: [{
+        title: "Marketing Project Manager",
+        location: "San Francisco, CA",
+        description: "<p>Own cross-functional campaign delivery.</p>",
+        careers_url: "https://example.recruitee.com/o/marketing-project-manager",
+        published_at: "2026-08-02",
+      }] });
+    },
+  });
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].sourceType, "recruitee");
+  assert.equal(jobs[0].sourceUrl, "https://example.recruitee.com/o/marketing-project-manager");
+  assert.equal(jobs[0].description, "Own cross-functional campaign delivery.");
+  assert.match(calls[0], /example\.recruitee\.com\/api\/offers\/$/);
+});
+
 test("radar classifies discoveries by career trail and company category", () => {
   const sports = classifyRadarOpportunity({ company: "The Athletic", title: "Senior Manager, Video Production Operations", fitSummary: "Sports sponsorship integrations" });
   assert.equal(sports.trackId, "sports");
@@ -688,6 +755,53 @@ test("a learned penalty is bounded and never vetoes a strong match", () => {
   // The penalty itself is capped regardless of how many words match.
   const { penalty } = dismissalPenalty("software engineer developer platform engineering", "", signal);
   assert.ok(penalty <= 22, `penalty must stay bounded, got ${penalty}`);
+});
+
+test("two pursued roles teach the radar nothing yet", () => {
+  const signal = deriveInterestSignal([
+    { title: "Sports Partnerships Manager" },
+    { title: "Sports Marketing Coordinator" },
+  ], DISMISSAL_PROFILE);
+  assert.equal(signal.ready, false);
+  assert.deepEqual(signal.words, []);
+  assert.match(signal.reason, /at least 3/);
+  assert.equal(signal.stats.pursuitsRead, 2);
+});
+
+test("a word repeated across shortlisted roles is learned and lifts a similar discovery", () => {
+  const signal = deriveInterestSignal([
+    { title: "Sports Partnerships Manager" },
+    { title: "Sports Marketing Coordinator" },
+    { title: "Sports Events Producer" },
+  ], DISMISSAL_PROFILE);
+  assert.equal(signal.ready, true);
+  assert.ok(signal.words.includes("sports"), `expected "sports" in ${JSON.stringify(signal.words)}`);
+  // A word that appeared only once never makes the list.
+  assert.ok(!signal.words.includes("partnerships"), "a single mention must not teach");
+  // Words the saved targets already contain score through the profile itself.
+  assert.ok(!signal.words.includes("manager"), `"manager" is a saved target word, got ${JSON.stringify(signal.words)}`);
+
+  const boosted = scoreRadarOpportunity({ title: "Sports Production Lead", location: "Oakland, CA" }, DISMISSAL_PROFILE, undefined, signal);
+  const plain = scoreRadarOpportunity({ title: "Sports Production Lead", location: "Oakland, CA" }, DISMISSAL_PROFILE);
+  assert.ok(boosted.score > plain.score, "a learned interest word must raise the score");
+  assert.ok(boosted.reasons.some((line) => /shortlisted or applied/.test(line)), "the reason must say why it rose");
+});
+
+test("an interest boost is bounded and never overrides a hard gate", () => {
+  const signal = deriveInterestSignal([
+    { title: "Sports Partnerships Producer", companyCategory: "Sports / Entertainment" },
+    { title: "Sports Marketing Producer", companyCategory: "Sports / Entertainment" },
+    { title: "Sports Events Producer", companyCategory: "Sports / Entertainment" },
+  ], DISMISSAL_PROFILE);
+
+  // The boost itself is capped regardless of how many words and the category match.
+  const { boost } = interestBoost("sports partnerships marketing events producer", "Sports / Entertainment", signal);
+  assert.ok(boost <= 15, `boost must stay bounded, got ${boost}`);
+
+  // A pursued-looking role outside the target market still fails the location
+  // gate: learning lifts rankings, it never reopens a hard filter.
+  const abroad = scoreRadarOpportunity({ title: "Sports Marketing Manager", location: "Tokyo, Japan" }, DISMISSAL_PROFILE, undefined, signal);
+  assert.equal(abroad.passes, false, "an interest boost must not override the location gate");
 });
 
 test("restoring a role removes its teaching signal", () => {

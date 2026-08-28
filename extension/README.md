@@ -22,6 +22,6 @@ With the connection saved, **Send this results list to V's** reads the search re
 
 After updating the extension files, open `chrome://extensions` and choose **Reload** for V's Application Autofill before testing it again.
 
-Version 0.7 adds the direct connection and the results-list capture described above. Version 0.4 fixed a field-label bug that could cause unrelated values to be mapped when a site wrapped many questions in one group. Reload the extension after updating; Chrome does not automatically reload unpacked extension code.
+Version 0.8 warns the moment you open the popup if the page has changed since your last scan (fields added or removed by a multi-step form), routes role-specific questions — cover letter, "how did you hear about us", referrals — to review with a clear reason instead of leaving them unmapped, and recognizes "What interests you…" phrasing for the approved interest answer. Version 0.7 adds the direct connection and the results-list capture described above. Version 0.4 fixed a field-label bug that could cause unrelated values to be mapped when a site wrapped many questions in one group. Reload the extension after updating; Chrome does not automatically reload unpacked extension code.
 
 Always review every field before submitting. Application sites change frequently; unsupported fields remain untouched.

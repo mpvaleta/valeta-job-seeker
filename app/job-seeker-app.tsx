@@ -898,8 +898,12 @@ export function JobSeekerApp() {
   // Runs on whatever résumé is on screen — local, cloud, or hand-edited — with
   // no provider call, so the standards check works with no API key configured.
   const resumeAudit = useMemo(
-    () => (output === "resume" && activeText.trim() ? auditResume(activeText, { roleText: `${role}\n${jobText}` }) : null),
-    [activeText, jobText, output, role],
+    // approvedFacts turns on the truthfulness check: numbers and employers in
+    // the visible draft — including hand edits and pasted skill output, which
+    // the structured fact-index tracing never sees — are verified against the
+    // approved evidence, and anything unsupported is flagged for review.
+    () => (output === "resume" && activeText.trim() ? auditResume(activeText, { roleText: `${role}\n${jobText}`, approvedFacts: resumeFacts }) : null),
+    [activeText, jobText, output, role, resumeFacts],
   );
   const autofillData = JSON.stringify({
     version: 1,
