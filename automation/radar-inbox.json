@@ -1,7 +1,7 @@
 {
-  "fetchedAt": "2026-08-28T23:04:59Z",
-  "lastRunAt": "2026-08-28 23:04:57",
-  "dueCount": 2,
+  "fetchedAt": "2026-08-29T04:09:58Z",
+  "lastRunAt": "2026-08-29 04:09:56",
+  "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
     "prefer": "Specific examples, short sentences, concrete outcomes, and plain language.",
@@ -86,15 +86,15 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-28 10:00:22",
-      "lastRunSummary": "Background scheduled scan · 57 verified roles read · 4 met the 45% minimum · 53 saved below threshold · 52 new (4 matching) · 1 source tried. Working source: public-page. V’s repaired the saved source to a working official careers page."
+      "lastCheckedAt": "2026-08-29 00:00:18",
+      "lastRunSummary": "Background scheduled scan · 58 verified roles read · 4 met the 45% minimum · 54 saved below threshold · 1 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
     },
     {
       "company": "Droga5",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 10:00:24",
+      "lastCheckedAt": "2026-08-29 00:00:20",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -102,7 +102,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 12:00:15",
+      "lastCheckedAt": "2026-08-29 02:00:16",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -110,7 +110,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 12:00:15",
+      "lastCheckedAt": "2026-08-29 02:00:16",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -134,15 +134,15 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 12:00:16",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-29 02:00:17",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. Working source: greenhouse. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Goodby Silverstein & Partners",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 12:00:22",
+      "lastCheckedAt": "2026-08-29 02:00:27",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -174,7 +174,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 7,
-      "lastCheckedAt": "2026-08-28 12:00:24",
+      "lastCheckedAt": "2026-08-29 02:00:28",
       "lastRunSummary": "Background scheduled scan · 44 verified roles read · 7 met the 45% minimum · 37 saved below threshold · 1 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
     },
     {
@@ -190,7 +190,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 12:00:24",
+      "lastCheckedAt": "2026-08-29 02:00:29",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -206,7 +206,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 12:00:26",
+      "lastCheckedAt": "2026-08-29 02:00:30",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -214,7 +214,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 14:00:13",
+      "lastCheckedAt": "2026-08-29 04:00:14",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -222,7 +222,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 14:00:16",
+      "lastCheckedAt": "2026-08-29 04:00:17",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -230,7 +230,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 14:00:19",
+      "lastCheckedAt": "2026-08-29 04:00:20",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 4 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -254,16 +254,16 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 16:00:13",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-29 04:09:53",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Razorfish",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 16:00:15",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-29 04:09:55",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Snap",
@@ -302,8 +302,8 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-28 16:00:19",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-29 04:09:56",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Whatnot",
@@ -347,84 +347,6 @@
     }
   ],
   "opportunities": [
-    {
-      "id": "640197ee-a060-49ea-ad99-8a22a0f2e6df",
-      "title": "Specialist, SAP Master Data",
-      "company": "e.l.f. Cosmetics",
-      "location": "Ahmedabad, Gujarat",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/dad746e1-24e5-4205-aef3-478231f62b6f",
-      "sourceType": "lever",
-      "fitScore": 0,
-      "fitSummary": "0% target alignment · skill overlap: brand · goal overlap: brand · outside the target market (Ahmedabad, Gujarat) — location filter",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "2a8c2aa4-9800-478e-8e80-8fab6c81d572",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "New York, New York, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343419009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "f250d3cd-6db7-4072-9ca8-1b413875ddde",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "San Francisco, California, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343420009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "331bf7e1-ddd8-45b5-9900-44c96de6780f",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "Colorado, United States; Illinois, United States; Maryland, United States; Washington, District of Columbia, United States; Washington, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343421009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "d78b7f12-c6b4-4060-bb71-3f3695603a2b",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "California, United States; Massachusetts, United States; New Jersey, United States; New York, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343422009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: California, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "537bc3b3-0709-4d8f-a77d-106c63b6326a",
-      "title": "Senior Account Executive, Public Relations (B2B Technology)",
-      "company": "Highwire",
-      "location": "Connecticut, United States; Florida, United States; Georgia, United States; Iowa, United States; Kansas, United States; Michigan, United States; New Hampshire, United States; North Carolina, United States; Ohio, United States; Oregon, United States; Pennsylvania, United States; Rhode Island, United States; South Carolina, United States; Tennessee, United States; Texas, United States; Utah, United ",
-      "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4343423009",
-      "sourceType": "greenhouse",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
     {
       "id": "0f060720-b293-46e0-9754-db3b659367af",
       "title": "New Product Introduction (NPI) Sourcing Manager, Data Center Power & Cooling",
@@ -8145,6 +8067,84 @@
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
       "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "a1ac96d6-1079-4e25-9c0a-53c59d890a53",
+      "title": "Graphic Production Technician - Trade Shows & Events",
+      "company": "Jack Morton Worldwide",
+      "location": "Oakville, Ontario, Canada",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4361783009",
+      "sourceType": "greenhouse",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "390691ba-9c19-4060-a561-2f450e1d97d3",
+      "title": "Senior Event Manager - Maternity leave cover (Healthcare)",
+      "company": "Jack Morton Worldwide",
+      "location": "Leatherhead, England, United Kingdom; London, England, United Kingdom",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4299686009",
+      "sourceType": "greenhouse",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "0a6410fa-3b41-4bec-90db-4ae3496173a1",
+      "title": "Account Director (Life Science)",
+      "company": "Jack Morton Worldwide",
+      "location": "Jack Morton United Kingdom",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4305514009",
+      "sourceType": "greenhouse",
+      "fitScore": 20,
+      "fitSummary": "20% target alignment · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency, meaningful · outside the target market (Jack Morton United Kingdom) — location filter",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "dc9918c6-65c9-488b-861d-6a9b1d83361c",
+      "title": "Senior Account Director",
+      "company": "Jack Morton Worldwide",
+      "location": "Singapore",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4337358009",
+      "sourceType": "greenhouse",
+      "fitScore": 20,
+      "fitSummary": "20% target alignment · skill overlap: integrated production, project management, brand, agency · goal overlap: brand, marketing, agency, roles · outside the target market (Singapore) — location filter",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "fd74ae5f-620f-4cf2-8f1f-9ea3baeaad60",
+      "title": "Healthcare Content Strategist",
+      "company": "Jack Morton Worldwide",
+      "location": "Jack Morton United Kingdom",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4308478009",
+      "sourceType": "greenhouse",
+      "fitScore": 18,
+      "fitSummary": "18% target alignment · skill overlap: integrated production, brand, agency, cross-functional · goal overlap: brand, marketing, agency, meaningful · outside the target market (Jack Morton United Kingdom) — location filter",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "ba99511e-2180-4cbd-bf9f-7dca9992e3ad",
+      "title": "Finance Manager",
+      "company": "Jack Morton Worldwide",
+      "location": "Jack Morton Japan",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4307260009",
+      "sourceType": "greenhouse",
+      "fitScore": 13,
+      "fitSummary": "13% target alignment · skill overlap: project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · outside the target market (Jack Morton Japan) — location filter",
+      "status": "new",
+      "alignmentPasses": false,
       "origin": "monitored"
     }
   ]
