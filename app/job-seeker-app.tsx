@@ -18,6 +18,7 @@ import { auditEvidence } from "@/lib/evidence-conflicts.mjs";
 import type { EvidenceAudit } from "@/lib/evidence-conflicts.mjs";
 import { estimateUsageCost, formatEstimatedCost } from "@/lib/ai-pricing.mjs";
 import { findReusableResumes } from "@/lib/resume-reuse.mjs";
+import { remoteIsFresher } from "@/lib/workspace-sync.mjs";
 import { RadarWorkspace } from "./radar-workspace";
 import { JobSearchWorkspace } from "./job-search-workspace";
 import type { RadarOpportunity } from "./radar-workspace";
@@ -734,18 +735,28 @@ export function JobSeekerApp() {
         const remote = isWorkspaceSnapshot(data.snapshot) ? data.snapshot : null;
         if (remote) {
           const locallySaved = (key: string) => localStorage.getItem(key) !== null;
-          setProfile((current) => locallySaved("valeta-profile-v2") ? preferLocalObject(remote.profile, current) : preferLocalObject(current, remote.profile && typeof remote.profile === "object" ? remote.profile as Profile : current));
-          setWritingStyle((current) => locallySaved("valeta-writing-style-v1") ? preferLocalObject(remote.writingStyle, current) : preferLocalObject(current, remote.writingStyle && typeof remote.writingStyle === "object" ? remote.writingStyle as WritingStyle : current));
-          setResumeTracks((current) => locallySaved("v-jobs-resume-tracks-v1") ? mergeById(remote.resumeTracks, current) : mergeById([], Array.isArray(remote.resumeTracks) ? remote.resumeTracks : current));
-          setApplications((current) => locallySaved("valeta-applications-v3") ? mergeById(remote.applications, current) : mergeById([], Array.isArray(remote.applications) ? remote.applications : current));
-          setJobSnapshots((current) => locallySaved("v-jobs-market-history-v1") ? mergeById(remote.jobSnapshots, current) : mergeById([], Array.isArray(remote.jobSnapshots) ? remote.jobSnapshots : current));
-          setGeneratedDrafts((current) => locallySaved("v-jobs-generated-drafts-v1") ? mergeById(remote.generatedDrafts, current) : mergeById([], Array.isArray(remote.generatedDrafts) ? remote.generatedDrafts : current));
-          setDocuments((current) => locallySaved("valeta-documents-v1") ? mergeById(remote.documents, current) : mergeById([], Array.isArray(remote.documents) ? remote.documents : current));
-          setCompanies((current) => locallySaved("valeta-companies-v1") ? mergeById(remote.companies, current) : mergeById([], Array.isArray(remote.companies) ? remote.companies : current));
-          setActiveTrackId((current) => locallySaved("v-jobs-active-track-v1") ? current : typeof remote.activeTrackId === "string" ? remote.activeTrackId : current);
-          setClaudeModel((current) => locallySaved("v-jobs-claude-model-v1") ? current : typeof remote.claudeModel === "string" ? remote.claudeModel : current);
-          setAiPreference((current) => locallySaved("valeta-ai-preference-v1") ? preferLocalObject(remote.aiPreference, current) : preferLocalObject(current, remote.aiPreference && typeof remote.aiPreference === "object" ? remote.aiPreference as AiPreference : current));
-          setPlaybookSettings((current) => locallySaved("valeta-playbook-settings-v1") ? preferLocalObject(remote.playbookSettings, current) : preferLocalObject(current, remote.playbookSettings && typeof remote.playbookSettings === "object" ? remote.playbookSettings as PlaybookSettings : current));
+          // Access-from-anywhere rule: this device's copy only outranks the
+          // durable revision when it was reconciled or edited AFTER that
+          // revision was saved. A stale device (a phone opened after weeks)
+          // otherwise resurrected old records over everything edited
+          // elsewhere and autosaved that as the newest revision. When the
+          // remote side is newer it wins conflicts; records that exist only
+          // on this device are still kept by the id-union merges.
+          const localStamp = (() => { try { return Number(localStorage.getItem("v-jobs-local-edit-stamp-v1") || 0); } catch { return 0; } })();
+          const remoteWins = remoteIsFresher(localStamp, data.revision?.createdAt);
+          const preferLocal = (key: string) => locallySaved(key) && !remoteWins;
+          setProfile((current) => preferLocal("valeta-profile-v2") ? preferLocalObject(remote.profile, current) : preferLocalObject(current, remote.profile && typeof remote.profile === "object" ? remote.profile as Profile : current));
+          setWritingStyle((current) => preferLocal("valeta-writing-style-v1") ? preferLocalObject(remote.writingStyle, current) : preferLocalObject(current, remote.writingStyle && typeof remote.writingStyle === "object" ? remote.writingStyle as WritingStyle : current));
+          setResumeTracks((current) => preferLocal("v-jobs-resume-tracks-v1") ? mergeById(remote.resumeTracks, current) : mergeById(current, Array.isArray(remote.resumeTracks) ? remote.resumeTracks as ResumeTrack[] : []));
+          setApplications((current) => preferLocal("valeta-applications-v3") ? mergeById(remote.applications, current) : mergeById(current, Array.isArray(remote.applications) ? remote.applications as Application[] : []));
+          setJobSnapshots((current) => preferLocal("v-jobs-market-history-v1") ? mergeById(remote.jobSnapshots, current) : mergeById(current, Array.isArray(remote.jobSnapshots) ? remote.jobSnapshots as JobSnapshot[] : []));
+          setGeneratedDrafts((current) => preferLocal("v-jobs-generated-drafts-v1") ? mergeById(remote.generatedDrafts, current) : mergeById(current, Array.isArray(remote.generatedDrafts) ? remote.generatedDrafts as GeneratedDraft[] : []));
+          setDocuments((current) => preferLocal("valeta-documents-v1") ? mergeById(remote.documents, current) : mergeById(current, Array.isArray(remote.documents) ? remote.documents as SourceDocument[] : []));
+          setCompanies((current) => preferLocal("valeta-companies-v1") ? mergeById(remote.companies, current) : mergeById(current, Array.isArray(remote.companies) ? remote.companies as CompanyTarget[] : []));
+          setActiveTrackId((current) => preferLocal("v-jobs-active-track-v1") ? current : typeof remote.activeTrackId === "string" ? remote.activeTrackId : current);
+          setClaudeModel((current) => preferLocal("v-jobs-claude-model-v1") ? current : typeof remote.claudeModel === "string" ? remote.claudeModel : current);
+          setAiPreference((current) => preferLocal("valeta-ai-preference-v1") ? preferLocalObject(remote.aiPreference, current) : preferLocalObject(current, remote.aiPreference && typeof remote.aiPreference === "object" ? remote.aiPreference as AiPreference : current));
+          setPlaybookSettings((current) => preferLocal("valeta-playbook-settings-v1") ? preferLocalObject(remote.playbookSettings, current) : preferLocalObject(current, remote.playbookSettings && typeof remote.playbookSettings === "object" ? remote.playbookSettings as PlaybookSettings : current));
           // Earlier active role drafts remain preserved inside revision history,
           // but are not reopened automatically after reload.
         }
@@ -760,6 +771,16 @@ export function JobSeekerApp() {
       });
     return () => { active = false; };
   }, [browserStateReady, logError, setActiveTrackId, setAiPreference, setApplications, setClaudeModel, setCompanies, setDocuments, setGeneratedDrafts, setJobSnapshots, setJobText, setPlaybookSettings, setProfile, setResumeTracks, setRole, setRoleUrl, setWritingStyle, setCompany]);
+
+  // The freshness stamp for the access-from-anywhere rule above. Written
+  // whenever this device's workspace state changes after load — user edits,
+  // and the reconciliation of a restore, which is what makes the stamp honest:
+  // a device is only ever "fresh" about state that already absorbed the newest
+  // remote revision at the moment it was stamped.
+  useEffect(() => {
+    if (!workspaceLoaded) return;
+    try { localStorage.setItem("v-jobs-local-edit-stamp-v1", String(Date.now())); } catch {}
+  }, [workspaceLoaded, workspaceSnapshot]);
 
   useEffect(() => {
     if (!workspaceLoaded) return;
@@ -1603,7 +1624,7 @@ export function JobSeekerApp() {
             <button key={id} className={view === id ? "nav-item active" : "nav-item"} onClick={() => { setView(id); if (id === "data" && workspaceHistoryState === "idle") window.setTimeout(() => void loadWorkspaceHistory(), 0); }}>{label}</button>
           )}
         </nav>
-        <div className="nav-note"><strong>Private workspace</strong><span>Your browser keeps a fast local copy. Signed-in durable backups preserve every revision across devices.</span></div>
+        <div className="nav-note"><strong>Private workspace</strong><span>Open V’s from any signed-in device — the newest edits win when devices disagree, and every revision stays preserved.</span></div>
       </aside>
 
       <section className="main-stage">

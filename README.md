@@ -37,6 +37,15 @@ The product helps with:
   submitted.
 - Submission automation, if added, must remain user-approved and platform-safe.
 
+## Access from anywhere
+
+The app is a deployed Cloudflare Worker, not a browser-local tool: radar data,
+the workspace, and every saved revision live in D1/R2, and the browser only
+keeps a fast cache. Any signed-in device shows the same workspace, the newest
+edits win when devices disagree, and background radar scans run while
+everything is closed. See [docs/access-from-anywhere.md](docs/access-from-anywhere.md)
+for opening the app on a new device, phone install, and per-person tokens.
+
 ## Architecture
 
 - Next/Vinext site for the MacBook Pro-friendly web app experience.
