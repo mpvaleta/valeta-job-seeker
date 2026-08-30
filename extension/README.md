@@ -22,6 +22,16 @@ With the connection saved, **Send this results list to V's** reads the search re
 
 After updating the extension files, open `chrome://extensions` and choose **Reload** for V's Application Autofill before testing it again.
 
+Version 0.8 was tested live against Adobe's hiring pages and adds what that
+testing showed was missing: a purpose-built results-list extractor for Workday
+job lists (title, location, and the tenant company, e.g. "Adobe" from
+adobe.wd5.myworkdayjobs.com, instead of bare links), the same tenant fallback
+and a label-free location on Workday job pages, a results-list extractor for
+Phenom-powered careers sites such as careers.adobe.com, and a schema.org
+JobPosting fallback that fills company and location on any board whose page
+embeds one. `scripts/extension-live-check.mjs` in the repository re-runs that
+live check when a board changes its markup.
+
 Version 0.7 adds the direct connection and the results-list capture described above. Version 0.4 fixed a field-label bug that could cause unrelated values to be mapped when a site wrapped many questions in one group. Reload the extension after updating; Chrome does not automatically reload unpacked extension code.
 
 Always review every field before submitting. Application sites change frequently; unsupported fields remain untouched.

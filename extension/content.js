@@ -219,6 +219,44 @@ function fill(data) {
   };
 }
 
+// A myworkdayjobs.com page never names the company in its DOM — the tenant
+// slug in the hostname (adobe.wd5.myworkdayjobs.com) is the only signal the
+// page carries, so a capture there falls back to it rather than staying blank.
+function workdayTenant() {
+  const tenant = location.hostname.toLowerCase().match(/^([a-z0-9-]+)\.wd\d+\.myworkdayjobs\.com$/)?.[1] || "";
+  return tenant ? tenant.charAt(0).toUpperCase() + tenant.slice(1) : "";
+}
+
+// Many career sites (Adobe's careers.adobe.com among them) embed a
+// schema.org JobPosting block for search engines. It names the company and
+// locations more reliably than guessing at class names, so a capture uses it
+// to fill whatever the visible-DOM selectors could not find.
+function structuredJobPosting() {
+  for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+    try {
+      const parsed = JSON.parse(script.textContent);
+      const nodes = Array.isArray(parsed) ? parsed : parsed?.["@graph"] || [parsed];
+      for (const node of nodes) {
+        const type = node?.["@type"];
+        if (type === "JobPosting" || (Array.isArray(type) && type.includes("JobPosting")) || (node?.hiringOrganization && node?.jobLocation)) return node;
+      }
+    } catch {
+      // Not JSON, or not ours to read; the DOM selectors still apply.
+    }
+  }
+  return null;
+}
+
+function structuredLocationText(posting) {
+  const places = [posting?.jobLocation].flat().filter(Boolean).slice(0, 5);
+  const parts = places.map((place) => {
+    const address = place?.address || place;
+    return [address?.addressLocality, address?.addressRegion, address?.addressCountry?.name || address?.addressCountry]
+      .map((value) => (typeof value === "string" ? value.trim() : "")).filter(Boolean).join(", ");
+  }).filter(Boolean);
+  return [...new Set(parts)].join("; ");
+}
+
 function captureVisibleRole() {
   const firstText = (...selectors) => {
     for (const selector of selectors) {
@@ -246,7 +284,11 @@ function captureVisibleRole() {
         ? {
             role: ['[data-automation-id="jobPostingHeader"]', "h1"],
             company: ['[data-automation-id="jobPostingCompany"]'],
-            location: ['[data-automation-id="locations"]'],
+            // The dd alone, and scoped to the posting: the automation-id
+            // wrapper also contains the literal dt label "locations" (verified
+            // on Adobe's tenant), and the same id repeats inside each
+            // similar-jobs card lower on the page.
+            location: ['[data-automation-id="job-posting-details"] [data-automation-id="locations"] dd', '[data-automation-id="locations"] dd', '[data-automation-id="locations"]'],
             description: ['[data-automation-id="jobPostingDescription"]'],
           }
         : host.includes("greenhouse")
@@ -266,7 +308,15 @@ function captureVisibleRole() {
   const role = firstText(...selectors.role);
   const companyElement = selectors.company.map((selector) => document.querySelector(selector)).find(Boolean);
   const company = companyElement instanceof HTMLImageElement ? companyElement.alt.trim() : companyElement?.innerText?.replace(/\s+/g, " ").trim() || "";
-  const locationText = firstText(...selectors.location);
+  const structured = structuredJobPosting();
+  // Boards routinely render the field label into the same element as the
+  // value ("Location Tokyo, Tokyo, Japan" on careers.adobe.com), so a leading
+  // label word is dropped from the captured value.
+  const locationText = firstText(...selectors.location).replace(/^locations?\b[:\s]*/i, "")
+    || structuredLocationText(structured);
+  const companyName = company
+    || workdayTenant()
+    || (typeof structured?.hiringOrganization?.name === "string" ? structured.hiringOrganization.name.trim() : "");
   const jobDescription = firstText(...selectors.description);
   const text = (jobDescription || document.querySelector("main, [role=main], article")?.innerText || document.body.innerText || "").replace(/\s+/g, " ").trim().slice(0, 120_000);
   return {
@@ -275,7 +325,7 @@ function captureVisibleRole() {
     pageTitle: document.title,
     title: role || headings[0] || metaTitle || "",
     role: role || headings[0] || "",
-    company,
+    company: companyName,
     location: locationText,
     description,
     text,
@@ -332,6 +382,47 @@ function captureVisibleList() {
         description: clean(card.innerText).slice(0, 600),
       });
     }
+  } else if (host.includes("myworkdayjobs") || host.includes("workday")) {
+    // Workday marks every result with stable automation ids (verified on
+    // Adobe's tenant): the title link, and a dl in the same card whose dd
+    // rows are the locations. The generic fallback below already found the
+    // links but lost location and company entirely.
+    for (const link of document.querySelectorAll('a[data-automation-id="jobTitle"]')) {
+      const title = clean(link.innerText);
+      if (!title || !/^https?:/i.test(link.href)) continue;
+      const card = link.closest("li") || link.parentElement;
+      const locations = [...(card?.querySelectorAll('[data-automation-id="locations"] dd') || [])]
+        .map((dd) => clean(dd.innerText)).filter(Boolean);
+      rows.push({
+        title,
+        company: workdayTenant(),
+        location: locations.join("; "),
+        url: link.href,
+        description: clean(card?.innerText).slice(0, 600),
+      });
+    }
+  } else if (document.querySelector('a[data-ph-at-id="job-link"]')) {
+    // A Phenom-powered careers site (careers.adobe.com and many other company
+    // career front doors), recognised by its markup rather than its hostname
+    // because every company serves Phenom from its own domain. A card carries
+    // either a multi-location list, or one location folded into the job-info
+    // line as "Location <place> Category ..." (both verified on Adobe's site).
+    for (const link of document.querySelectorAll('a[data-ph-at-id="job-link"]')) {
+      const title = clean(link.innerText).split("\n")[0];
+      if (!title || !/^https?:/i.test(link.href)) continue;
+      const card = link.closest("li") || link.parentElement;
+      const multi = [...(card?.querySelectorAll('[data-ph-at-id="job-multi-location-item"]') || [])]
+        .map((item) => clean(item.innerText)).filter(Boolean);
+      const info = clean(card?.querySelector('[data-ph-at-id="job-info"]')?.innerText || "");
+      const single = info.match(/\bLocation\s+(.+?)(?:\s+Category\b|\s+Job Id\b|$)/)?.[1] || "";
+      rows.push({
+        title,
+        company: "",
+        location: multi.length ? multi.join("; ") : single,
+        url: link.href,
+        description: clean(card?.querySelector('[data-ph-at-id="jobdescription-text"]')?.innerText || "").slice(0, 600),
+      });
+    }
   } else {
     // Any other board: every link that looks like a job-details page, deduped
     // by URL. Weaker than a purpose-built extractor, but it means a board
@@ -351,7 +442,7 @@ function captureVisibleList() {
     pageTitle: document.title,
     // Which board this came from, so the app can record honest provenance
     // rather than filing every capture as a LinkedIn one.
-    source: host.includes("linkedin.com") ? "linkedin" : host.includes("indeed.") ? "indeed" : "other",
+    source: host.includes("linkedin.com") ? "linkedin" : host.includes("indeed.") ? "indeed" : host.includes("myworkdayjobs") || host.includes("workday") ? "workday" : "other",
     capturedAt: new Date().toISOString(),
     rows: VJobsAutofill.normalizeCapturedRows(rows),
   };

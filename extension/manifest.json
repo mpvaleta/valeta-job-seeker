@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "V's Application Autofill",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Capture visible job pages and results lists, and preview approved job-application fields. Never submits forms.",
   "permissions": [
     "activeTab",
