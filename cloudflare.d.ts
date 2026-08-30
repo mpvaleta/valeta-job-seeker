@@ -42,3 +42,10 @@ declare module "cloudflare:workers" {
     BUCKET?: R2Bucket;
   };
 }
+
+// Vite's ?raw imports return the file's text. Declared here so the autofill
+// bookmarklet can embed the mapping rules and its runtime as source.
+declare module "*?raw" {
+  const content: string;
+  export default content;
+}

@@ -15,6 +15,14 @@ import { DEFAULT_RESUME_TRACKS, normalizeResumeTracks, selectResumeTrack } from 
 import { PLAYBOOK_GENERATION_RULE_LIMIT, prioritizeResumePlaybookRules } from "@/lib/playbook-priority.mjs";
 import { preparePlaybookLibrary, prepareResumeEvidence } from "@/lib/career-evidence.mjs";
 import { factCandidates } from "@/lib/fact-candidates.mjs";
+import { buildBookmarklet } from "@/lib/autofill-bookmarklet.mjs";
+// The bookmarklet has to arrive with the click: application sites carry strict
+// Content-Security-Policy headers that block a script fetched from anywhere
+// else, while browsers exempt bookmarklets themselves. Both halves are embedded
+// as source rather than re-implemented, so the rules that decide what is safe to
+// fill can never drift from the ones the extension and its tests use.
+import autofillMappingSource from "../extension/autofill-mapping.js?raw";
+import autofillRuntimeSource from "../lib/autofill-bookmarklet-runtime.js?raw";
 import { auditEvidence } from "@/lib/evidence-conflicts.mjs";
 import type { EvidenceAudit } from "@/lib/evidence-conflicts.mjs";
 import { estimateUsageCost, formatEstimatedCost } from "@/lib/ai-pricing.mjs";
@@ -889,6 +897,15 @@ export function JobSeekerApp() {
   // everything else under tens of thousands of characters, so the preview
   // shows the shape and says how much text is standing in for itself. Copy
   // and Download still emit the real package.
+  // One saved bookmark, any browser, nothing installed — including Safari on
+  // the phone, where a Chrome extension was never an option. It carries the
+  // profile and the written answers but not the résumé text: a file input is
+  // always handed back to the user, so only the résumé's title is needed.
+  const autofillBookmarklet = useMemo(
+    () => buildBookmarklet({ mappingSource: autofillMappingSource, runtimeSource: autofillRuntimeSource, data: autofillData }),
+    [autofillData],
+  );
+
   const autofillPreview = selectedAutofillResume?.content
     ? autofillData.replace(
         JSON.stringify(selectedAutofillResume.content.slice(0, 60_000)),
@@ -1887,7 +1904,15 @@ export function JobSeekerApp() {
 
         {view === "autofill" && <section className="autofill-grid">
           <div className="autofill-intro"><div className="step"><b>04</b><span>ASSISTED AUTOFILL</span></div><h2>Continue an application without starting over.</h2><p>Choose the exact résumé version you want to use, then load one reusable package into the companion. It scans the page again each time and fills only blank, approved fields after your click.</p><div className="safety-list"><span>✓ Keeps the selected résumé version visible</span><span>✓ Skips already-completed fields</span><span>✓ Never presses Submit or guesses sensitive answers</span><span>✓ File uploads stay manual because browsers protect them</span></div></div>
-          <div className="autofill-package"><span>AUTOFILL PACKAGE</span><label>Résumé for this application<select value={selectedAutofillResume?.id || ""} onChange={(event) => setAutofillResumeVersionId(event.target.value)}><option value="">Choose a preserved résumé</option>{availableResumeVersions.map((draft) => <option key={draft.id} value={draft.id}>{draft.origin === "uploaded" ? "Uploaded" : `v${draft.versionNumber || "saved"}`} · {draft.title}</option>)}</select></label>{selectedAutofillResume ? <div className="autofill-resume-choice"><strong>{selectedAutofillResume.title}</strong><span>Selected for this package. The original is preserved.</span><button onClick={() => downloadWordDocument(`${selectedAutofillResume.title.replace(/[^a-z0-9.-]+/gi, "-")}.doc`, selectedAutofillResume.title, selectedAutofillResume.content, "resume")}>Download selected résumé</button></div> : <p className="autofill-empty-choice">Choose or upload a résumé version first. The companion will identify it for the form; you manually select the file when a website requires an upload.</p>}<pre>{autofillPreview}</pre><div><button className="primary" onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div><small>Load once in the Chrome companion, then use Scan page and Fill ready fields. Reload the extension after updating it from the companion folder.</small></div>
+          <div className="autofill-package"><span>AUTOFILL PACKAGE</span><label>Résumé for this application<select value={selectedAutofillResume?.id || ""} onChange={(event) => setAutofillResumeVersionId(event.target.value)}><option value="">Choose a preserved résumé</option>{availableResumeVersions.map((draft) => <option key={draft.id} value={draft.id}>{draft.origin === "uploaded" ? "Uploaded" : `v${draft.versionNumber || "saved"}`} · {draft.title}</option>)}</select></label>{selectedAutofillResume ? <div className="autofill-resume-choice"><strong>{selectedAutofillResume.title}</strong><span>Selected for this package. The original is preserved.</span><button onClick={() => downloadWordDocument(`${selectedAutofillResume.title.replace(/[^a-z0-9.-]+/gi, "-")}.doc`, selectedAutofillResume.title, selectedAutofillResume.content, "resume")}>Download selected résumé</button></div> : <p className="autofill-empty-choice">Choose or upload a résumé version first. The companion will identify it for the form; you manually select the file when a website requires an upload.</p>}<pre>{autofillPreview}</pre><div className="autofill-bookmarklet">
+              <strong>Drag this to your bookmarks bar</strong>
+              {/* The href is set through the DOM: React warns on javascript: URLs
+                  in JSX, and this is the one place where that is the whole point. */}
+              <a className="bookmarklet-chip" ref={(node) => { if (node) node.setAttribute("href", autofillBookmarklet); }} onClick={(event) => event.preventDefault()} title="Drag me to the bookmarks bar. Then, on any application form, click the bookmark.">↦ V’s autofill</a>
+              <p>On any application form, click the bookmark. It shows what it can fill and what it is leaving to you, then fills only after you press the button. It never submits, and never answers a question about salary, work authorization, or anything protected.</p>
+              <div><button onClick={() => copyText(autofillBookmarklet, setNotice)}>Copy bookmarklet link</button><button onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div>
+              <small><b>iPhone:</b> copy the link above, bookmark any page in Safari, then edit that bookmark and paste the link over its address. <b>Chrome extension:</b> still supported, and still the only way to capture a results page — Copy package or Download JSON feed it. Regenerate the bookmarklet whenever your profile or the selected résumé changes.</small>
+            </div></div>
         </section>}
       </section>
     </main>
