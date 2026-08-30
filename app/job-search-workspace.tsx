@@ -246,6 +246,11 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
           best thing: it builds the exact search you would have typed into each of them, already filtered to your roles,
           your places, and how fresh you want the postings, and remembers which ones you have already worked through.
         </p>
+        <p>
+          Your LinkedIn <em>saved</em> jobs are a third thing again. LinkedIn grants no job access to any app, so they
+          can only come from your own official data export — import the ZIP in Knowledge sources and the radar files
+          them in the inbox alongside everything else. Nothing here ever reads a LinkedIn page for you.
+        </p>
       </div>
       <div className="radar-connection ready">
         <i />

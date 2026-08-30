@@ -260,3 +260,14 @@ input,textarea,select{border-radius:12px}
 .radar-market-toggles>label.home input{accent-color:#fff}
 .radar-filters>button.cleanup{margin-left:auto;border-color:#c7c7cc;color:#8a2a2a}
 .radar-filters>button.cleanup:hover:not(:disabled){border-color:#8a2a2a;background:#fdf2f2}
+
+/* The autofill bookmarklet. The chip is styled as something to grab, because
+   dragging it to the bookmarks bar is the entire installation. */
+.autofill-bookmarklet{display:grid;gap:9px;border:1px solid #cfe0f4;border-radius:14px;background:linear-gradient(135deg,#f5f9ff,#fff);padding:16px}
+.autofill-bookmarklet>strong{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue)}
+.autofill-bookmarklet>p{margin:0;color:#55555a;font-size:11px;line-height:1.55}
+.autofill-bookmarklet>div{display:flex;gap:8px;flex-wrap:wrap}
+.autofill-bookmarklet>small{color:var(--muted);font-size:10px;line-height:1.6}
+.autofill-bookmarklet>small b{color:#3a3a3f}
+.bookmarklet-chip{justify-self:start;border:1px solid #1d1d1f;border-radius:10px;background:#1d1d1f;padding:9px 16px;color:#fff;font-size:13px;font-weight:700;text-decoration:none;cursor:grab}
+.bookmarklet-chip:active{cursor:grabbing}
