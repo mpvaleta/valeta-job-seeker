@@ -28,6 +28,9 @@ export type RadarOpportunityInput = {
 export const RADAR_TRACKS: Array<{ id: string; label: string }>;
 export const RADAR_COMPANY_CATEGORIES: string[];
 export const DEFAULT_RADAR_PROFILE: RadarProfile;
+export const RADAR_HOME_MARKET: string;
+export const RADAR_MARKETS: { id: string; label: string; value: string; home?: boolean }[];
+export function withHomeMarket(locations: string[]): string[];
 export function isBayAreaLocation(value: unknown): boolean;
 export function isUnitedStatesLocation(value: unknown): boolean;
 export function normalizeRadarProfile(value?: Partial<RadarProfile>): RadarProfile;

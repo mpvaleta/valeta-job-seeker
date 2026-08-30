@@ -7,6 +7,7 @@ import {
   importJobWatchBatch,
   importLinkedInSavedJobs,
   importRadarOpportunities,
+  purgeOffTargetOpportunities,
   readRadarDashboard,
   saveRadarProfile,
   scanRadar,
@@ -120,6 +121,8 @@ export async function POST(request: Request) {
       // anything it does not recognise rather than defaulting, so a client that
       // omits it can never accidentally teach the scorer.
       result = await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40), typeof input.reason === "string" ? input.reason.slice(0, 40) : undefined);
+    } else if (action === "cleanup_inbox") {
+      result = await purgeOffTargetOpportunities(db, user.id);
     } else if (action === "scan") {
       if (isScanRateLimited(identity.email)) return error(429, "scan_rate_limited", "The radar has run several times recently. Wait a little before scanning again.");
       // "background" is reserved for the secret-protected cron route.

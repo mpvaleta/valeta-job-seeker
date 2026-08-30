@@ -247,3 +247,16 @@ input,textarea,select{border-radius:12px}
 .radar-category-chips .chip.active b{color:#9d9da2}
 .radar-category-chips .chip:disabled{opacity:.4;cursor:default}
 .radar-category-chips .chip.clear{border-color:#c0392b;color:#c0392b}
+
+/* Market toggles in Search goals. The home market renders as a locked chip so
+   it reads as a fact about the search rather than a box the owner forgot. */
+.radar-markets{border:1px solid #e3e3e6;border-radius:12px;padding:12px 14px 14px;margin:0 0 4px}
+.radar-markets>legend{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6e6e73;padding:0 6px}
+.radar-markets>p{margin:0 0 10px;font-size:12px;line-height:1.45;color:#6e6e73}
+.radar-market-toggles{display:flex;flex-wrap:wrap;gap:8px}
+.radar-market-toggles>label{display:inline-flex;align-items:center;gap:6px;font-size:13px;border:1px solid #e3e3e6;border-radius:999px;padding:5px 12px 5px 9px;cursor:pointer}
+.radar-market-toggles>label:has(input:checked){border-color:#1d1d1f;background:#f5f5f7}
+.radar-market-toggles>label.home{cursor:default;border-color:#1d1d1f;background:#1d1d1f;color:#fff}
+.radar-market-toggles>label.home input{accent-color:#fff}
+.radar-filters>button.cleanup{margin-left:auto;border-color:#c7c7cc;color:#8a2a2a}
+.radar-filters>button.cleanup:hover:not(:disabled){border-color:#8a2a2a;background:#fdf2f2}

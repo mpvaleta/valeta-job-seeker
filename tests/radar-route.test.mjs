@@ -1200,6 +1200,74 @@ test("a not-relevant dismissal is stored, teaches the next scan, and stops teach
   }
 });
 
+// Rows collected before the role gate existed keep the inflated score the old
+// scorer gave them, and there can be thousands of them. Clearing them is a
+// delete, so it has to be provably narrow: untouched rows only, never a role
+// the owner has approved, dismissed, or archived.
+test("clearing the inbox removes only untouched roles that match no target position", async () => {
+  const { mf, db } = await createDatabase();
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    const post = async (body) => {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", { method: "POST", headers, body: JSON.stringify(body) }), env, context);
+      const data = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(data));
+      return data;
+    };
+
+    await post({ action: "save_profile", profile: {
+      titles: ["Brand Project Manager"], skills: ["brand programs"], locations: ["San Francisco Bay Area"],
+      workModes: ["Hybrid"], goals: "Lead brand delivery.", exclusions: [], minScore: 45,
+    } });
+    const owner = await db.prepare("SELECT id FROM users LIMIT 1").first();
+    assert.ok(owner?.id);
+
+    // Exactly what the old scorer left behind: a high score and a summary that
+    // could not mention a gate which did not exist yet.
+    const legacy = [
+      ["legacy-1", "Warehouse Associate", "new"],
+      ["legacy-2", "Senior Software Engineer", "reviewing"],
+      ["legacy-3", "Registered Nurse", "shortlisted"],
+      ["legacy-4", "Staff Accountant", "dismissed"],
+      ["legacy-5", "Brand Project Manager", "new"],
+    ];
+    for (const [id, title, status] of legacy) {
+      await db.prepare("INSERT INTO job_opportunities (id, user_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(id, owner.id, title, "Oakland, CA", `https://boards.greenhouse.io/legacy/jobs/${id}`, "greenhouse", 64, "64% target alignment · skill overlap: brand · location: San Francisco Bay Area", status).run();
+    }
+
+    // Before the purge they are already reported as non-matching, because the
+    // gate is re-derived from the title at read time rather than read out of
+    // the stored summary.
+    const before = await post({ action: "save_profile", profile: {
+      titles: ["Brand Project Manager"], skills: ["brand programs"], locations: ["San Francisco Bay Area"],
+      workModes: ["Hybrid"], goals: "Lead brand delivery.", exclusions: [], minScore: 45,
+    } });
+    const warehouse = before.opportunities.find((item) => item.id === "legacy-1");
+    assert.equal(warehouse.fitScore, 64, "the stored score is left as it was");
+    assert.equal(warehouse.offTargetRole, true);
+    assert.equal(warehouse.alignmentPasses, false, "a 64 that predates the gate must not read as a match");
+    assert.equal(before.opportunities.find((item) => item.id === "legacy-5").offTargetRole, false);
+
+    const cleaned = await post({ action: "cleanup_inbox" });
+    assert.equal(cleaned.result.removed, 2, "only the untouched off-target rows go");
+
+    const remaining = new Set(cleaned.opportunities.map((item) => item.id));
+    assert.ok(!remaining.has("legacy-1"), "an untouched off-target role is removed");
+    assert.ok(!remaining.has("legacy-2"), "a reviewing off-target role is removed");
+    assert.ok(remaining.has("legacy-3"), "a role the owner approved is never removed");
+    assert.ok(remaining.has("legacy-4"), "a dismissal is what the radar learns from and is never removed");
+    assert.ok(remaining.has("legacy-5"), "an on-target role is never removed");
+
+    // Running it again is a no-op rather than an error.
+    const again = await post({ action: "cleanup_inbox" });
+    assert.equal(again.result.removed, 0);
+  } finally {
+    await mf.dispose();
+  }
+});
+
 // "Saw it / applied" is a filing action, not feedback about fit.
 test("an already-applied dismissal never changes what the radar looks for", async () => {
   const { mf, db } = await createDatabase();
