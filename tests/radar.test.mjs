@@ -17,6 +17,7 @@ import {
   opportunityKey,
   readSingleJobPosting,
   scoreRadarOpportunity,
+  titleRelevance,
   rankCareerLinks,
 } from "../lib/radar.mjs";
 import { searchCompanyJobSources } from "../lib/radar-web-search.mjs";
@@ -141,6 +142,77 @@ test("a target title is not matched by an unrelated role that shares one word", 
     assert.doesNotMatch(result.summary, /target title/i, title);
     assert.ok(result.score < exact.score, `${title} scored ${result.score}`);
   }
+});
+
+// The bug this whole gate exists for. Skills were matched against the entire
+// job description with a "every word appears somewhere" fallback, and a
+// description runs to tens of thousands of characters, so any company whose
+// careers boilerplate mentioned creative work made every one of its postings a
+// match. A warehouse role and a nursing role scored 64% and passed, exactly as
+// a Creative Operations Manager did.
+test("careers-page boilerplate cannot turn an unrelated role into a match", () => {
+  const boilerplate = "We are a creative, brand-led company. You will partner with marketing, "
+    + "design and agency teams, bring strong project management skills, and work "
+    + "cross-functional with our in-house production studio on integrated campaigns. ".repeat(4);
+
+  for (const title of ["Warehouse Associate", "Nurse Practitioner", "Senior Software Engineer", "Staff Accountant"]) {
+    const result = scoreRadarOpportunity({ title, description: boilerplate, location: "San Francisco, CA" }, DEFAULT_RADAR_PROFILE);
+    assert.equal(result.passes, false, `${title} must not pass on description text alone`);
+    assert.equal(result.gated, true, `${title} must be reported as gated so it is never stored`);
+    assert.match(result.summary, /role filter/i);
+  }
+
+  // The same description on a role that IS the work still passes, so the gate
+  // is rejecting the title, not the boilerplate.
+  const onTarget = scoreRadarOpportunity({ title: "Creative Operations Manager", description: boilerplate, location: "San Francisco, CA" }, DEFAULT_RADAR_PROFILE);
+  assert.equal(onTarget.passes, true);
+  assert.equal(onTarget.gated, false);
+});
+
+// "product" and "producer" share six letters and are different careers. A plain
+// prefix rule merges them, which would put every product role in a producer's
+// inbox.
+test("a product role is never read as a producer role", () => {
+  const profile = { ...DEFAULT_RADAR_PROFILE, titles: ["Producer", "Integrated Producer"], skills: [], goals: "" };
+  assert.equal(titleRelevance("Product Manager", profile.titles).tier, "none");
+  assert.equal(titleRelevance("Director of Product", profile.titles).tier, "none");
+  // ...while the real variants of the word still collapse onto one another.
+  assert.equal(titleRelevance("Head of Production", profile.titles).tier, "family");
+  assert.equal(titleRelevance("Senior Producer, Brand", profile.titles).tier, "exact");
+});
+
+// The gate can only be as good as the titles the owner thought to write down,
+// so a saved skill named in the title counts as its own evidence of relevance.
+test("a saved multi-word skill in the title establishes relevance on its own", () => {
+  const titles = ["Creative Operations Manager"];
+  assert.equal(titleRelevance("Brand Programs Manager", titles, ["brand programs"]).tier, "family");
+  // A one-word skill must not do this: "agency" and "brand" turn up in titles
+  // that have nothing to do with the work.
+  assert.equal(titleRelevance("Agency Nurse", titles, ["agency"]).tier, "none");
+  assert.equal(titleRelevance("Brand Ambassador", titles, ["brand"]).tier, "none");
+});
+
+// A posting that names no location is unknown, not wrong. Company career pages
+// routinely omit the field, and treating that as a mismatch was quietly
+// rejecting a large share of everything the monitored-company scans read.
+test("a posting with no location listed is not treated as outside the market", () => {
+  const result = scoreRadarOpportunity({
+    title: "Creative Operations Manager",
+    description: "Lead integrated production and brand programs.",
+  }, DEFAULT_RADAR_PROFILE);
+  assert.equal(result.passes, true);
+  assert.equal(result.gated, false);
+  assert.doesNotMatch(result.summary, /location filter/i);
+  assert.match(result.summary, /market unconfirmed/i);
+
+  // A location that is known and elsewhere is still a hard stop.
+  const elsewhere = scoreRadarOpportunity({
+    title: "Creative Operations Manager",
+    description: "Lead integrated production and brand programs.",
+    location: "Austin, TX",
+  }, DEFAULT_RADAR_PROFILE);
+  assert.equal(elsewhere.passes, false);
+  assert.equal(elsewhere.gated, true);
 });
 
 test("radar goals derived from career evidence read roles from job headers, never from accomplishment bullets", () => {

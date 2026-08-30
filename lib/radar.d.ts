@@ -49,7 +49,8 @@ export type DismissalSignal = {
 };
 export function deriveDismissalSignal(dismissals: DismissalRecord[], profile?: Partial<RadarProfile>): DismissalSignal;
 export function dismissalPenalty(titleLower: string, companyCategory: string, signal?: DismissalSignal): { penalty: number; matched: string[]; categoryHit?: boolean };
-export function scoreRadarOpportunity(opportunity: RadarOpportunityInput, profile: Partial<RadarProfile>, dismissalSignal?: DismissalSignal): { score: number; reasons: string[]; summary: string; passes: boolean };
+export function scoreRadarOpportunity(opportunity: RadarOpportunityInput, profile: Partial<RadarProfile>, dismissalSignal?: DismissalSignal): { score: number; reasons: string[]; summary: string; gated: boolean; passes: boolean };
+export function titleRelevance(title: string, targetTitles: string[], targetSkills?: string[]): { tier: "exact" | "family" | "none"; matched: string[] };
 export function detectCareerSource(value: string): { type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday" | "apple" | "google-careers" | "meta-search" | "meta-job" | "public-page"; token: string; url: URL };
 export function classifyCompanyCategory(value?: string, context?: string): string;
 export function classifyRadarOpportunity(opportunity?: RadarOpportunityInput, target?: { company?: string; name?: string; kind?: string; companyType?: string; focus?: string }): { trackId: string; trackLabel: string; companyCategory: string };

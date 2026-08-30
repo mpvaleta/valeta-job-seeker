@@ -153,7 +153,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     // as low as 20, so missing this here would show a filtered-out role as
     // passing right at that boundary. The location gate caps at 24 for the
     // same reason and has to be listed here too.
-    const exclusionHit = /review exclusion:|startups-only filter|location filter/i.test(row.fit_summary || "");
+    const exclusionHit = /review exclusion:|startups-only filter|location filter|role filter/i.test(row.fit_summary || "");
     const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
     const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : row.source_type === "linkedin-saved" ? "linkedin-saved" : "monitored";
     // The posting came from a complete board read, the board has since been
@@ -847,7 +847,16 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       // The in-memory index keeps deduplication correct even though the
       // inserts have not landed yet.
       const jobStatements: D1PreparedStatement[] = [];
-      for (const { job, match } of scored) {
+      // Every scored posting used to be written to the inbox — up to 150 per
+      // company, across 100+ monitored companies — so a scan buried a handful
+      // of real matches under thousands of rows the scorer had already rejected.
+      // What is worth keeping is a match, or a near miss the owner could reach
+      // by lowering the bar a little. A posting stopped by a hard gate (wrong
+      // role, wrong market, an exclusion, the wrong company stage) can never
+      // become a match by moving a slider, so it is not kept at all.
+      const nearMissFloor = Math.max(0, profile.minScore - 15);
+      const worthKeeping = scored.filter(({ match }) => match.passes || (!match.gated && match.score >= nearMissFloor));
+      for (const { job, match } of worthKeeping) {
         const existing = index.get(opportunityKey(job.sourceUrl));
         if (existing) {
           jobStatements.push(db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
@@ -905,7 +914,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       const statements = [
         db.prepare("UPDATE company_monitors SET last_checked_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?").bind(monitor.id, userId),
         db.prepare("INSERT INTO monitor_runs (id, monitor_id, run_status, found_count, change_summary) VALUES (?, ?, ?, ?, ?)")
-          .bind(runId, monitor.id, "completed", matches.length, `${triggerLabel} · ${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${jobs.length - matches.length} saved below threshold · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}${zeroReason}`),
+          .bind(runId, monitor.id, "completed", matches.length, `${triggerLabel} · ${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${worthKeeping.length - matches.length} near misses kept · ${scored.length - worthKeeping.length} filtered out by the role/market gates · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}${zeroReason}`),
       ];
       if (repairStatement) statements.unshift(repairStatement);
       // Only a read that produced at least one complete-board posting counts

@@ -91,6 +91,16 @@ test("private radar persists goals, targets, discoveries, and approval state", a
         absolute_url: "https://boards.greenhouse.io/example/jobs/100",
         updated_at: "2026-07-18T00:00:00Z",
       }, {
+        // On target but junior: it belongs in the inbox under the threshold, so
+        // a scan that finds only near misses still shows its work.
+        title: "Creative Services Assistant",
+        location: { name: "Oakland, CA" },
+        content: "<p>Support the studio calendar and vendor invoices.</p>",
+        absolute_url: "https://boards.greenhouse.io/example/jobs/102",
+        updated_at: "2026-07-18T00:00:00Z",
+      }, {
+        // Neither the right work nor the right market — nothing the owner could
+        // adjust would make this a match, so it must not be stored at all.
         title: "Accounting Analyst",
         location: { name: "Austin, TX" },
         content: "<p>Prepare monthly statements and reconciliations.</p>",
@@ -113,21 +123,27 @@ test("private radar persists goals, targets, discoveries, and approval state", a
     const scannedData = await scanned.json();
     assert.equal(scanned.status, 200);
     assert.equal(scannedData.result.checked, 1);
-    assert.equal(scannedData.result.discovered, 2);
+    assert.equal(scannedData.result.discovered, 3);
     assert.equal(scannedData.result.found, 1);
+    // Two roles were read and scored, but only the on-target one is written to
+    // the inbox. "Accounting Analyst" shares no line of work with any saved
+    // target, so no slider the owner can move would ever turn it into a match
+    // and keeping it would only be clutter.
     assert.equal(scannedData.result.added, 2);
     assert.equal(scannedData.result.matchedAdded, 1);
-    assert.equal(scannedData.result.belowThreshold, 1);
+    assert.equal(scannedData.result.belowThreshold, 2);
+    assert.ok(!scannedData.opportunities.some((item) => item.title === "Accounting Analyst"), "an off-target role must not be stored");
     assert.equal(scannedData.result.repairedSources, 1);
-    const discovered = scannedData.opportunities.find((item) => item.sourceType === "greenhouse");
+    const discovered = scannedData.opportunities.find((item) => item.title === "Creative Operations Manager");
     assert.ok(discovered);
     assert.equal(discovered.status, "new");
+    assert.equal(discovered.sourceType, "greenhouse");
     assert.ok(discovered.fitScore >= 55);
     assert.equal(scannedData.profile.minScore, 55);
     assert.equal(scannedData.monitors[0].lastRunStatus, "completed");
     assert.equal(scannedData.monitors[0].lastRunFoundCount, 1);
     assert.match(scannedData.monitors[0].lastRunSummary, /^Manual scan · /);
-    assert.match(scannedData.monitors[0].lastRunSummary, /saved below threshold/);
+    assert.match(scannedData.monitors[0].lastRunSummary, /filtered out by the role\/market gates/);
     assert.equal(scannedData.monitors[0].careersUrl, "https://boards.greenhouse.io/example");
     assert.ok(Number.isFinite(new Date(scannedData.monitors[0].nextDueAt).getTime()), `nextDueAt missing: ${scannedData.monitors[0].nextDueAt}`);
     assert.equal(scannedData.monitors[0].due, false);
@@ -155,7 +171,7 @@ test("private radar persists goals, targets, discoveries, and approval state", a
     assert.equal(catchUpData.profile.minScore, 55, "a catch-up scan must not overwrite the saved profile");
     assert.deepEqual(catchUpData.profile.titles, ["Creative Operations Manager"]);
     assert.deepEqual(catchUpData.profile.locations, ["San Francisco Bay Area"]);
-    const below = scannedData.opportunities.find((item) => item.title === "Accounting Analyst");
+    const below = scannedData.opportunities.find((item) => item.title === "Creative Services Assistant");
     assert.ok(below);
     assert.equal(below.alignmentPasses, false);
     assert.equal(below.companyCategory, "Creative / Advertising Agency");
@@ -1103,7 +1119,12 @@ test("a not-relevant dismissal is stored, teaches the next scan, and stops teach
   try {
     const worker = await loadWorker();
     const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
-    let boardTitles = ["Software Engineer I", "Software Engineer II", "Software Developer", "Software Architect", "Brand Project Manager"];
+    // Administrative project roles, not engineering ones. They share "project"
+    // with the saved target so they pass the role gate and land in the inbox —
+    // which is the only place dismissal learning can operate. "scheduling" is
+    // the word that recurs across all four and is not in any saved title or
+    // skill, so it is the one thing available to learn.
+    let boardTitles = ["Project Scheduling Analyst", "Project Scheduling Clerk", "Project Scheduling Assistant", "Project Scheduling Administrator", "Brand Project Manager"];
     globalThis.fetch = async () => Response.json({ jobs: boardTitles.map((title, index) => ({
       title,
       location: { name: "Oakland, CA" },
@@ -1137,9 +1158,9 @@ test("a not-relevant dismissal is stored, teaches the next scan, and stops teach
 
     const first = await post({ action: "scan" });
     const board = (payload) => payload.opportunities.filter((item) => item.sourceUrl.startsWith("https://boards.greenhouse.io/example/"));
-    const engineering = board(first).filter((item) => /Software/.test(item.title));
+    const engineering = board(first).filter((item) => /Scheduling/.test(item.title));
     assert.equal(engineering.length, 4, "four engineering roles to reject");
-    const scoreBefore = engineering.find((item) => item.title === "Software Engineer I").fitScore;
+    const scoreBefore = engineering.find((item) => item.title === "Project Scheduling Analyst").fitScore;
 
     // Reject all four as not relevant, through the real route.
     for (const role of engineering) {
@@ -1150,11 +1171,11 @@ test("a not-relevant dismissal is stored, teaches the next scan, and stops teach
     const stored = await db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE dismissed_reason = 'not_relevant'").first();
     assert.equal(Number(stored.count), 4, "each dismissal must persist its reason");
 
-    // A brand-new engineering posting on the next scan is ranked lower than the
+    // A brand-new posting of the same kind on the next scan is ranked lower than the
     // identical role was before the radar learned anything.
-    boardTitles = [...boardTitles, "Software Engineer III"];
+    boardTitles = [...boardTitles, "Project Scheduling Coordinator"];
     const second = await post({ action: "scan" });
-    const learned = board(second).find((item) => item.title === "Software Engineer III");
+    const learned = board(second).find((item) => item.title === "Project Scheduling Coordinator");
     assert.ok(learned, "the new role should have been discovered");
     assert.ok(learned.fitScore < scoreBefore, `learned score ${learned.fitScore} should be under the pre-learning ${scoreBefore}`);
     assert.match(learned.fitSummary, /dismissed/, "the summary must explain why it sank");
@@ -1171,7 +1192,7 @@ test("a not-relevant dismissal is stored, teaches the next scan, and stops teach
     assert.equal(Number(cleared.count), 2, "restoring a role clears the reason it was teaching from");
 
     const third = await post({ action: "scan" });
-    const unlearned = board(third).find((item) => item.title === "Software Engineer III");
+    const unlearned = board(third).find((item) => item.title === "Project Scheduling Coordinator");
     assert.ok(unlearned.fitScore > learned.fitScore, "with the sample below threshold the penalty must lift");
   } finally {
     globalThis.fetch = originalFetch;
@@ -1186,7 +1207,7 @@ test("an already-applied dismissal never changes what the radar looks for", asyn
   try {
     const worker = await loadWorker();
     const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
-    let boardTitles = ["Software Engineer I", "Software Engineer II", "Software Developer", "Software Architect"];
+    let boardTitles = ["Project Scheduling Analyst", "Project Scheduling Clerk", "Project Scheduling Assistant", "Project Scheduling Administrator"];
     globalThis.fetch = async () => Response.json({ jobs: boardTitles.map((title, index) => ({
       title,
       location: { name: "Oakland, CA" },
@@ -1212,8 +1233,8 @@ test("an already-applied dismissal never changes what the radar looks for", asyn
 
     const first = await post({ action: "scan" });
     const board = (payload) => payload.opportunities.filter((item) => item.sourceUrl.startsWith("https://boards.greenhouse.io/example/"));
-    const engineering = board(first).filter((item) => /Software/.test(item.title));
-    const scoreBefore = engineering.find((item) => item.title === "Software Engineer I").fitScore;
+    const engineering = board(first).filter((item) => /Scheduling/.test(item.title));
+    const scoreBefore = engineering.find((item) => item.title === "Project Scheduling Analyst").fitScore;
 
     for (const role of engineering) {
       await post({ action: "set_opportunity_status", opportunityId: role.id, status: "dismissed", reason: "already_applied" });
@@ -1221,9 +1242,9 @@ test("an already-applied dismissal never changes what the radar looks for", asyn
     const stored = await db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE dismissed_reason = 'already_applied'").first();
     assert.equal(Number(stored.count), 4, "the reason is still recorded");
 
-    boardTitles = [...boardTitles, "Software Engineer III"];
+    boardTitles = [...boardTitles, "Project Scheduling Coordinator"];
     const second = await post({ action: "scan" });
-    const fresh = board(second).find((item) => item.title === "Software Engineer III");
+    const fresh = board(second).find((item) => item.title === "Project Scheduling Coordinator");
     assert.equal(fresh.fitScore, scoreBefore, "applying to a role must not down-rank its siblings");
     assert.ok(!/dismissed/.test(fresh.fitSummary), "no learned-penalty reason should appear");
   } finally {
