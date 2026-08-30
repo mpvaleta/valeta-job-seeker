@@ -14,6 +14,7 @@ import { buildLocalResume } from "@/lib/local-resume.mjs";
 import { DEFAULT_RESUME_TRACKS, normalizeResumeTracks, selectResumeTrack } from "@/lib/resume-tracks.mjs";
 import { PLAYBOOK_GENERATION_RULE_LIMIT, prioritizeResumePlaybookRules } from "@/lib/playbook-priority.mjs";
 import { preparePlaybookLibrary, prepareResumeEvidence } from "@/lib/career-evidence.mjs";
+import { factCandidates } from "@/lib/fact-candidates.mjs";
 import { auditEvidence } from "@/lib/evidence-conflicts.mjs";
 import type { EvidenceAudit } from "@/lib/evidence-conflicts.mjs";
 import { estimateUsageCost, formatEstimatedCost } from "@/lib/ai-pricing.mjs";
@@ -158,39 +159,6 @@ function connectionFromStatus(data: AiStatusPayload): AiConnection {
   const providers = Array.isArray(data.providers) ? data.providers : [];
   if (!providers.length) return { state: "error", authenticated: Boolean(data.authenticated), authorized: Boolean(data.authorized), providers: [], message: "The provider list could not be loaded. Local analysis remains active." };
   return { state: "loaded", authenticated: Boolean(data.authenticated), authorized: Boolean(data.authorized), providers, message: "Provider status loaded. Choose the service and model you want for each cloud review." };
-}
-
-function factCandidates(text: string) {
-  const seen = new Set<string>();
-  const lines = text.split(/\n+/).map((item) => item.replace(/\s+/g, " ").trim()).filter(Boolean);
-  const contextual: string[] = [];
-  let heading = "";
-  for (const line of lines) {
-    const cleaned = line.replace(/^[-•*\d.)\s]+/, "").trim();
-    const looksLikeHeading = cleaned.length <= 160 && (
-      /\b(?:19|20)\d{2}\b/.test(cleaned)
-      || /\b(?:present|current)\b/i.test(cleaned)
-      || /^[A-Z][A-Z0-9&.,'’/ -]{5,}$/.test(cleaned)
-      || (cleaned.includes("|") && cleaned.split("|").length >= 2)
-    );
-    if (looksLikeHeading) {
-      heading = cleaned;
-      contextual.push(cleaned);
-      continue;
-    }
-    if (heading && cleaned.length >= 25) contextual.push(`${heading} — ${cleaned}`);
-    contextual.push(cleaned);
-  }
-  return [...contextual, ...text.split(/(?<=[.!?])\s+/)]
-    .map((item) => item.replace(/^[-•*\d.)\s]+/, "").trim())
-    .filter((item) => item.length >= 20 && item.length <= 500)
-    .filter((item) => {
-      const key = item.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .slice(0, 60);
 }
 
 function normalizeFact(value: string) {

@@ -1,4 +1,4 @@
-import { classifyRadarOpportunity, deriveDismissalSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity } from "./radar.mjs";
+import { classifyRadarOpportunity, deriveDismissalSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity, titleRelevance } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import { DEFAULT_RADAR_MONITORS } from "./default-radar-monitors";
@@ -153,7 +153,13 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     // as low as 20, so missing this here would show a filtered-out role as
     // passing right at that boundary. The location gate caps at 24 for the
     // same reason and has to be listed here too.
-    const exclusionHit = /review exclusion:|startups-only filter|location filter/i.test(row.fit_summary || "");
+    // The role gate is re-applied here, against the title, rather than being
+    // read back out of the stored summary. Two reasons: rows scored before the
+    // gate existed carry a summary that cannot mention it — and those are
+    // exactly the rows flooding the inbox — and re-deriving it means editing a
+    // target title re-sorts the whole inbox immediately, with no rescan.
+    const offTargetRole = titleRelevance(row.title, profile.titles, profile.skills).tier === "none";
+    const exclusionHit = offTargetRole || /review exclusion:|startups-only filter|location filter|role filter/i.test(row.fit_summary || "");
     const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
     const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : row.source_type === "linkedin-saved" ? "linkedin-saved" : "monitored";
     // The posting came from a complete board read, the board has since been
@@ -187,6 +193,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
       fitSummary: row.fit_summary || "No fit summary available.",
       alignmentPasses: fitScore >= profile.minScore && !exclusionHit,
       exclusionHit,
+      offTargetRole,
       status: normalizeOpportunityStatus(row.status),
       discoveredAt: row.discovered_at,
       updatedAt: row.updated_at,
@@ -203,6 +210,32 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     dueCount: monitors.filter((monitor) => monitor.active && isMonitorDue(monitor)).length,
     lastRunAt: monitors.map((monitor) => monitor.lastCheckedAt).filter(Boolean).sort().reverse()[0] || null,
   };
+}
+
+// Removes discoveries the role gate now rejects.
+//
+// Rows collected before the gate existed keep their old, inflated score, and
+// there can be thousands of them. Read-time re-derivation already stops them
+// counting as matches, but the owner still has to scroll past them, so this
+// clears them out for good.
+//
+// Only untouched rows go. Anything shortlisted, archived or dismissed carries a
+// decision the owner made — a dismissal is also what the radar learns from — and
+// deleting those would destroy that record to tidy a list.
+export async function purgeOffTargetOpportunities(db: D1Database, userId: string) {
+  const profileRow = await db.prepare("SELECT * FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<ProfileRow>();
+  const profile = profileFromRow(profileRow);
+  const rows = await db.prepare("SELECT id, title FROM job_opportunities WHERE user_id = ? AND status IN ('new', 'reviewing')").bind(userId).all<{ id: string; title: string }>();
+  const doomed = (rows.results || [])
+    .filter((row) => titleRelevance(row.title, profile.titles, profile.skills).tier === "none")
+    .map((row) => row.id);
+  // D1 caps how many parameters one statement takes, so this goes out in
+  // batches rather than as a single enormous IN list.
+  for (let index = 0; index < doomed.length; index += 90) {
+    const chunk = doomed.slice(index, index + 90);
+    await db.prepare(`DELETE FROM job_opportunities WHERE user_id = ? AND id IN (${chunk.map(() => "?").join(", ")})`).bind(userId, ...chunk).run();
+  }
+  return { removed: doomed.length, kept: (rows.results || []).length - doomed.length };
 }
 
 export async function saveRadarProfile(db: D1Database, userId: string, value: Partial<RadarProfile>) {
@@ -847,7 +880,16 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       // The in-memory index keeps deduplication correct even though the
       // inserts have not landed yet.
       const jobStatements: D1PreparedStatement[] = [];
-      for (const { job, match } of scored) {
+      // Every scored posting used to be written to the inbox — up to 150 per
+      // company, across 100+ monitored companies — so a scan buried a handful
+      // of real matches under thousands of rows the scorer had already rejected.
+      // What is worth keeping is a match, or a near miss the owner could reach
+      // by lowering the bar a little. A posting stopped by a hard gate (wrong
+      // role, wrong market, an exclusion, the wrong company stage) can never
+      // become a match by moving a slider, so it is not kept at all.
+      const nearMissFloor = Math.max(0, profile.minScore - 15);
+      const worthKeeping = scored.filter(({ match }) => match.passes || (!match.gated && match.score >= nearMissFloor));
+      for (const { job, match } of worthKeeping) {
         const existing = index.get(opportunityKey(job.sourceUrl));
         if (existing) {
           jobStatements.push(db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
@@ -905,7 +947,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       const statements = [
         db.prepare("UPDATE company_monitors SET last_checked_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?").bind(monitor.id, userId),
         db.prepare("INSERT INTO monitor_runs (id, monitor_id, run_status, found_count, change_summary) VALUES (?, ?, ?, ?, ?)")
-          .bind(runId, monitor.id, "completed", matches.length, `${triggerLabel} · ${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${jobs.length - matches.length} saved below threshold · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}${zeroReason}`),
+          .bind(runId, monitor.id, "completed", matches.length, `${triggerLabel} · ${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${worthKeeping.length - matches.length} near misses kept · ${scored.length - worthKeeping.length} filtered out by the role/market gates · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}${zeroReason}`),
       ];
       if (repairStatement) statements.unshift(repairStatement);
       // Only a read that produced at least one complete-board posting counts
