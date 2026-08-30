@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_RADAR_PROFILE, RADAR_COMPANY_CATEGORIES, RADAR_TRACKS } from "@/lib/radar.mjs";
+import { DEFAULT_RADAR_PROFILE, RADAR_COMPANY_CATEGORIES, RADAR_TRACKS, deriveRadarProfileFromCareer } from "@/lib/radar.mjs";
 import { AGENCY_PACK_GROUPS } from "@/lib/agency-radar-pack";
 import { readJsonResponse } from "@/lib/http-json.mjs";
 import type { DismissalReason, RadarProfile } from "@/lib/radar.mjs";
@@ -97,8 +97,16 @@ type RadarLinkPayload = {
 
 type SavedLinkedInJob = { title: string; company: string; url: string; savedAt: string };
 
+type CareerEvidence = {
+  facts: string[];
+  headline: string;
+  summary: string;
+  location: string;
+};
+
 type Props = {
   savedLinkedInJobs?: SavedLinkedInJob[];
+  careerEvidence?: CareerEvidence;
   onOpenJobSearch?: () => void;
   onPrepare: (opportunity: RadarOpportunity) => void | Promise<void>;
   onNotice: (message: string) => void;
@@ -172,7 +180,7 @@ function matchesSelectedRegions(location: string, selected: string[]) {
 }
 const initialDraft = profileToDraft(DEFAULT_RADAR_PROFILE);
 
-export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrepare, onNotice, onError }: Props) {
+export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJobSearch, onPrepare, onNotice, onError }: Props) {
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(initialDraft);
   const [monitors, setMonitors] = useState<RadarMonitor[]>([]);
   const [opportunities, setOpportunities] = useState<RadarOpportunity[]>([]);
@@ -360,6 +368,44 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
     if (data) onNotice("Radar goals saved. Future scans will use these roles, skills, locations, and exclusions.");
   }
 
+  /*
+   * Fill the goals draft from the user's own approved career evidence.
+   *
+   * deriveRadarProfileFromCareer only counts what is literally written in the
+   * approved facts, so this proposes rather than invents. It is additive and
+   * draft-only: nothing the user typed is removed, and nothing reaches the
+   * server until they press Save goals.
+   */
+  function suggestFromCareer() {
+    if (!careerEvidence || !careerEvidence.facts.length) {
+      onNotice("Approve some career facts first — upload a résumé in Knowledge sources, approve its facts, and the radar can learn your targets from them.");
+      return;
+    }
+    const suggestion = deriveRadarProfileFromCareer(careerEvidence);
+    const merge = (draftValue: string, additions: string[]) => {
+      const existing = list(draftValue).map((item) => item.toLowerCase());
+      const fresh = additions.filter((item) => !existing.includes(item.toLowerCase()));
+      return { value: [draftValue.trim(), ...fresh].filter(Boolean).join("\n"), added: fresh.length };
+    };
+    const titles = merge(profileDraft.titles, suggestion.titles);
+    const skills = merge(profileDraft.skills, suggestion.skills);
+    const fillLocations = !profileDraft.locations.trim() && suggestion.locations.length;
+    const fillGoals = !profileDraft.goals.trim() && suggestion.goals;
+    const added = titles.added + skills.added + (fillLocations ? suggestion.locations.length : 0) + (fillGoals ? 1 : 0);
+    if (!added) {
+      onNotice(`Nothing new to add — your saved goals already cover what the ${suggestion.evidence.factsRead} approved facts describe.`);
+      return;
+    }
+    setProfileDraft({
+      ...profileDraft,
+      titles: titles.value,
+      skills: skills.value,
+      locations: fillLocations ? suggestion.locations.join("\n") : profileDraft.locations,
+      goals: fillGoals ? suggestion.goals : profileDraft.goals,
+    });
+    onNotice(`Suggested from ${suggestion.evidence.factsRead} approved facts: ${titles.added} ${titles.added === 1 ? "title" : "titles"} and ${skills.added} recurring ${skills.added === 1 ? "skill" : "skills"} added to the draft. Review the goals, remove anything off, then press Save goals.`);
+  }
+
   async function addMonitor() {
     if (!company.trim()) { onNotice("Add the company name."); return; }
     const data = await mutate({ action: "add_monitor", monitor: { company, kind, websiteUrl, careersUrl, referenceUrl, sourceKind, focus, targetPosition, cadence, market: "San Francisco Bay Area / United States" } }, "target", "Saving the target. If its official source returns no real roles, V’s will search the public web and validate direct job pages…");
@@ -496,7 +542,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
 
     <div className="radar-config-grid">
       <article className="radar-goals-card">
-        <div className="card-heading"><div><span>01 · SEARCH GOALS</span><h3>What should count as a good lead?</h3></div><button className="primary" onClick={saveProfile} disabled={Boolean(busy)}>{busy === "profile" ? "Saving…" : "Save goals"}</button></div>
+        <div className="card-heading"><div><span>01 · SEARCH GOALS</span><h3>What should count as a good lead?</h3></div><div className="card-heading-actions"><button onClick={suggestFromCareer} disabled={Boolean(busy)} title="Reads your approved career facts and adds the titles and recurring skills they contain to this draft. Nothing is saved until you press Save goals.">Suggest from my career</button><button className="primary" onClick={saveProfile} disabled={Boolean(busy)}>{busy === "profile" ? "Saving…" : "Save goals"}</button></div></div>
         <label>Target positions<textarea value={profileDraft.titles} onChange={(event) => setProfileDraft({ ...profileDraft, titles: event.target.value })} placeholder="One per line: Brand Project Manager…" /></label>
         <label>Skills and themes<textarea value={profileDraft.skills} onChange={(event) => setProfileDraft({ ...profileDraft, skills: event.target.value })} placeholder="Creative operations, integrated production…" /></label>
         <div className="radar-two"><label>Markets<textarea value={profileDraft.locations} onChange={(event) => setProfileDraft({ ...profileDraft, locations: event.target.value })} /><select aria-label="How strictly to apply your markets" value={profileDraft.locationPolicy} onChange={(event) => setProfileDraft({ ...profileDraft, locationPolicy: event.target.value as RadarProfile["locationPolicy"] })}><option value="required">Only these markets (plus remote, if allowed below)</option><option value="preferred">Prefer these markets, but keep roles elsewhere</option></select></label><label>Exclude<textarea value={profileDraft.exclusions} onChange={(event) => setProfileDraft({ ...profileDraft, exclusions: event.target.value })} placeholder="Commission only, unpaid…" /></label></div>

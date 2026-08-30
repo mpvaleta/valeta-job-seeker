@@ -593,6 +593,10 @@ export function JobSeekerApp() {
     { label: "Résumé tracks", detail: "Add a summary for each career direction you want to pursue", complete: normalizedTracks.filter((track) => track.summary.trim()).length >= Math.min(2, normalizedTracks.length) },
   ], [approvedPlaybookRules.length, documents, facts.length, knowledgeStats.evidence, learnedVoice.ready, normalizedTracks]);
   const effectiveProfile = useMemo(() => ({ ...profile, headline: selectedTrack.headline || profile.headline, summary: selectedTrack.summary || profile.summary }), [profile, selectedTrack]);
+  // What the radar's "Suggest from my career" reads: the same approved facts
+  // the résumé uses, so radar targeting can only ever propose what the user's
+  // own evidence already says.
+  const radarCareerEvidence = useMemo(() => ({ facts, headline: effectiveProfile.headline, summary: effectiveProfile.summary, location: profile.location }), [effectiveProfile.headline, effectiveProfile.summary, facts, profile.location]);
   const analysis = useMemo(() => analyzeRole({ jobText, facts, profile: effectiveProfile, sources: evidenceSources.map((document) => ({ title: document.title, approved: document.approved })) }), [effectiveProfile, evidenceSources, facts, jobText]);
   const { roleKeywords, requirements, matchedFacts, evidenceMap, counts: evidenceCounts, profileReadiness, evidenceCoverage, sourceQuality, fit, recommendation, firstGap } = analysis;
   const selectedProvider = aiConnection.providers.find((provider) => provider.id === aiPreference.provider) || aiConnection.providers[0] || null;
@@ -1715,7 +1719,7 @@ export function JobSeekerApp() {
           </section>
         </div>}
 
-        {view === "radar" && <RadarWorkspace savedLinkedInJobs={linkedInSavedJobs} onOpenJobSearch={() => setView("search")} onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
+        {view === "radar" && <RadarWorkspace savedLinkedInJobs={linkedInSavedJobs} careerEvidence={radarCareerEvidence} onOpenJobSearch={() => setView("search")} onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
 
         {view === "search" && <JobSearchWorkspace onNotice={setNotice} onError={(code, message, context) => logError("job-search", code, message, context)} />}
 
