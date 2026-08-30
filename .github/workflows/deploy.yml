@@ -1,10 +1,14 @@
 name: Deploy to Cloudflare
 
-# Manual trigger for now: this repo is mid-migration off ChatGPT Sites onto a
-# real Cloudflare account (see wrangler.toml). Switch to `on: push: branches:
-# [main]` once CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID secrets exist and
-# a first manual run has succeeded.
+# Deploys on every push to main, plus a manual button for re-running a deploy
+# without a new commit. The migration onto a real Cloudflare account is done:
+# CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are set and manual runs have
+# succeeded repeatedly, which were the two preconditions for this switch.
+# Merging a pull request counts as a push to main, so a merge from any device
+# — phone included — now publishes without a second manual step.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:

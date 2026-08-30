@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_RADAR_PROFILE, RADAR_COMPANY_CATEGORIES, RADAR_TRACKS } from "@/lib/radar.mjs";
+import { DEFAULT_RADAR_PROFILE, RADAR_COMPANY_CATEGORIES, RADAR_TRACKS, deriveRadarProfileFromCareer } from "@/lib/radar.mjs";
 import { AGENCY_PACK_GROUPS } from "@/lib/agency-radar-pack";
 import { readJsonResponse } from "@/lib/http-json.mjs";
 import type { DismissalReason, RadarProfile } from "@/lib/radar.mjs";
@@ -97,8 +97,16 @@ type RadarLinkPayload = {
 
 type SavedLinkedInJob = { title: string; company: string; url: string; savedAt: string };
 
+type CareerEvidence = {
+  facts: string[];
+  headline: string;
+  summary: string;
+  location: string;
+};
+
 type Props = {
   savedLinkedInJobs?: SavedLinkedInJob[];
+  careerEvidence?: CareerEvidence;
   onOpenJobSearch?: () => void;
   onPrepare: (opportunity: RadarOpportunity) => void | Promise<void>;
   onNotice: (message: string) => void;
@@ -172,7 +180,7 @@ function matchesSelectedRegions(location: string, selected: string[]) {
 }
 const initialDraft = profileToDraft(DEFAULT_RADAR_PROFILE);
 
-export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrepare, onNotice, onError }: Props) {
+export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJobSearch, onPrepare, onNotice, onError }: Props) {
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(initialDraft);
   const [monitors, setMonitors] = useState<RadarMonitor[]>([]);
   const [opportunities, setOpportunities] = useState<RadarOpportunity[]>([]);
@@ -186,6 +194,10 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
   const [busy, setBusy] = useState("");
   const [progress, setProgress] = useState("");
   const [filter, setFilter] = useState<"active" | "shortlisted" | "dismissed" | "archived" | "all">("active");
+  // The page used to stack goals, target management, imports, and the inbox in
+  // one scroll; with 100+ monitored companies the inbox — the part that gets
+  // daily attention — sat below a wall of configuration. Tabs put it first.
+  const [radarTab, setRadarTab] = useState<"inbox" | "targets" | "goals">("inbox");
   const [alignmentFilter, setAlignmentFilter] = useState<"all" | "matching" | "below">("all");
   const [trackFilter, setTrackFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -360,6 +372,44 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
     if (data) onNotice("Radar goals saved. Future scans will use these roles, skills, locations, and exclusions.");
   }
 
+  /*
+   * Fill the goals draft from the user's own approved career evidence.
+   *
+   * deriveRadarProfileFromCareer only counts what is literally written in the
+   * approved facts, so this proposes rather than invents. It is additive and
+   * draft-only: nothing the user typed is removed, and nothing reaches the
+   * server until they press Save goals.
+   */
+  function suggestFromCareer() {
+    if (!careerEvidence || !careerEvidence.facts.length) {
+      onNotice("Approve some career facts first — upload a résumé in Knowledge sources, approve its facts, and the radar can learn your targets from them.");
+      return;
+    }
+    const suggestion = deriveRadarProfileFromCareer(careerEvidence);
+    const merge = (draftValue: string, additions: string[]) => {
+      const existing = list(draftValue).map((item) => item.toLowerCase());
+      const fresh = additions.filter((item) => !existing.includes(item.toLowerCase()));
+      return { value: [draftValue.trim(), ...fresh].filter(Boolean).join("\n"), added: fresh.length };
+    };
+    const titles = merge(profileDraft.titles, suggestion.titles);
+    const skills = merge(profileDraft.skills, suggestion.skills);
+    const fillLocations = !profileDraft.locations.trim() && suggestion.locations.length;
+    const fillGoals = !profileDraft.goals.trim() && suggestion.goals;
+    const added = titles.added + skills.added + (fillLocations ? suggestion.locations.length : 0) + (fillGoals ? 1 : 0);
+    if (!added) {
+      onNotice(`Nothing new to add — your saved goals already cover what the ${suggestion.evidence.factsRead} approved facts describe.`);
+      return;
+    }
+    setProfileDraft({
+      ...profileDraft,
+      titles: titles.value,
+      skills: skills.value,
+      locations: fillLocations ? suggestion.locations.join("\n") : profileDraft.locations,
+      goals: fillGoals ? suggestion.goals : profileDraft.goals,
+    });
+    onNotice(`Suggested from ${suggestion.evidence.factsRead} approved facts: ${titles.added} ${titles.added === 1 ? "title" : "titles"} and ${skills.added} recurring ${skills.added === 1 ? "skill" : "skills"} added to the draft. Review the goals, remove anything off, then press Save goals.`);
+  }
+
   async function addMonitor() {
     if (!company.trim()) { onNotice("Add the company name."); return; }
     const data = await mutate({ action: "add_monitor", monitor: { company, kind, websiteUrl, careersUrl, referenceUrl, sourceKind, focus, targetPosition, cadence, market: "San Francisco Bay Area / United States" } }, "target", "Saving the target. If its official source returns no real roles, V’s will search the public web and validate direct job pages…");
@@ -494,18 +544,25 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
       <div><span>Last radar run</span><strong>{lastRunAt ? compactDate(lastRunAt) : "Not yet"}</strong><small>{schedulerEnabled ? "Background scans on · catch-up when V’s opens" : "Catch-up when V’s opens · background scans prepared"}</small></div>
     </div>
 
-    <div className="radar-config-grid">
+    <div className="radar-tabs" role="tablist" aria-label="Radar sections">
+      {([["inbox", `Inbox · ${opportunities.length}`], ["targets", `Targets · ${monitors.length}`], ["goals", "Search goals"]] as const).map(([id, label]) => <button key={id} role="tab" aria-selected={radarTab === id} className={radarTab === id ? "selected" : ""} onClick={() => setRadarTab(id)}>{label}</button>)}
+      <div className="radar-tabs-actions"><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target on the Targets tab, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div>
+    </div>
+
+    {radarTab === "goals" && <div className="radar-config-grid solo">
       <article className="radar-goals-card">
-        <div className="card-heading"><div><span>01 · SEARCH GOALS</span><h3>What should count as a good lead?</h3></div><button className="primary" onClick={saveProfile} disabled={Boolean(busy)}>{busy === "profile" ? "Saving…" : "Save goals"}</button></div>
+        <div className="card-heading"><div><span>SEARCH GOALS</span><h3>What should count as a good lead?</h3></div><div className="card-heading-actions"><button onClick={suggestFromCareer} disabled={Boolean(busy)} title="Reads your approved career facts and adds the titles and recurring skills they contain to this draft. Nothing is saved until you press Save goals.">Suggest from my career</button><button className="primary" onClick={saveProfile} disabled={Boolean(busy)}>{busy === "profile" ? "Saving…" : "Save goals"}</button></div></div>
         <label>Target positions<textarea value={profileDraft.titles} onChange={(event) => setProfileDraft({ ...profileDraft, titles: event.target.value })} placeholder="One per line: Brand Project Manager…" /></label>
         <label>Skills and themes<textarea value={profileDraft.skills} onChange={(event) => setProfileDraft({ ...profileDraft, skills: event.target.value })} placeholder="Creative operations, integrated production…" /></label>
         <div className="radar-two"><label>Markets<textarea value={profileDraft.locations} onChange={(event) => setProfileDraft({ ...profileDraft, locations: event.target.value })} /><select aria-label="How strictly to apply your markets" value={profileDraft.locationPolicy} onChange={(event) => setProfileDraft({ ...profileDraft, locationPolicy: event.target.value as RadarProfile["locationPolicy"] })}><option value="required">Only these markets (plus remote, if allowed below)</option><option value="preferred">Prefer these markets, but keep roles elsewhere</option></select></label><label>Exclude<textarea value={profileDraft.exclusions} onChange={(event) => setProfileDraft({ ...profileDraft, exclusions: event.target.value })} placeholder="Commission only, unpaid…" /></label></div>
         <label>Career goals<textarea value={profileDraft.goals} onChange={(event) => setProfileDraft({ ...profileDraft, goals: event.target.value })} /></label>
         <div className="radar-preferences"><fieldset><legend>Work style</legend>{["On-site", "Hybrid", "Remote"].map((mode) => <label key={mode}><input type="checkbox" checked={profileDraft.workModes.includes(mode)} onChange={(event) => setProfileDraft({ ...profileDraft, workModes: event.target.checked ? [...profileDraft.workModes, mode] : profileDraft.workModes.filter((item) => item !== mode) })} />{mode}</label>)}</fieldset><label>Minimum alignment <strong>{profileDraft.minScore}%</strong><input type="range" min="20" max="90" step="5" value={profileDraft.minScore} onChange={(event) => setProfileDraft({ ...profileDraft, minScore: Number(event.target.value) })} /></label><label>Company stage<select value={profileDraft.companyStagePreference} onChange={(event) => setProfileDraft({ ...profileDraft, companyStagePreference: event.target.value as RadarProfile["companyStagePreference"] })}>{STAGE_PREFERENCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div>
       </article>
+    </div>}
 
+    {radarTab === "targets" && <div className="radar-config-grid solo">
       <article className="radar-target-card">
-        <div className="card-heading"><div><span>02 · ADD A TARGET</span><h3>Company, brand, agency, or team</h3></div></div>
+        <div className="card-heading"><div><span>ADD A TARGET</span><h3>Company, brand, agency, or team</h3></div></div>
         <label>Company name<input value={company} onChange={(event) => setCompany(event.target.value)} placeholder="e.g. Apple" /></label>
         <div className="radar-two"><label>Type<select value={kind} onChange={(event) => setKind(event.target.value)}>{TARGET_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label><label>Cadence<select value={cadence} onChange={(event) => setCadence(event.target.value as "twice_daily" | "daily" | "manual")}><option value="twice_daily">Twice daily (recommended)</option><option value="daily">Daily</option><option value="manual">Manual only</option></select></label></div>
         <label>Target position<select value={targetPosition} onChange={(event) => setTargetPosition(event.target.value)}><option value="">Use all saved target positions</option>{savedTargetPositions.map((title) => <option key={title} value={title}>{title}</option>)}</select><small>Controls both the company search query and the match score for this target.</small></label>
@@ -516,10 +573,10 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
         <button className="primary wide-action" onClick={addMonitor} disabled={Boolean(busy)}>{busy === "target" ? "Adding…" : "Add to radar"}</button>
         <div className="radar-safety-note"><strong>Official sources first · public-web fallback second</strong><span>V’s rejects navigation labels and validates direct job URLs before saving them. When an official page yields no real roles, the connected AI provider may run one bounded public-web search. LinkedIn and Indeed logins cannot grant V’s a personal job-feed API, so those URLs remain references rather than account automation.</span></div>
       </article>
-    </div>
+    </div>}
 
-    <section className="radar-targets-section">
-      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><div className="radar-target-actions">{AGENCY_PACK_GROUPS.map((group) => <button key={group.id} onClick={() => seedAgencyPack(group)} disabled={Boolean(busy)} title={`${group.blurb} Adds ${group.entries.length} companies.`}>{busy === `agency-pack-${group.id}` ? `Adding ${group.label.toLowerCase()}…` : `+ ${group.label}`}</button>)}<button onClick={seedBrandPack} disabled={Boolean(busy)} title="Add Bay Area consumer, media, and sports brands with in-house creative and production teams — every board verified as publicly readable">{busy === "brand-pack" ? "Adding brands…" : "Add brand pack"}</button><button className="primary" onClick={() => runScan()} disabled={Boolean(busy) || !monitors.some((item) => item.active)} title={!monitors.some((item) => item.active) ? "No active targets. Resume at least one target below, then run the radar." : undefined}>{busy === "scan" ? "Scanning public career pages…" : "Run radar now"}</button></div></div>
+    {radarTab === "targets" && <section className="radar-targets-section">
+      <div className="radar-section-head"><div><span>MONITORED TARGETS</span><h2>{monitors.length} saved {monitors.length === 1 ? "company" : "companies"}</h2></div><div className="radar-target-actions">{AGENCY_PACK_GROUPS.map((group) => <button key={group.id} onClick={() => seedAgencyPack(group)} disabled={Boolean(busy)} title={`${group.blurb} Adds ${group.entries.length} companies.`}>{busy === `agency-pack-${group.id}` ? `Adding ${group.label.toLowerCase()}…` : `+ ${group.label}`}</button>)}<button onClick={seedBrandPack} disabled={Boolean(busy)} title="Add Bay Area consumer, media, and sports brands with in-house creative and production teams — every board verified as publicly readable">{busy === "brand-pack" ? "Adding brands…" : "Add brand pack"}</button></div></div>
       {monitors.length > 0 && !monitors.some((item) => item.active) && <div className="empty-state compact"><strong>Every target is paused.</strong><span>“Run radar now” stays disabled until at least one target below is resumed.</span></div>}
       {!monitors.length ? <div className="empty-state compact"><strong>Add the first company you want V’s to watch.</strong><span>Add the website and let V’s find the careers page, or paste an official careers URL. Targets catch up when the app opens, and you can run the radar anytime.</span></div> : <div className="radar-target-list">{monitors.map((monitor) => {
         const coverage = monitorCoverage(monitor);
@@ -575,40 +632,9 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
       <p className="scheduler-note"><strong>Twice-daily behavior:</strong> V’s treats recommended targets as due every 12 hours and catches them up when you open the private app. {schedulerEnabled
         ? "The background scheduler checks for due targets every 2 hours (not just at two fixed times a day) and scans them while the app is closed; each run summary says whether it came from the background scheduler, an app-open catch-up, or a manual scan."
         : "Connecting to the background scheduler…"}</p>
-    </section>
+    </section>}
 
-    <section className="radar-board-handoff">
-      <div>
-        <span>THE BOARDS V’S CANNOT SCAN</span>
-        <strong>LinkedIn, Indeed, Glassdoor and the rest live in Open job search</strong>
-        <small>Those boards forbid automated reading, so the radar can never scan them. The Open job search tab builds the exact search for each one — your roles, your places, your freshness window — and remembers which you already worked through.</small>
-      </div>
-      {onOpenJobSearch && <button className="primary" onClick={onOpenJobSearch}>Open job search →</button>}
-    </section>
-
-    <section className="radar-import">
-      <div className="radar-section-head"><div><span>ROLES V’S CANNOT REACH</span><h2>Import a job link directly</h2><small>Some employers — Meta’s job search is the standing example — publish a robots policy that forbids automated collection, and LinkedIn blocks reading entirely. Open the role yourself, then paste its job-details link here. V’s reads only that page, scores it against your goals, and files it in the inbox below.</small></div></div>
-      <div className="radar-import-body">
-        <label>Public job links <small>one per line</small><textarea value={importLinks} onChange={(event) => setImportLinks(event.target.value)} placeholder={"https://www.metacareers.com/profile/job_details/1234567890/\nhttps://boards.greenhouse.io/example/jobs/100"} /></label>
-        <div className="radar-import-actions">
-          <button className="primary" onClick={importJobLinks} disabled={Boolean(busy) || !importLinks.trim()}>{busy === "import-links" ? "Reading job pages…" : "Import these roles"}</button>
-          <small>Works for any public job-details page, including iCIMS-hosted career sites and TeamWork Online (the sports-industry board) — neither publishes an open API or structured job data, so each link is read individually rather than scanned in bulk. A LinkedIn link cannot be read — open it, copy the description, and use Role workspace instead.</small>
-        </div>
-        <div className="radar-linkedin-bridge">
-          <div><strong>{savedLinkedInJobs.length ? `${savedLinkedInJobs.length} saved ${savedLinkedInJobs.length === 1 ? "job" : "jobs"} found in your LinkedIn export` : "Bring in your saved LinkedIn jobs"}</strong><span>{savedLinkedInJobs.length ? "These come from the official archive you already imported. V\u2019s files them here using only the title, company, and link LinkedIn exported \u2014 it never opens a LinkedIn page." : "LinkedIn does not allow automated reading, and its sign-in grants no job access. Request your official data export, import the ZIP in Knowledge sources, and your saved jobs appear here."}</span></div>
-          <button onClick={importSavedLinkedInJobs} disabled={Boolean(busy) || !savedLinkedInJobs.length}>{busy === "import-linkedin" ? "Filing saved roles\u2026" : "Add saved LinkedIn roles"}</button>
-        </div>
-        <div className="radar-startup-bridge">
-          <div>
-            <strong>Startup boards</strong>
-            <span>Enterprise ATS boards mostly miss startups. Search <a href="https://wellfound.com/jobs" target="_blank" rel="noreferrer">Wellfound</a> or <a href="https://www.workatastartup.com" target="_blank" rel="noreferrer">Y Combinator&rsquo;s Work at a Startup</a>, then paste the role&rsquo;s link above &mdash; a role from either site is filed under Startup / Early-stage automatically, no matter what the posting itself says about funding stage. <a href="https://builtin.com" target="_blank" rel="noreferrer">Built In</a> works the same paste-link way but lists companies of every size, so it is not auto-tagged as a startup.</span>
-            <small>Checked directly against each site&rsquo;s published robots policy before adding this: Wellfound and Work at a Startup allow it, but a live page fetch from Wellfound was refused by its own server during this check &mdash; if importing from Wellfound fails, that is most likely why, not a bug in the import itself.</small>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section className="radar-inbox">
+    {radarTab === "inbox" && <section className="radar-inbox">
       <div className="radar-section-head"><div><span>DISCOVERY INBOX</span><h2>{visibleOpportunities.length} discovered {visibleOpportunities.length === 1 ? "role" : "roles"}{opportunityTotal > opportunities.length ? ` · ${opportunityTotal} total` : ""}</h2><small>{opportunityTotal > opportunities.length ? `Showing the newest ${opportunities.length} of ${opportunityTotal} preserved discoveries — nothing was deleted. ` : ""}V keeps below-threshold discoveries too, so a working scan never looks empty.</small></div><div className="radar-filters">{([['active','Active'],['shortlisted','Approved'],['dismissed','Dismissed'],['archived','Archived'],['all','All statuses']] as const).map(([id, label]) => <button key={id} className={filter === id ? "selected" : ""} onClick={() => setFilter(id)}>{label}</button>)}</div></div>
       <div className="radar-category-chips" aria-label="Company type shortcuts">
         <small>Jump to</small>
@@ -638,7 +664,38 @@ export function RadarWorkspace({ savedLinkedInJobs = [], onOpenJobSearch, onPrep
         <label>Company type<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All company types</option>{RADAR_COMPANY_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
       </div>
       {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : opportunity.origin === "monitored" ? "monitored" : "imported"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : opportunity.origin === "imported" ? "Imported by you" : opportunity.origin === "linkedin-saved" ? "Saved on LinkedIn" : "Company you monitor"}</em>{!opportunity.alignmentPasses && <em className="below">Below {profileDraft.minScore}% threshold</em>}{opportunity.listingLost && <em className="closed" title="This role came from the company's public board, and the newest complete read of that board no longer includes it. Open the original to confirm before spending time on it.">No longer on the company board</em>}</div><p>{opportunity.fitSummary}</p><small><b className="collected-on">Collected {compactDateTime(opportunity.discoveredAt)}</b>{opportunity.lastSeenAt && opportunity.lastSeenAt.slice(0, 10) !== opportunity.discoveredAt.slice(0, 10) && <> · still listed {compactDate(opportunity.lastSeenAt)}</>} · {opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : opportunity.origin === "imported" ? "Imported from a link you provided" : opportunity.origin === "linkedin-saved" ? "From your official LinkedIn saved-jobs export" : "Found from a monitored company"} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button title="You already applied to this one, or you have seen it before. Hides it without changing what the radar looks for." onClick={() => updateOpportunity(opportunity, "dismissed", "already_applied")}>Saw it / applied</button>}{opportunity.status !== "dismissed" && <button title="This is not the kind of role you want. Hides it, and once a few share a pattern V's ranks similar roles lower." onClick={() => updateOpportunity(opportunity, "dismissed", "not_relevant")}>Not for me</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}{(opportunity.status === "dismissed" || opportunity.status === "archived") && <button onClick={() => updateOpportunity(opportunity, "reviewing")}>Restore</button>}</div></article>)}</div>}
-    </section>
+    </section>}
+
+    {radarTab === "inbox" && <section className="radar-board-handoff">
+      <div>
+        <span>THE BOARDS V’S CANNOT SCAN</span>
+        <strong>LinkedIn, Indeed, Glassdoor and the rest live in Open job search</strong>
+        <small>Those boards forbid automated reading, so the radar can never scan them. The Open job search tab builds the exact search for each one — your roles, your places, your freshness window — and remembers which you already worked through.</small>
+      </div>
+      {onOpenJobSearch && <button className="primary" onClick={onOpenJobSearch}>Open job search →</button>}
+    </section>}
+
+    {radarTab === "inbox" && <section className="radar-import">
+      <div className="radar-section-head"><div><span>ROLES V’S CANNOT REACH</span><h2>Import a job link directly</h2><small>Some employers — Meta’s job search is the standing example — publish a robots policy that forbids automated collection, and LinkedIn blocks reading entirely. Open the role yourself, then paste its job-details link here. V’s reads only that page, scores it against your goals, and files it in the inbox below.</small></div></div>
+      <div className="radar-import-body">
+        <label>Public job links <small>one per line</small><textarea value={importLinks} onChange={(event) => setImportLinks(event.target.value)} placeholder={"https://www.metacareers.com/profile/job_details/1234567890/\nhttps://boards.greenhouse.io/example/jobs/100"} /></label>
+        <div className="radar-import-actions">
+          <button className="primary" onClick={importJobLinks} disabled={Boolean(busy) || !importLinks.trim()}>{busy === "import-links" ? "Reading job pages…" : "Import these roles"}</button>
+          <small>Works for any public job-details page, including iCIMS-hosted career sites and TeamWork Online (the sports-industry board) — neither publishes an open API or structured job data, so each link is read individually rather than scanned in bulk. A LinkedIn link cannot be read — open it, copy the description, and use Role workspace instead.</small>
+        </div>
+        <div className="radar-linkedin-bridge">
+          <div><strong>{savedLinkedInJobs.length ? `${savedLinkedInJobs.length} saved ${savedLinkedInJobs.length === 1 ? "job" : "jobs"} found in your LinkedIn export` : "Bring in your saved LinkedIn jobs"}</strong><span>{savedLinkedInJobs.length ? "These come from the official archive you already imported. V\u2019s files them here using only the title, company, and link LinkedIn exported \u2014 it never opens a LinkedIn page." : "LinkedIn does not allow automated reading, and its sign-in grants no job access. Request your official data export, import the ZIP in Knowledge sources, and your saved jobs appear here."}</span></div>
+          <button onClick={importSavedLinkedInJobs} disabled={Boolean(busy) || !savedLinkedInJobs.length}>{busy === "import-linkedin" ? "Filing saved roles\u2026" : "Add saved LinkedIn roles"}</button>
+        </div>
+        <div className="radar-startup-bridge">
+          <div>
+            <strong>Startup boards</strong>
+            <span>Enterprise ATS boards mostly miss startups. Search <a href="https://wellfound.com/jobs" target="_blank" rel="noreferrer">Wellfound</a> or <a href="https://www.workatastartup.com" target="_blank" rel="noreferrer">Y Combinator&rsquo;s Work at a Startup</a>, then paste the role&rsquo;s link above &mdash; a role from either site is filed under Startup / Early-stage automatically, no matter what the posting itself says about funding stage. <a href="https://builtin.com" target="_blank" rel="noreferrer">Built In</a> works the same paste-link way but lists companies of every size, so it is not auto-tagged as a startup.</span>
+            <small>Checked directly against each site&rsquo;s published robots policy before adding this: Wellfound and Work at a Startup allow it, but a live page fetch from Wellfound was refused by its own server during this check &mdash; if importing from Wellfound fails, that is most likely why, not a bug in the import itself.</small>
+          </div>
+        </div>
+      </div>
+    </section>}
   </section>;
 }
 
