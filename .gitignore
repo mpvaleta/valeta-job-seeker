@@ -43,3 +43,6 @@ next-env.d.ts
 /.vinext/
 /outputs/
 /work/
+
+# Claude Code personal settings (permission grants, not shared)
+.claude/settings.local.json
