@@ -1,12 +1,12 @@
 {
-  "fetchedAt": "2026-08-30T17:36:29Z",
-  "lastRunAt": "2026-08-30 17:36:27",
-  "dueCount": 9,
+  "fetchedAt": "2026-08-31T01:22:43Z",
+  "lastRunAt": "2026-08-31 01:22:42",
+  "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
     "prefer": "Specific examples, short sentences, concrete outcomes, and plain language.",
     "avoid": "Corporate jargon, filler adjectives, exaggerated claims, and generic enthusiasm.",
-    "claudeModel": "sonnet"
+    "claudeModel": "opus"
   },
   "monitors": [
     {
@@ -14,7 +14,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 01:15:33",
+      "lastCheckedAt": "2026-08-30 20:59:23",
       "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -38,8 +38,8 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 01:15:33",
-      "lastRunSummary": "Manual scan · 2 verified roles read · 0 met the 45% minimum · 2 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-30 18:00:10",
+      "lastRunSummary": "Background scheduled scan · 2 verified roles read · 0 met the 45% minimum · 2 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Attentive",
@@ -62,31 +62,31 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 01:15:34",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-30 18:00:11",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Barbarian",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 01:15:35",
-      "lastRunSummary": "Manual scan · 1 verified roles read · 0 met the 45% minimum · 1 saved below threshold · 0 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
+      "lastCheckedAt": "2026-08-30 18:00:11",
+      "lastRunSummary": "Background scheduled scan · 1 verified roles read · 0 met the 45% minimum · 1 saved below threshold · 0 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
     },
     {
       "company": "Buck",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 01:15:35",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-30 18:00:12",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Code and Theory",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-30 06:00:17",
+      "lastCheckedAt": "2026-08-30 20:00:14",
       "lastRunSummary": "Background scheduled scan · 58 verified roles read · 4 met the 45% minimum · 54 saved below threshold · 1 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
     },
     {
@@ -94,7 +94,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 06:00:19",
+      "lastCheckedAt": "2026-08-30 20:00:16",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -102,7 +102,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 06:00:22",
+      "lastCheckedAt": "2026-08-30 20:00:19",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -110,7 +110,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 06:00:22",
+      "lastCheckedAt": "2026-08-30 20:00:19",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -134,7 +134,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 06:00:23",
+      "lastCheckedAt": "2026-08-30 20:00:19",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -142,8 +142,8 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 08:00:09",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-30 20:45:10",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Google",
@@ -158,88 +158,88 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 85,
-      "lastCheckedAt": "2026-08-30 01:15:31",
-      "lastRunSummary": "Manual scan · 85 verified roles read · 85 met the 45% minimum · 0 saved below threshold · 5 new (5 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-30 18:00:06",
+      "lastRunSummary": "Background scheduled scan · 85 verified roles read · 85 met the 45% minimum · 0 saved below threshold · 5 new (5 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Hinge Health",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 30,
-      "lastCheckedAt": "2026-08-30 14:00:09",
-      "lastRunSummary": "Background scheduled scan · 71 verified roles read · 30 met the 45% minimum · 41 saved below threshold · 1 new (1 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
+      "lastRunFoundCount": 2,
+      "lastCheckedAt": "2026-08-31 01:22:40",
+      "lastRunSummary": "Manual scan · 71 verified roles read · 2 met the 45% minimum · 7 near misses kept · 62 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Huge",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 7,
-      "lastCheckedAt": "2026-08-30 08:00:11",
-      "lastRunSummary": "Background scheduled scan · 44 verified roles read · 7 met the 45% minimum · 37 saved below threshold · 1 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
+      "lastCheckedAt": "2026-08-30 20:45:12",
+      "lastRunSummary": "App-open catch-up scan · 44 verified roles read · 7 met the 45% minimum · 37 saved below threshold · 1 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
     },
     {
       "company": "Inizio Evoke",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 14:00:11",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 01:22:41",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Instrument",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 08:00:11",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-30 20:45:13",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Jack Morton Worldwide",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 40,
-      "lastCheckedAt": "2026-08-30 14:00:11",
-      "lastRunSummary": "Background scheduled scan · 74 verified roles read · 40 met the 45% minimum · 34 saved below threshold · 9 new (6 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 9,
+      "lastCheckedAt": "2026-08-31 01:22:42",
+      "lastRunSummary": "Manual scan · 74 verified roles read · 9 met the 45% minimum · 0 near misses kept · 65 filtered out by the role/market gates · 1 new (1 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Legs Media",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 08:00:12",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-30 20:45:14",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Media.Monks",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 08:00:15",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-30 20:45:17",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Mekanism",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 10:00:09",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-30 20:53:05",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Ogilvy",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 10:00:11",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 4 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-30 20:53:06",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 4 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "OpenAI",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 14:00:12",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 01:22:42",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Perplexity",
@@ -254,16 +254,16 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 10:00:12",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-30 20:53:08",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Razorfish",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 12:00:10",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 00:00:46",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Snap",
@@ -294,59 +294,72 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 32,
-      "lastCheckedAt": "2026-08-30 01:15:31",
-      "lastRunSummary": "Manual scan · 76 verified roles read · 32 met the 45% minimum · 44 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-30 18:00:08",
+      "lastRunSummary": "Background scheduled scan · 76 verified roles read · 32 met the 45% minimum · 44 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Venables Bell + Partners",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 12:00:13",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 00:00:49",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Whatnot",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 01:15:31",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-30 18:00:08",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Wieden+Kennedy",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 12:00:14",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 00:00:50",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Work & Co",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 14:00:08",
-      "lastRunSummary": "Background scheduled scan · 1 verified roles read · 0 met the 45% minimum · 1 saved below threshold · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
+      "lastCheckedAt": "2026-08-31 01:22:39",
+      "lastRunSummary": "Manual scan · 1 verified roles read · 0 met the 45% minimum · 0 near misses kept · 1 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
     },
     {
       "company": "Wpromote",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 27,
-      "lastCheckedAt": "2026-08-30 14:00:08",
-      "lastRunSummary": "Background scheduled scan · 41 verified roles read · 27 met the 45% minimum · 14 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastRunFoundCount": 4,
+      "lastCheckedAt": "2026-08-31 01:22:40",
+      "lastRunSummary": "Manual scan · 41 verified roles read · 4 met the 45% minimum · 0 near misses kept · 37 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "e.l.f. Cosmetics",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 25,
-      "lastCheckedAt": "2026-08-30 01:15:32",
-      "lastRunSummary": "Manual scan · 71 verified roles read · 25 met the 45% minimum · 46 saved below threshold · 1 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-30 18:00:08",
+      "lastRunSummary": "Background scheduled scan · 71 verified roles read · 25 met the 45% minimum · 46 saved below threshold · 1 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     }
   ],
   "opportunities": [
+    {
+      "id": "029bbed2-4d51-4cb7-8d33-03be297154c0",
+      "title": "Manager, Project Management",
+      "company": "Jack Morton Worldwide",
+      "location": "Addison, Illinois, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4385290009",
+      "sourceType": "greenhouse",
+      "fitScore": 83,
+      "fitSummary": "83% target alignment · target title: Project Manager · skill in title: project management · skill in posting: brand, cross-functional · goal overlap: brand, marketing, meaningful, ownership · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
     {
       "id": "60121710-ad54-4782-b7ab-b373f058ebd3",
       "title": "Business Process & Integration, Senior Lead",
@@ -409,7 +422,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: integrated production, cross-functional · goal overlap: roles, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1266,7 +1279,7 @@
       "sourceType": "greenhouse",
       "fitScore": 38,
       "fitSummary": "38% target alignment · skill overlap: integrated production · goal overlap: roles · location: San Francisco Bay Area, United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": false,
       "origin": "monitored"
     },
@@ -1370,7 +1383,7 @@
       "sourceType": "greenhouse",
       "fitScore": 38,
       "fitSummary": "38% target alignment · skill overlap: integrated production · goal overlap: roles · location: San Francisco Bay Area, United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": false,
       "origin": "monitored"
     },
@@ -1472,10 +1485,10 @@
       "location": "San Francisco-HQ · Remote",
       "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/60471c3d-2b64-49ae-a256-2903bfdce449",
       "sourceType": "ashby",
-      "fitScore": 65,
-      "fitSummary": "65% target alignment · title overlap: operations · skill overlap: project management, cross-functional · goal overlap: ownership, cross-functional · location: San Francisco Bay Area",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same line of work: operations · skill in posting: project management, cross-functional · goal overlap: ownership, cross-functional · location: San Francisco Bay Area · company type you usually dismiss",
       "status": "dismissed",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1524,8 +1537,8 @@
       "location": "Remote, United States",
       "sourceUrl": "https://jobs.lever.co/wpromote/9fec25dd-ed26-43d1-82bd-3afa80869b84",
       "sourceType": "lever",
-      "fitScore": 91,
-      "fitSummary": "91% target alignment · target title: Project Manager · skill overlap: project management, agency · goal overlap: marketing, agency, ownership · location: United States",
+      "fitScore": 74,
+      "fitSummary": "74% target alignment · target title: Project Manager · skill in posting: project management, agency · goal overlap: marketing, agency, ownership · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -1537,34 +1550,8 @@
       "location": "New York City, New York",
       "sourceUrl": "https://jobs.lever.co/wpromote/3188baad-6cc6-43d5-926d-cf42c5e864b1",
       "sourceType": "lever",
-      "fitScore": 85,
-      "fitSummary": "85% target alignment · target title: Project Manager · skill overlap: creative operations, agency · goal overlap: agency · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "7ca811e6-ce01-43db-b825-b5d49fabbe87",
-      "title": "Director, Performance Creative Strategy",
-      "company": "Wpromote",
-      "location": "Remote, United States",
-      "sourceUrl": "https://jobs.lever.co/wpromote/f3e684ae-d609-4dcc-b0c7-971c21319ea8",
-      "sourceType": "lever",
-      "fitScore": 65,
-      "fitSummary": "65% target alignment · title overlap: creative · skill overlap: creative operations, agency · goal overlap: marketing, agency · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "ac6a3773-3f76-4806-a965-cb4e0cb4c68b",
-      "title": "Performance Creative Manager",
-      "company": "Wpromote",
-      "location": "Remote, United States",
-      "sourceUrl": "https://jobs.lever.co/wpromote/db2c109b-3f25-468b-802c-ded833d91c36",
-      "sourceType": "lever",
-      "fitScore": 65,
-      "fitSummary": "65% target alignment · title overlap: creative · skill overlap: agency, Performance and growth marketing · goal overlap: marketing, agency · location: United States",
+      "fitScore": 68,
+      "fitSummary": "68% target alignment · target title: Project Manager · skill in posting: agency · goal overlap: agency · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -1579,7 +1566,7 @@
       "fitScore": 63,
       "fitSummary": "63% target alignment · title overlap: program · skill overlap: agency · goal overlap: advertising, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1592,7 +1579,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: agency, cross-functional, Performance and growth marketing · goal overlap: marketing, agency, meaningful, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1605,7 +1592,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: creative operations, brand, agency · goal overlap: brand, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1618,7 +1605,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: agency, cross-functional, Performance and growth marketing · goal overlap: marketing, agency, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1631,7 +1618,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: agency, cross-functional, Performance and growth marketing · goal overlap: marketing, agency, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1644,7 +1631,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: project management, agency, cross-functional · goal overlap: marketing, agency, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1657,7 +1644,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: integrated production, brand, agency · goal overlap: brand, advertising, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1670,7 +1657,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: integrated production, brand, agency · goal overlap: brand, advertising, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1683,7 +1670,7 @@
       "fitScore": 52,
       "fitSummary": "52% target alignment · skill overlap: agency, cross-functional · goal overlap: advertising, marketing, agency, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1696,7 +1683,7 @@
       "fitScore": 52,
       "fitSummary": "52% target alignment · skill overlap: agency, cross-functional · goal overlap: marketing, agency, meaningful, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1709,7 +1696,7 @@
       "fitScore": 51,
       "fitSummary": "51% target alignment · skill overlap: creative operations, agency, Performance and growth marketing · goal overlap: marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1722,7 +1709,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: brand, agency · goal overlap: brand, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1735,7 +1722,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: agency, cross-functional · goal overlap: marketing, agency, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1748,7 +1735,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: brand, agency · goal overlap: brand, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1761,7 +1748,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: brand, agency · goal overlap: brand, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1774,7 +1761,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: brand, agency · goal overlap: brand, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1787,7 +1774,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: brand, agency · goal overlap: brand, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1799,6 +1786,32 @@
       "sourceType": "lever",
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: agency, cross-functional · goal overlap: marketing, agency, cross-functional · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "7ca811e6-ce01-43db-b825-b5d49fabbe87",
+      "title": "Director, Performance Creative Strategy",
+      "company": "Wpromote",
+      "location": "Remote, United States",
+      "sourceUrl": "https://jobs.lever.co/wpromote/f3e684ae-d609-4dcc-b0c7-971c21319ea8",
+      "sourceType": "lever",
+      "fitScore": 46,
+      "fitSummary": "46% target alignment · same line of work: creative · skill in posting: agency · goal overlap: marketing, agency · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "ac6a3773-3f76-4806-a965-cb4e0cb4c68b",
+      "title": "Performance Creative Manager",
+      "company": "Wpromote",
+      "location": "Remote, United States",
+      "sourceUrl": "https://jobs.lever.co/wpromote/db2c109b-3f25-468b-802c-ded833d91c36",
+      "sourceType": "lever",
+      "fitScore": 46,
+      "fitSummary": "46% target alignment · same line of work: creative · skill in posting: agency · goal overlap: marketing, agency · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -1813,7 +1826,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: agency, campaign program management · goal overlap: marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1826,7 +1839,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: agency, Performance and growth marketing · goal overlap: marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1839,7 +1852,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: agency, Performance and growth marketing · goal overlap: marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1852,7 +1865,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: cross-functional, Performance and growth marketing · goal overlap: marketing, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1865,7 +1878,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: brand, agency · goal overlap: brand, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -1878,7 +1891,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: brand, agency · goal overlap: brand, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2541,7 +2554,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: project management, brand, agency, cross-functional · goal overlap: brand, marketing, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2554,7 +2567,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: integrated production, project management, brand, agency · goal overlap: brand, advertising, sports, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2567,7 +2580,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: creative operations, integrated production, brand, agency · goal overlap: brand, marketing, agency, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2580,7 +2593,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: creative operations, brand, agency, cross-functional · goal overlap: brand, advertising, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2593,7 +2606,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: integrated production, project management, brand, agency · goal overlap: brand, advertising, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2606,7 +2619,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: integrated production, project management, brand, agency · goal overlap: brand, advertising, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2619,7 +2632,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, advertising, agency, ownership · remote option",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2632,7 +2645,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: integrated production, brand, agency, cross-functional · goal overlap: brand, marketing, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2645,7 +2658,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: integrated production, brand, agency, cross-functional · goal overlap: brand, advertising, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2658,7 +2671,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: integrated production, brand, agency, cross-functional · goal overlap: brand, advertising, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2671,7 +2684,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: integrated production, brand, agency, cross-functional · goal overlap: brand, advertising, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2684,7 +2697,7 @@
       "fitScore": 61,
       "fitSummary": "61% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2697,7 +2710,7 @@
       "fitScore": 61,
       "fitSummary": "61% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, agency, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2710,7 +2723,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, marketing, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2723,7 +2736,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, marketing, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2736,7 +2749,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, marketing, agency, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2749,7 +2762,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, marketing, agency, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2762,7 +2775,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, agency, meaningful, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2775,7 +2788,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, agency, meaningful, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2788,7 +2801,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, advertising, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2801,7 +2814,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, agency, meaningful, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2814,7 +2827,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, marketing, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2827,7 +2840,7 @@
       "fitScore": 56,
       "fitSummary": "56% target alignment · skill overlap: integrated production, brand, agency, brand campaigns · goal overlap: brand, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2840,7 +2853,7 @@
       "fitScore": 51,
       "fitSummary": "51% target alignment · skill overlap: project management, brand, cross-functional · goal overlap: brand, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2853,7 +2866,7 @@
       "fitScore": 50,
       "fitSummary": "50% target alignment · skill overlap: brand, agency · goal overlap: brand, advertising, marketing, agency · remote option",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2866,7 +2879,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: brand, agency · goal overlap: brand, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2879,7 +2892,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: brand, agency · goal overlap: brand, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2892,7 +2905,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: brand, agency · goal overlap: brand, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3477,7 +3490,7 @@
       "fitScore": 52,
       "fitSummary": "52% target alignment · skill overlap: cross-functional, Marketing Events Lead · goal overlap: marketing, roles, meaningful, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3594,7 +3607,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: cross-functional, Marketing Events Lead · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3607,7 +3620,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: project management, cross-functional · goal overlap: roles, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3685,7 +3698,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: Senior Manager · goal overlap: advertising, marketing, sports, roles · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3724,7 +3737,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: project management, brand, agency, cross-functional · goal overlap: brand, marketing, agency, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3747,10 +3760,10 @@
       "location": "San Francisco-HQ · Remote",
       "sourceUrl": "https://jobs.ashbyhq.com/hinge-health/d307173d-281d-4d9a-b7cf-75c3066ef09b",
       "sourceType": "ashby",
-      "fitScore": 68,
-      "fitSummary": "68% target alignment · title overlap: operations · skill overlap: project management, cross-functional · goal overlap: roles, ownership, cross-functional · location: San Francisco Bay Area",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same line of work: operations · skill in posting: cross-functional · goal overlap: roles, ownership, cross-functional · location: San Francisco Bay Area · company type you usually dismiss",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3854,7 +3867,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, roles, ownership · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3880,7 +3893,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: brand, agency, Marketing Events Lead, Brand and Enterprise event marketing · goal overlap: brand, marketing, agency, roles · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3893,7 +3906,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: brand, agency, Marketing Events Lead, Brand and Enterprise event marketing · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3984,7 +3997,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3997,7 +4010,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4049,7 +4062,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: creative operations, brand, cross-functional · goal overlap: brand, marketing, roles, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4075,7 +4088,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: project management, cross-functional · goal overlap: meaningful, cross-functional · location: San Francisco Bay Area",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4088,7 +4101,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: creative operations, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4101,7 +4114,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: creative operations, brand, agency · goal overlap: brand, marketing, agency, roles · location: California, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4114,7 +4127,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: creative operations, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4127,7 +4140,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: creative operations, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4140,7 +4153,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: creative operations, brand, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4153,7 +4166,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4166,7 +4179,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4179,7 +4192,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4192,7 +4205,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4205,7 +4218,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: California, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4283,7 +4296,7 @@
       "fitScore": 52,
       "fitSummary": "52% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4322,7 +4335,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: project management, cross-functional · goal overlap: roles, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4335,7 +4348,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: cross-functional · goal overlap: roles, meaningful, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4371,8 +4384,8 @@
       "location": "New York, New York, United States",
       "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4378260009",
       "sourceType": "greenhouse",
-      "fitScore": 76,
-      "fitSummary": "76% target alignment · title overlap: operations · skill overlap: project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · same line of work: operations · skill in posting: brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4452,7 +4465,7 @@
       "fitScore": 52,
       "fitSummary": "52% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4465,7 +4478,7 @@
       "fitScore": 52,
       "fitSummary": "52% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, meaningful, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4517,7 +4530,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: creative operations, cross-functional · goal overlap: marketing, roles, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4569,7 +4582,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: project management, cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5037,7 +5050,7 @@
       "fitScore": 51,
       "fitSummary": "51% target alignment · skill overlap: brand, Senior Manager, Brand Marketing · goal overlap: brand, marketing · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5050,7 +5063,7 @@
       "fitScore": 51,
       "fitSummary": "51% target alignment · skill overlap: brand, Senior Manager, Brand Marketing · goal overlap: brand, marketing · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5063,7 +5076,7 @@
       "fitScore": 51,
       "fitSummary": "51% target alignment · skill overlap: brand, Senior Manager, Brand Marketing · goal overlap: brand, marketing · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5076,7 +5089,7 @@
       "fitScore": 51,
       "fitSummary": "51% target alignment · skill overlap: brand, cross-functional, Senior Manager · goal overlap: brand, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5089,7 +5102,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5102,7 +5115,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5115,7 +5128,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5128,7 +5141,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: brand, Brand Marketing · goal overlap: brand, marketing · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5180,7 +5193,7 @@
       "fitScore": 59,
       "fitSummary": "59% target alignment · skill overlap: brand, cross-functional, Senior Manager, Brand Marketing · goal overlap: brand, marketing, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5193,7 +5206,7 @@
       "fitScore": 59,
       "fitSummary": "59% target alignment · skill overlap: brand, cross-functional, Senior Manager, Brand Marketing · goal overlap: brand, marketing, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5206,7 +5219,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, cross-functional, Brand Marketing · goal overlap: brand, marketing, meaningful, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5232,7 +5245,7 @@
       "fitScore": 56,
       "fitSummary": "56% target alignment · skill overlap: creative operations, brand, Senior Manager, Brand Marketing · goal overlap: brand, marketing · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5245,7 +5258,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: brand, cross-functional, Brand Marketing · goal overlap: brand, marketing, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5258,7 +5271,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: brand, Senior Manager, Brand Marketing · goal overlap: brand, marketing, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5271,7 +5284,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: brand, cross-functional, Senior Manager · goal overlap: brand, meaningful, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5284,7 +5297,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: brand, cross-functional, Brand Marketing · goal overlap: brand, marketing, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5297,7 +5310,7 @@
       "fitScore": 51,
       "fitSummary": "51% target alignment · skill overlap: brand, cross-functional, Senior Manager · goal overlap: brand, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5557,7 +5570,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5570,7 +5583,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: project management, cross-functional · goal overlap: marketing, roles, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5583,7 +5596,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: integrated production, cross-functional · goal overlap: sports, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "dismissed",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5596,7 +5609,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: creative operations, cross-functional · goal overlap: advertising, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5609,7 +5622,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: creative operations, cross-functional · goal overlap: advertising, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5622,7 +5635,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: brand, cross-functional · goal overlap: brand, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5673,7 +5686,7 @@
       "sourceType": "greenhouse",
       "fitScore": 43,
       "fitSummary": "43% target alignment · skill overlap: integrated production, cross-functional · goal overlap: cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": false,
       "origin": "monitored"
     },
@@ -5739,7 +5752,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, advertising, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5752,7 +5765,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: brand, agency, cross-functional · goal overlap: brand, advertising, marketing, agency · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5765,7 +5778,7 @@
       "fitScore": 57,
       "fitSummary": "57% target alignment · skill overlap: project management, agency, cross-functional · goal overlap: marketing, agency, cross-functional, delivery. · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5791,7 +5804,7 @@
       "fitScore": 51,
       "fitSummary": "51% target alignment · skill overlap: project management, agency, cross-functional · goal overlap: agency, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5804,7 +5817,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · title overlap: program · goal overlap: sports, roles · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -5934,7 +5947,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand, Senior Manager · goal overlap: brand, sports, roles · remote option",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6038,7 +6051,7 @@
       "fitScore": 48,
       "fitSummary": "48% target alignment · skill overlap: project management, agency, cross-functional, Marketing Events Lead · goal overlap: marketing, agency, roles, meaningful",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6051,7 +6064,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: project management, brand, cross-functional · goal overlap: brand, roles, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6064,7 +6077,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: cross-functional · goal overlap: marketing, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6090,7 +6103,7 @@
       "fitScore": 52,
       "fitSummary": "52% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6259,7 +6272,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: project management, cross-functional · goal overlap: roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6389,7 +6402,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: project management, cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6402,7 +6415,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: brand, cross-functional, Marketing Events Lead, Brand and Enterprise event marketing · goal overlap: brand, marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6519,7 +6532,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: cross-functional, Marketing Events Lead · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6532,7 +6545,7 @@
       "fitScore": 64,
       "fitSummary": "64% target alignment · skill overlap: creative operations, project management, agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6558,7 +6571,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: project management, brand, cross-functional, Lead Creative Program Manager · goal overlap: brand, marketing, ownership, cross-functional · location: San Francisco Bay Area",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6597,7 +6610,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: project management, cross-functional · goal overlap: roles, ownership, cross-functional · location: San Francisco Bay Area",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6610,7 +6623,7 @@
       "fitScore": 52,
       "fitSummary": "52% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6688,7 +6701,7 @@
       "fitScore": 62,
       "fitSummary": "62% target alignment · skill overlap: brand, cross-functional, Marketing Events Lead, Brand and Enterprise event marketing · goal overlap: brand, marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6766,7 +6779,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: cross-functional · goal overlap: marketing, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -7897,7 +7910,7 @@
       "fitScore": 54,
       "fitSummary": "54% target alignment · skill overlap: brand, cross-functional, Brand & Creative · goal overlap: brand, marketing, cross-functional · location: San Francisco Bay Area",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -7910,7 +7923,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: integrated production, cross-functional · goal overlap: roles, ownership, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -7923,7 +7936,7 @@
       "fitScore": 49,
       "fitSummary": "49% target alignment · skill overlap: agency, cross-functional · goal overlap: marketing, agency, cross-functional · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -7962,7 +7975,7 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: creative operations, cross-functional · goal overlap: ownership, cross-functional · location: San Francisco Bay Area",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -8027,7 +8040,7 @@
       "fitScore": 50,
       "fitSummary": "50% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, meaningful",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -8040,7 +8053,7 @@
       "fitScore": 48,
       "fitSummary": "48% target alignment · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, meaningful",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -8053,7 +8066,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -8066,7 +8079,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, advertising, marketing, meaningful · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -8079,7 +8092,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -8092,7 +8105,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -8105,7 +8118,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: San Francisco Bay Area, California",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -8118,7 +8131,7 @@
       "fitScore": 47,
       "fitSummary": "47% target alignment · skill overlap: brand · goal overlap: brand, marketing, meaningful, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -8127,19 +8140,6 @@
       "company": "Jack Morton Worldwide",
       "location": "Oakville, Ontario, Canada",
       "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4361783009",
-      "sourceType": "greenhouse",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "390691ba-9c19-4060-a561-2f450e1d97d3",
-      "title": "Senior Event Manager - Maternity leave cover (Healthcare)",
-      "company": "Jack Morton Worldwide",
-      "location": "Leatherhead, England, United Kingdom; London, England, United Kingdom",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4299686009",
       "sourceType": "greenhouse",
       "fitScore": 38,
       "fitSummary": "38% target alignment · skill overlap: project management, brand · goal overlap: brand, marketing, meaningful, ownership",
