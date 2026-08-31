@@ -1,7 +1,7 @@
 {
-  "fetchedAt": "2026-08-31T01:22:43Z",
-  "lastRunAt": "2026-08-31 01:22:42",
-  "dueCount": 0,
+  "fetchedAt": "2026-08-31T19:32:07Z",
+  "lastRunAt": "2026-08-31 19:32:05",
+  "dueCount": 8,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
     "prefer": "Specific examples, short sentences, concrete outcomes, and plain language.",
@@ -14,255 +14,255 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:59:23",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 16:00:47",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "AKQA",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 16:00:10",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 19:32:02",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Anthropic",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 52,
-      "lastCheckedAt": "2026-08-30 17:36:21",
-      "lastRunSummary": "Manual scan · 300 verified roles read · 52 met the 45% minimum · 248 saved below threshold · 0 new (0 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 2,
+      "lastCheckedAt": "2026-08-31 06:00:52",
+      "lastRunSummary": "Background scheduled scan · 300 verified roles read · 2 met the 45% minimum · 19 near misses kept · 129 filtered out by the role/market gates · 1 new (0 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Argonaut",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 18:00:10",
-      "lastRunSummary": "Background scheduled scan · 2 verified roles read · 0 met the 45% minimum · 2 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-31 08:00:51",
+      "lastRunSummary": "Background scheduled scan · 2 verified roles read · 0 met the 45% minimum · 0 near misses kept · 2 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Attentive",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 25,
-      "lastCheckedAt": "2026-08-30 17:36:21",
-      "lastRunSummary": "Manual scan · 36 verified roles read · 25 met the 45% minimum · 11 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 0,
+      "lastCheckedAt": "2026-08-31 06:00:52",
+      "lastRunSummary": "Background scheduled scan · 36 verified roles read · 0 met the 45% minimum · 2 near misses kept · 34 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Aventon",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-08-30 17:36:23",
-      "lastRunSummary": "Manual scan · 9 verified roles read · 1 met the 45% minimum · 8 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-08-31 06:00:54",
+      "lastRunSummary": "Background scheduled scan · 9 verified roles read · 1 met the 45% minimum · 0 near misses kept · 8 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "BSSP",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 18:00:11",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 08:00:52",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Barbarian",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 18:00:11",
-      "lastRunSummary": "Background scheduled scan · 1 verified roles read · 0 met the 45% minimum · 1 saved below threshold · 0 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
+      "lastCheckedAt": "2026-08-31 08:00:53",
+      "lastRunSummary": "Background scheduled scan · 1 verified roles read · 0 met the 45% minimum · 0 near misses kept · 1 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
     },
     {
       "company": "Buck",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 18:00:12",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 08:00:53",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Code and Theory",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-30 20:00:14",
-      "lastRunSummary": "Background scheduled scan · 58 verified roles read · 4 met the 45% minimum · 54 saved below threshold · 1 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
+      "lastRunFoundCount": 7,
+      "lastCheckedAt": "2026-08-31 08:00:59",
+      "lastRunSummary": "Background scheduled scan · 58 verified roles read · 7 met the 45% minimum · 0 near misses kept · 51 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
     },
     {
       "company": "Droga5",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:00:16",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 10:00:47",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Duncan Channon",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:00:19",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 10:00:51",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Edelman",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:00:19",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 10:00:52",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Gantri",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-08-30 17:36:24",
-      "lastRunSummary": "Manual scan · 9 verified roles read · 3 met the 45% minimum · 6 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastRunFoundCount": 1,
+      "lastCheckedAt": "2026-08-31 06:00:56",
+      "lastRunSummary": "Background scheduled scan · 9 verified roles read · 1 met the 45% minimum · 2 near misses kept · 6 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "George P. Johnson",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 17:36:27",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 06:01:01",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Giant Spoon",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:00:19",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 10:00:52",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Goodby Silverstein & Partners",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:45:10",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 10:01:02",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Google",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 17:36:27",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 06:01:01",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Highwire",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 85,
-      "lastCheckedAt": "2026-08-30 18:00:06",
-      "lastRunSummary": "Background scheduled scan · 85 verified roles read · 85 met the 45% minimum · 0 saved below threshold · 5 new (5 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 16,
+      "lastCheckedAt": "2026-08-31 08:00:47",
+      "lastRunSummary": "Background scheduled scan · 85 verified roles read · 16 met the 45% minimum · 0 near misses kept · 69 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Hinge Health",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 2,
-      "lastCheckedAt": "2026-08-31 01:22:40",
-      "lastRunSummary": "Manual scan · 71 verified roles read · 2 met the 45% minimum · 7 near misses kept · 62 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
+      "lastCheckedAt": "2026-08-31 18:00:50",
+      "lastRunSummary": "Background scheduled scan · 70 verified roles read · 2 met the 45% minimum · 7 near misses kept · 61 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Huge",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 7,
-      "lastCheckedAt": "2026-08-30 20:45:12",
-      "lastRunSummary": "App-open catch-up scan · 44 verified roles read · 7 met the 45% minimum · 37 saved below threshold · 1 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
+      "lastRunFoundCount": 5,
+      "lastCheckedAt": "2026-08-31 12:00:48",
+      "lastRunSummary": "Background scheduled scan · 44 verified roles read · 5 met the 45% minimum · 0 near misses kept · 39 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
     },
     {
       "company": "Inizio Evoke",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-31 01:22:41",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 18:01:07",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Instrument",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:45:13",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 12:00:48",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Jack Morton Worldwide",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 9,
-      "lastCheckedAt": "2026-08-31 01:22:42",
-      "lastRunSummary": "Manual scan · 74 verified roles read · 9 met the 45% minimum · 0 near misses kept · 65 filtered out by the role/market gates · 1 new (1 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-08-31 18:01:08",
+      "lastRunSummary": "Background scheduled scan · 75 verified roles read · 9 met the 45% minimum · 0 near misses kept · 66 filtered out by the role/market gates · 1 new (1 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Legs Media",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:45:14",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 12:00:51",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Media.Monks",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:45:17",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 12:00:53",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Mekanism",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:53:05",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 14:00:49",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Ogilvy",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:53:06",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 4 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 14:00:51",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 4 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "OpenAI",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-31 01:22:42",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 18:01:09",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Perplexity",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 8,
-      "lastCheckedAt": "2026-08-30 16:00:10",
-      "lastRunSummary": "Background scheduled scan · 97 verified roles read · 8 met the 45% minimum · 89 saved below threshold · 1 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
+      "lastRunFoundCount": 2,
+      "lastCheckedAt": "2026-08-31 19:32:02",
+      "lastRunSummary": "Manual scan · 96 verified roles read · 2 met the 45% minimum · 3 near misses kept · 91 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "R/GA",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 20:53:08",
-      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 14:00:53",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Razorfish",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-31 00:00:46",
+      "lastCheckedAt": "2026-08-31 16:00:49",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -270,39 +270,39 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 16:00:14",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-08-31 19:32:05",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "The Athletic",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-08-30 17:36:20",
-      "lastRunSummary": "Manual scan · 12 verified roles read · 3 met the 45% minimum · 9 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastRunFoundCount": 1,
+      "lastCheckedAt": "2026-08-31 06:00:50",
+      "lastRunSummary": "Background scheduled scan · 12 verified roles read · 1 met the 45% minimum · 0 near misses kept · 11 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Tubi",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 15,
-      "lastCheckedAt": "2026-08-30 17:36:20",
-      "lastRunSummary": "Manual scan · 33 verified roles read · 15 met the 45% minimum · 18 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 5,
+      "lastCheckedAt": "2026-08-31 06:00:50",
+      "lastRunSummary": "Background scheduled scan · 33 verified roles read · 5 met the 45% minimum · 0 near misses kept · 28 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "VaynerMedia",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 32,
-      "lastCheckedAt": "2026-08-30 18:00:08",
-      "lastRunSummary": "Background scheduled scan · 76 verified roles read · 32 met the 45% minimum · 44 saved below threshold · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 6,
+      "lastCheckedAt": "2026-08-31 08:00:47",
+      "lastRunSummary": "Background scheduled scan · 76 verified roles read · 6 met the 45% minimum · 0 near misses kept · 70 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Venables Bell + Partners",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-31 00:00:49",
+      "lastCheckedAt": "2026-08-31 16:00:53",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -310,15 +310,15 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-30 18:00:08",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 saved below threshold · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-08-31 08:00:48",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Wieden+Kennedy",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-31 00:00:50",
+      "lastCheckedAt": "2026-08-31 16:00:55",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -326,38 +326,38 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-08-31 01:22:39",
-      "lastRunSummary": "Manual scan · 1 verified roles read · 0 met the 45% minimum · 0 near misses kept · 1 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
+      "lastCheckedAt": "2026-08-31 18:00:49",
+      "lastRunSummary": "Background scheduled scan · 1 verified roles read · 0 met the 45% minimum · 0 near misses kept · 1 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
     },
     {
       "company": "Wpromote",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 4,
-      "lastCheckedAt": "2026-08-31 01:22:40",
-      "lastRunSummary": "Manual scan · 41 verified roles read · 4 met the 45% minimum · 0 near misses kept · 37 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastRunFoundCount": 0,
+      "lastCheckedAt": "2026-08-31 18:01:05",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "e.l.f. Cosmetics",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 25,
-      "lastCheckedAt": "2026-08-30 18:00:08",
-      "lastRunSummary": "Background scheduled scan · 71 verified roles read · 25 met the 45% minimum · 46 saved below threshold · 1 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastRunFoundCount": 11,
+      "lastCheckedAt": "2026-08-31 08:00:50",
+      "lastRunSummary": "Background scheduled scan · 73 verified roles read · 11 met the 45% minimum · 3 near misses kept · 59 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     }
   ],
   "opportunities": [
     {
-      "id": "029bbed2-4d51-4cb7-8d33-03be297154c0",
-      "title": "Manager, Project Management",
-      "company": "Jack Morton Worldwide",
-      "location": "Addison, Illinois, United States",
-      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4385290009",
+      "id": "f764dc16-1540-4ef2-b29a-0872f0c6394a",
+      "title": "AV Production Specialist",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5379593008",
       "sourceType": "greenhouse",
-      "fitScore": 83,
-      "fitSummary": "83% target alignment · target title: Project Manager · skill in title: project management · skill in posting: brand, cross-functional · goal overlap: brand, marketing, meaningful, ownership · location: United States",
+      "fitScore": 34,
+      "fitSummary": "34% target alignment · same line of work: production · goal overlap: roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -504,16 +504,29 @@
       "origin": "monitored"
     },
     {
+      "id": "f097ffef-64a9-4b84-a6c0-38360ef699de",
+      "title": "Associate Director, Production, Marcom (US)",
+      "company": "Code and Theory",
+      "location": "New York City, NY, US",
+      "sourceUrl": "https://www.codeandtheory.com/careers/8351902002",
+      "sourceType": "structured-job-page",
+      "fitScore": 52,
+      "fitSummary": "52% target alignment · same line of work: production · skill in posting: project management, agency, cross-functional · goal overlap: agency, cross-functional, delivery. · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
       "id": "3a1c7e4b-eede-40a1-83a2-90cc982a09a5",
       "title": "Apply for Senior Project Manager, Adobe Experience Cloud (US) Apply",
       "company": "Code and Theory",
       "location": "Location not listed",
       "sourceUrl": "https://www.codeandtheory.com/careers/8492812002",
       "sourceType": "public-careers-page",
-      "fitScore": 20,
-      "fitSummary": "20% target alignment · target title: Project Manager · no location listed — location filter",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · target title: Project Manager · location not listed — market unconfirmed",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -523,10 +536,10 @@
       "location": "Location not listed",
       "sourceUrl": "https://www.codeandtheory.com/careers/8527240002",
       "sourceType": "public-careers-page",
-      "fitScore": 20,
-      "fitSummary": "20% target alignment · target title: Project Manager · no location listed — location filter",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · target title: Project Manager · location not listed — market unconfirmed",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -536,10 +549,10 @@
       "location": "Location not listed",
       "sourceUrl": "https://www.codeandtheory.com/careers/8560171002",
       "sourceType": "public-careers-page",
-      "fitScore": 20,
-      "fitSummary": "20% target alignment · target title: Producer · no location listed — location filter",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · target title: Producer · location not listed — market unconfirmed",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -549,10 +562,10 @@
       "location": "Location not listed",
       "sourceUrl": "https://www.codeandtheory.com/careers/8578668002",
       "sourceType": "public-careers-page",
-      "fitScore": 20,
-      "fitSummary": "20% target alignment · target title: Project Manager · no location listed — location filter",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · target title: Project Manager · location not listed — market unconfirmed",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -562,23 +575,23 @@
       "location": "Location not listed",
       "sourceUrl": "https://www.codeandtheory.com/careers/8603404002",
       "sourceType": "public-careers-page",
-      "fitScore": 20,
-      "fitSummary": "20% target alignment · target title: Producer · no location listed — location filter",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · target title: Producer · location not listed — market unconfirmed",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
       "id": "109a8a39-4d7a-472f-875a-cc5f3a571d2c",
-      "title": "Apply for Program Director, Product (US) Apply",
+      "title": "Program Director, Product (US)",
       "company": "Code and Theory",
-      "location": "Location not listed",
+      "location": "New York City, NY, US",
       "sourceUrl": "https://www.codeandtheory.com/careers/8199909002",
-      "sourceType": "public-careers-page",
-      "fitScore": 0,
-      "fitSummary": "0% target alignment · title overlap: program · no location listed — location filter",
+      "sourceType": "structured-job-page",
+      "fitScore": 48,
+      "fitSummary": "48% target alignment · same line of work: program · skill in posting: project management, agency · goal overlap: agency, ownership · location: United States",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -600,19 +613,6 @@
       "company": "Code and Theory",
       "location": "Location not listed",
       "sourceUrl": "https://www.codeandtheory.com/careers/8351905002",
-      "sourceType": "public-careers-page",
-      "fitScore": 0,
-      "fitSummary": "0% target alignment · no location listed — location filter",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "f097ffef-64a9-4b84-a6c0-38360ef699de",
-      "title": "Apply for Associate Director, Production, Marcom (US) Apply",
-      "company": "Code and Theory",
-      "location": "Location not listed",
-      "sourceUrl": "https://www.codeandtheory.com/careers/8351902002",
       "sourceType": "public-careers-page",
       "fitScore": 0,
       "fitSummary": "0% target alignment · no location listed — location filter",
@@ -1193,19 +1193,6 @@
       "origin": "monitored"
     },
     {
-      "id": "73bce197-669d-448f-a089-97430ef6dee6",
-      "title": "Manager, Product Data Operations",
-      "company": "e.l.f. Cosmetics",
-      "location": "Oakland, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/116efa37-dcd6-4923-9629-a3c320b584e2",
-      "sourceType": "lever",
-      "fitScore": 65,
-      "fitSummary": "65% target alignment · title overlap: operations · skill overlap: brand, cross-functional · goal overlap: brand, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "2cd2a7a4-cb53-4055-8c5d-97ecfe0bc122",
       "title": "Senior Analyst FP&A, Commercial Support",
       "company": "e.l.f. Cosmetics",
@@ -1214,6 +1201,19 @@
       "sourceType": "lever",
       "fitScore": 43,
       "fitSummary": "43% target alignment · skill overlap: brand, Senior Manager · goal overlap: brand · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "73bce197-669d-448f-a089-97430ef6dee6",
+      "title": "Manager, Product Data Operations",
+      "company": "e.l.f. Cosmetics",
+      "location": "Oakland, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/116efa37-dcd6-4923-9629-a3c320b584e2",
+      "sourceType": "lever",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · same line of work: operations · skill in posting: brand, cross-functional · goal overlap: brand, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: data",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -2109,10 +2109,10 @@
       "location": "Location not listed",
       "sourceUrl": "https://job-boards.greenhouse.io/hugeinc/jobs/8064505",
       "sourceType": "public-careers-page",
-      "fitScore": 20,
-      "fitSummary": "20% target alignment · target title: Project Manager · no location listed — location filter",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · target title: Project Manager · location not listed — market unconfirmed",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -2122,10 +2122,36 @@
       "location": "Location not listed",
       "sourceUrl": "https://job-boards.greenhouse.io/hugeinc/jobs/8130326",
       "sourceType": "public-careers-page",
-      "fitScore": 20,
-      "fitSummary": "20% target alignment · target title: Project Manager · no location listed — location filter",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · target title: Project Manager · location not listed — market unconfirmed",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "d806dad7-a818-4891-b04c-5c21c15f80aa",
+      "title": "Director, Program Delivery",
+      "company": "Huge",
+      "location": "United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/hugeinc/jobs/8128276",
+      "sourceType": "greenhouse",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · same line of work: program · skill in posting: project management, brand, program management · goal overlap: brand, delivery. · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "b2282e17-4ef9-4bca-a245-69093104ac9f",
+      "title": "Senior Director, Program Delivery",
+      "company": "Huge",
+      "location": "United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/hugeinc/jobs/8113209",
+      "sourceType": "greenhouse",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · same line of work: program · skill in posting: project management, brand, program management · goal overlap: brand, delivery. · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -2176,32 +2202,6 @@
       "sourceType": "public-careers-page",
       "fitScore": 8,
       "fitSummary": "8% target alignment · limited overlap with the saved radar goals",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "d806dad7-a818-4891-b04c-5c21c15f80aa",
-      "title": "Director, Program Delivery Program Delivery United States",
-      "company": "Huge",
-      "location": "Location not listed",
-      "sourceUrl": "https://job-boards.greenhouse.io/hugeinc/jobs/8128276",
-      "sourceType": "public-careers-page",
-      "fitScore": 0,
-      "fitSummary": "0% target alignment · title overlap: program · no location listed — location filter",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "b2282e17-4ef9-4bca-a245-69093104ac9f",
-      "title": "Senior Director, Program Delivery Program Delivery United States",
-      "company": "Huge",
-      "location": "Location not listed",
-      "sourceUrl": "https://job-boards.greenhouse.io/hugeinc/jobs/8113209",
-      "sourceType": "public-careers-page",
-      "fitScore": 0,
-      "fitSummary": "0% target alignment · title overlap: program · no location listed — location filter",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -2467,14 +2467,27 @@
       "origin": "monitored"
     },
     {
+      "id": "31ee823b-72dd-4fd2-8c82-09ed9f5c69eb",
+      "title": "Senior Project Manager, Operations",
+      "company": "VaynerMedia",
+      "location": "United States- New York, NY",
+      "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8122760",
+      "sourceType": "greenhouse",
+      "fitScore": 76,
+      "fitSummary": "76% target alignment · target title: Project Manager · skill in posting: project management, brand, agency · goal overlap: brand, marketing, agency · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
       "id": "f4b9e888-ed84-4689-8f72-98cb7327981b",
       "title": "Live Shopping | Producer",
       "company": "VaynerMedia",
       "location": "United States- New York, NY",
       "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8109720",
       "sourceType": "greenhouse",
-      "fitScore": 100,
-      "fitSummary": "100% target alignment · target title: Producer · skill overlap: creative operations, integrated production, brand, agency · goal overlap: brand, marketing, agency · location: United States",
+      "fitScore": 74,
+      "fitSummary": "74% target alignment · target title: Producer · skill in posting: brand, agency · goal overlap: brand, marketing, agency · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -2486,8 +2499,8 @@
       "location": "United States- Los Angeles, CA",
       "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8160824",
       "sourceType": "greenhouse",
-      "fitScore": 100,
-      "fitSummary": "100% target alignment · target title: Producer · skill overlap: integrated production, brand, agency, brand campaigns · goal overlap: brand, advertising, agency · location: United States",
+      "fitScore": 74,
+      "fitSummary": "74% target alignment · target title: Producer · skill in posting: brand, agency · goal overlap: brand, advertising, agency · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -2499,34 +2512,8 @@
       "location": "United States- New York, NY",
       "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8133693",
       "sourceType": "greenhouse",
-      "fitScore": 100,
-      "fitSummary": "100% target alignment · target title: Producer · skill overlap: integrated production, brand, agency, brand campaigns · goal overlap: brand, advertising, agency · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "31ee823b-72dd-4fd2-8c82-09ed9f5c69eb",
-      "title": "Senior Project Manager, Operations",
-      "company": "VaynerMedia",
-      "location": "United States- New York, NY",
-      "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8122760",
-      "sourceType": "greenhouse",
-      "fitScore": 100,
-      "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "5c20a1e8-e70d-42d4-a000-681a429ef83c",
-      "title": "Associate Producer",
-      "company": "VaynerMedia",
-      "location": "United States- Los Angeles, CA",
-      "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8121721",
-      "sourceType": "greenhouse",
-      "fitScore": 98,
-      "fitSummary": "98% target alignment · target title: Producer · skill overlap: integrated production, brand, agency, brand campaigns · goal overlap: brand, agency · location: United States",
+      "fitScore": 74,
+      "fitSummary": "74% target alignment · target title: Producer · skill in posting: brand, agency · goal overlap: brand, advertising, agency · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -2538,8 +2525,21 @@
       "location": "United States- New York, NY",
       "sourceUrl": "https://vaynermedia.com/careers?gh_jid=7311309",
       "sourceType": "greenhouse",
-      "fitScore": 93,
-      "fitSummary": "93% target alignment · target title: Producer · skill overlap: project management, brand, agency · goal overlap: brand, agency · location: United States",
+      "fitScore": 74,
+      "fitSummary": "74% target alignment · target title: Producer · skill in posting: project management, brand, agency · goal overlap: brand, agency · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "5c20a1e8-e70d-42d4-a000-681a429ef83c",
+      "title": "Associate Producer",
+      "company": "VaynerMedia",
+      "location": "United States- Los Angeles, CA",
+      "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8121721",
+      "sourceType": "greenhouse",
+      "fitScore": 68,
+      "fitSummary": "68% target alignment · target title: Producer · skill in posting: agency · goal overlap: agency · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -3442,45 +3442,6 @@
       "origin": "monitored"
     },
     {
-      "id": "6f0b0701-6468-424e-b661-3f58f077817a",
-      "title": "GTM Programs Manager, AMER",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390980008",
-      "sourceType": "greenhouse",
-      "fitScore": 68,
-      "fitSummary": "68% target alignment · title overlap: program · skill overlap: creative operations, cross-functional · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "9eb7b8b8-7de1-450b-91ed-2105d9efcd24",
-      "title": "Head of GTM Programs",
-      "company": "Anthropic",
-      "location": "Remote-Friendly (Travel Required) | San Francisco, CA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390976008",
-      "sourceType": "greenhouse",
-      "fitScore": 66,
-      "fitSummary": "66% target alignment · title overlap: program · skill overlap: cross-functional · goal overlap: marketing, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "2aa5d5a0-3df3-46f3-ad21-1424653dc9a2",
-      "title": "Data Operations Manager, Human Data",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5238460008",
-      "sourceType": "greenhouse",
-      "fitScore": 65,
-      "fitSummary": "65% target alignment · title overlap: operations · skill overlap: project management, cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "9c10bccf-2fed-4905-a74b-263a8ca59870",
       "title": "AWS GTM Partnership Lead, Global System Integrators",
       "company": "Anthropic",
@@ -3546,6 +3507,45 @@
       "origin": "monitored"
     },
     {
+      "id": "6f0b0701-6468-424e-b661-3f58f077817a",
+      "title": "GTM Programs Manager, AMER",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390980008",
+      "sourceType": "greenhouse",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same line of work: program · skill in posting: cross-functional · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "9eb7b8b8-7de1-450b-91ed-2105d9efcd24",
+      "title": "Head of GTM Programs",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel Required) | San Francisco, CA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390976008",
+      "sourceType": "greenhouse",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same line of work: program · skill in posting: cross-functional · goal overlap: marketing, roles, ownership, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "2aa5d5a0-3df3-46f3-ad21-1424653dc9a2",
+      "title": "Data Operations Manager, Human Data",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5238460008",
+      "sourceType": "greenhouse",
+      "fitScore": 33,
+      "fitSummary": "33% target alignment · same line of work: operations · skill in posting: project management, cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: data",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
       "id": "435f3dc2-0782-48ae-b9c8-40ad227c04e4",
       "title": "Forward Deployed Engineer, Perplexity Computer",
       "company": "Perplexity",
@@ -3585,19 +3585,6 @@
       "origin": "monitored"
     },
     {
-      "id": "966c0343-1ecb-4ab9-86b1-bc5002ac89eb",
-      "title": "Discovery Operations Lead, Litigation & Regulatory",
-      "company": "Anthropic",
-      "location": "San Francisco, CA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5400362008",
-      "sourceType": "greenhouse",
-      "fitScore": 76,
-      "fitSummary": "76% target alignment · title overlap: operations · skill overlap: project management, agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "dismissed",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "e7f16a69-53eb-4529-8fdb-a3792e548b9b",
       "title": "Partner Marketing Lead, Cloud",
       "company": "Anthropic",
@@ -3620,6 +3607,19 @@
       "fitScore": 46,
       "fitSummary": "46% target alignment · skill overlap: project management, cross-functional · goal overlap: roles, cross-functional · location: United States",
       "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "966c0343-1ecb-4ab9-86b1-bc5002ac89eb",
+      "title": "Discovery Operations Lead, Litigation & Regulatory",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5400362008",
+      "sourceType": "greenhouse",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · same line of work: operations · skill in posting: project management, agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "status": "dismissed",
       "alignmentPasses": false,
       "origin": "monitored"
     },
@@ -3799,8 +3799,8 @@
       "location": "San Leandro, CA",
       "sourceUrl": "https://jobs.lever.co/Gantri/d5010591-b862-422e-a9a0-e758f9602c90",
       "sourceType": "lever",
-      "fitScore": 22,
-      "fitSummary": "22% target alignment · location: San Francisco Bay Area, United States",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same line of work: production · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -3877,10 +3877,10 @@
       "location": "Remote-Friendly, United States",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5399162008",
       "sourceType": "greenhouse",
-      "fitScore": 60,
-      "fitSummary": "60% target alignment · title overlap: operations · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: United States",
+      "fitScore": 31,
+      "fitSummary": "31% target alignment · same line of work: operations · skill in posting: cross-functional · goal overlap: roles, cross-functional · location: United States · similar to roles you dismissed: engineer",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3942,8 +3942,8 @@
       "location": "New York, NY",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/9214b7f2-8da5-4d9f-b18f-eca778ee29ff",
       "sourceType": "lever",
-      "fitScore": 57,
-      "fitSummary": "57% target alignment · title overlap: brand · skill overlap: brand · goal overlap: brand · location: United States",
+      "fitScore": 51,
+      "fitSummary": "51% target alignment · same line of work: brand · skill in title: brand · goal overlap: brand · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4228,8 +4228,8 @@
       "location": "San Francisco, California, United States",
       "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4374857009",
       "sourceType": "greenhouse",
-      "fitScore": 100,
-      "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
+      "fitScore": 76,
+      "fitSummary": "76% target alignment · target title: Project Manager · skill in posting: creative operations, project management, agency · goal overlap: marketing, agency, roles, meaningful · location: San Francisco Bay Area, California",
       "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4241,8 +4241,8 @@
       "location": "New York, New York, United States",
       "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4374856009",
       "sourceType": "greenhouse",
-      "fitScore": 100,
-      "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: United States",
+      "fitScore": 76,
+      "fitSummary": "76% target alignment · target title: Project Manager · skill in posting: project management, agency, cross-functional · goal overlap: marketing, agency, roles, meaningful · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4254,8 +4254,8 @@
       "location": "Colorado, United States; Illinois, United States; Maryland, United States; Washington, District of Columbia, United States; Washington, United States",
       "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4374859009",
       "sourceType": "greenhouse",
-      "fitScore": 100,
-      "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency, roles · location: United States",
+      "fitScore": 76,
+      "fitSummary": "76% target alignment · target title: Project Manager · skill in posting: creative operations, project management, agency · goal overlap: marketing, agency, roles, meaningful · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4267,8 +4267,8 @@
       "location": "Connecticut, United States; Florida, United States; Georgia, United States; Iowa, United States; Kansas, United States; Michigan, United States; New Hampshire, United States; North Carolina, United States; Ohio, United States; Oregon, United States; Pennsylvania, United States; Rhode Island, United States; South Carolina, United States; Tennessee, United States; Texas, United States; Utah, United ",
       "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4374860009",
       "sourceType": "greenhouse",
-      "fitScore": 100,
-      "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency, roles · location: United States",
+      "fitScore": 76,
+      "fitSummary": "76% target alignment · target title: Project Manager · skill in posting: creative operations, project management, agency · goal overlap: marketing, agency, roles, meaningful · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4280,8 +4280,8 @@
       "location": "California, United States; Massachusetts, United States; New Jersey, United States; New York, United States",
       "sourceUrl": "https://job-boards.greenhouse.io/highwire/jobs/4374858009",
       "sourceType": "greenhouse",
-      "fitScore": 100,
-      "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency, roles · location: California, United States",
+      "fitScore": 76,
+      "fitSummary": "76% target alignment · target title: Project Manager · skill in posting: creative operations, project management, agency · goal overlap: marketing, agency, roles, meaningful · location: California, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4540,10 +4540,10 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390952008",
       "sourceType": "greenhouse",
-      "fitScore": 66,
-      "fitSummary": "66% target alignment · title overlap: operations · skill overlap: cross-functional · goal overlap: marketing, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same line of work: operations · skill in posting: cross-functional · goal overlap: marketing, roles, ownership, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -4794,6 +4794,32 @@
       "origin": "monitored"
     },
     {
+      "id": "0b952279-b9d2-4035-8b4b-201c77b28ee3",
+      "title": "Jr. Production Artist",
+      "company": "e.l.f. Cosmetics",
+      "location": "New York, NY",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/3b5afee0-8d10-41b9-bb95-99cf1b95e1a9",
+      "sourceType": "lever",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · same line of work: production · skill in posting: brand · goal overlap: brand · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "cf4756a7-2f40-44df-92e2-c07322629e4e",
+      "title": "Manager, Color Production, rhode",
+      "company": "e.l.f. Cosmetics",
+      "location": "Beverly Hills, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/b2942c92-e6a1-49a8-a66f-b91c8266402a",
+      "sourceType": "lever",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · same line of work: production · skill in posting: brand · goal overlap: brand · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
       "id": "886c9d37-bd5b-4991-8946-0c2748aa4701",
       "title": "Director, Clinical Testing & Claims, R&D",
       "company": "e.l.f. Cosmetics",
@@ -4851,32 +4877,6 @@
       "company": "e.l.f. Cosmetics",
       "location": "United States - Remote",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/42627a59-20da-4d42-8898-4131dbd3b283",
-      "sourceType": "lever",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · skill overlap: brand · goal overlap: brand · location: United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "0b952279-b9d2-4035-8b4b-201c77b28ee3",
-      "title": "Jr. Production Artist",
-      "company": "e.l.f. Cosmetics",
-      "location": "New York, NY",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/3b5afee0-8d10-41b9-bb95-99cf1b95e1a9",
-      "sourceType": "lever",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · skill overlap: brand · goal overlap: brand · location: United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "cf4756a7-2f40-44df-92e2-c07322629e4e",
-      "title": "Manager, Color Production, rhode",
-      "company": "e.l.f. Cosmetics",
-      "location": "Beverly Hills, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/b2942c92-e6a1-49a8-a66f-b91c8266402a",
       "sourceType": "lever",
       "fitScore": 38,
       "fitSummary": "38% target alignment · skill overlap: brand · goal overlap: brand · location: United States",
@@ -5041,6 +5041,19 @@
       "origin": "monitored"
     },
     {
+      "id": "b925b3b0-e0db-4e6a-a58a-db3df04fd0f8",
+      "title": "Senior Manager, Customer Supply Chain, rhode",
+      "company": "e.l.f. Cosmetics",
+      "location": "Beverly Hills, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/cd5462bd-6365-4f45-bdb3-432a8e18737c",
+      "sourceType": "lever",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · same line of work: Senior Manager · skill in title: Senior Manager · skill in posting: brand, cross-functional · goal overlap: brand, cross-functional · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
       "id": "52056254-45e8-4f55-b038-12ac139f910b",
       "title": "Product Manager, Marketing Technology",
       "company": "e.l.f. Cosmetics",
@@ -5075,19 +5088,6 @@
       "sourceType": "lever",
       "fitScore": 51,
       "fitSummary": "51% target alignment · skill overlap: brand, Senior Manager, Brand Marketing · goal overlap: brand, marketing · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "b925b3b0-e0db-4e6a-a58a-db3df04fd0f8",
-      "title": "Senior Manager, Customer Supply Chain, rhode",
-      "company": "e.l.f. Cosmetics",
-      "location": "Beverly Hills, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/cd5462bd-6365-4f45-bdb3-432a8e18737c",
-      "sourceType": "lever",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · skill overlap: brand, cross-functional, Senior Manager · goal overlap: brand, cross-functional · location: United States",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -5197,19 +5197,6 @@
       "origin": "monitored"
     },
     {
-      "id": "4ea25a28-0d86-4bc1-8a7a-887433210bfe",
-      "title": "Senior Manager, Visual Merchandising, rhode",
-      "company": "e.l.f. Cosmetics",
-      "location": "Beverly Hills, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/8491e237-cddb-4b7b-bdee-9e29437f33d5",
-      "sourceType": "lever",
-      "fitScore": 59,
-      "fitSummary": "59% target alignment · skill overlap: brand, cross-functional, Senior Manager, Brand Marketing · goal overlap: brand, marketing, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
       "id": "4ebf3ca8-7a00-447c-8b6f-51d2fe8ef117",
       "title": "Coordinator, Influencer Marketing, rhode",
       "company": "e.l.f. Cosmetics",
@@ -5223,19 +5210,6 @@
       "origin": "monitored"
     },
     {
-      "id": "8b790635-3acd-460e-9877-045fd5299e31",
-      "title": "Program Manager, Visual Merchandising, Finance",
-      "company": "e.l.f. Cosmetics",
-      "location": "New York, NY",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/bbb903ab-1916-428a-9f01-3c0125ce158f",
-      "sourceType": "lever",
-      "fitScore": 57,
-      "fitSummary": "57% target alignment · title overlap: program · skill overlap: brand · goal overlap: brand · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "62b23d2b-0f6d-47a7-b0b5-fd38f8aed0d2",
       "title": "Associate Manager, Digital Marketing, rhode",
       "company": "e.l.f. Cosmetics",
@@ -5244,6 +5218,32 @@
       "sourceType": "lever",
       "fitScore": 56,
       "fitSummary": "56% target alignment · skill overlap: creative operations, brand, Senior Manager, Brand Marketing · goal overlap: brand, marketing · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "4ea25a28-0d86-4bc1-8a7a-887433210bfe",
+      "title": "Senior Manager, Visual Merchandising, rhode",
+      "company": "e.l.f. Cosmetics",
+      "location": "Beverly Hills, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/8491e237-cddb-4b7b-bdee-9e29437f33d5",
+      "sourceType": "lever",
+      "fitScore": 55,
+      "fitSummary": "55% target alignment · same line of work: Senior Manager · skill in title: Senior Manager · skill in posting: brand · goal overlap: brand, marketing · location: United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "50d755bb-00f2-4ad2-b44c-a9ffcc3d457d",
+      "title": "Senior Manager, Social Media, rhode",
+      "company": "e.l.f. Cosmetics",
+      "location": "Beverly Hills, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/fe967cd1-f18e-4031-861d-b05a157e8a62",
+      "sourceType": "lever",
+      "fitScore": 55,
+      "fitSummary": "55% target alignment · same line of work: Senior Manager · skill in title: Senior Manager · skill in posting: brand · goal overlap: brand, meaningful · location: United States",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -5275,19 +5275,6 @@
       "origin": "monitored"
     },
     {
-      "id": "50d755bb-00f2-4ad2-b44c-a9ffcc3d457d",
-      "title": "Senior Manager, Social Media, rhode",
-      "company": "e.l.f. Cosmetics",
-      "location": "Beverly Hills, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/fe967cd1-f18e-4031-861d-b05a157e8a62",
-      "sourceType": "lever",
-      "fitScore": 54,
-      "fitSummary": "54% target alignment · skill overlap: brand, cross-functional, Senior Manager · goal overlap: brand, meaningful, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
       "id": "fabc4f53-6d16-4aff-8895-9e099db16a33",
       "title": "Sr. Manager, Sourcing, rhode",
       "company": "e.l.f. Cosmetics",
@@ -5314,53 +5301,27 @@
       "origin": "monitored"
     },
     {
+      "id": "8b790635-3acd-460e-9877-045fd5299e31",
+      "title": "Program Manager, Visual Merchandising, Finance",
+      "company": "e.l.f. Cosmetics",
+      "location": "New York, NY",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/bbb903ab-1916-428a-9f01-3c0125ce158f",
+      "sourceType": "lever",
+      "fitScore": 48,
+      "fitSummary": "48% target alignment · same line of work: program · skill in posting: brand, cross-functional · goal overlap: brand, cross-functional · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
       "id": "50b80b7e-5a42-4ff5-ae6a-2c2b6f360880",
       "title": "Project Manager, Visual Merchandising",
       "company": "e.l.f. Cosmetics",
       "location": "New York, NY",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/da7594be-8b15-4d5a-8a06-2f5bd3555d54",
       "sourceType": "lever",
-      "fitScore": 93,
-      "fitSummary": "93% target alignment · target title: Project Manager · skill overlap: project management, brand, cross-functional · goal overlap: brand, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "21276439-7b77-484f-83a4-03d4b62fbd0c",
-      "title": "Senior Manager, Finance, e.l.f. Brands",
-      "company": "e.l.f. Cosmetics",
-      "location": "Oakland, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/6fbd4fd8-49b1-48d6-8629-3c422e825097",
-      "sourceType": "lever",
-      "fitScore": 78,
-      "fitSummary": "78% target alignment · title overlap: brand · skill overlap: brand, cross-functional, Senior Manager, Brand Marketing · goal overlap: brand, marketing, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "dismissed",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "428d71fc-54d2-41fd-82af-3f339ccad4db",
-      "title": "Associate Manager, Digital Commerce & TikTok Shop Operations",
-      "company": "e.l.f. Cosmetics",
-      "location": "New York, NY",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/fcd522c3-7cfd-4130-9dba-1464a17c7c2a",
-      "sourceType": "lever",
-      "fitScore": 73,
-      "fitSummary": "73% target alignment · title overlap: operations · skill overlap: brand, cross-functional, Brand Marketing · goal overlap: brand, marketing, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "d3a583a2-074a-47b8-a5c1-43fa06282860",
-      "title": "Senior Director, Brand (Canada & Mexico), Naturium",
-      "company": "e.l.f. Cosmetics",
-      "location": "Los Angeles, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/14865aef-85d0-4fdd-91ff-a44cc197af75",
-      "sourceType": "lever",
-      "fitScore": 70,
-      "fitSummary": "70% target alignment · title overlap: brand · skill overlap: brand, Senior Manager, Brand Marketing · goal overlap: brand, marketing · location: United States",
+      "fitScore": 74,
+      "fitSummary": "74% target alignment · target title: Project Manager · skill in posting: project management, brand, cross-functional · goal overlap: brand, cross-functional · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -5372,8 +5333,34 @@
       "location": "Los Angeles, CA",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/d2750fa0-e6e2-4308-89b1-12a71739f16a",
       "sourceType": "lever",
-      "fitScore": 65,
-      "fitSummary": "65% target alignment · title overlap: brand · skill overlap: brand, Brand Marketing · goal overlap: brand, marketing · location: United States",
+      "fitScore": 62,
+      "fitSummary": "62% target alignment · same line of work: brand · skill in title: brand, Brand Marketing · goal overlap: brand, marketing · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "21276439-7b77-484f-83a4-03d4b62fbd0c",
+      "title": "Senior Manager, Finance, e.l.f. Brands",
+      "company": "e.l.f. Cosmetics",
+      "location": "Oakland, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/6fbd4fd8-49b1-48d6-8629-3c422e825097",
+      "sourceType": "lever",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: brand · skill in title: Senior Manager · skill in posting: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "dismissed",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "d3a583a2-074a-47b8-a5c1-43fa06282860",
+      "title": "Senior Director, Brand (Canada & Mexico), Naturium",
+      "company": "e.l.f. Cosmetics",
+      "location": "Los Angeles, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/14865aef-85d0-4fdd-91ff-a44cc197af75",
+      "sourceType": "lever",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: brand · skill in title: brand · skill in posting: cross-functional, Brand Marketing · goal overlap: brand, marketing, cross-functional · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -5385,8 +5372,21 @@
       "location": "New York, NY",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/390ed1c4-6f2c-4989-9ff4-151f6e6f13b2",
       "sourceType": "lever",
-      "fitScore": 65,
-      "fitSummary": "65% target alignment · title overlap: brand · skill overlap: brand, Brand Marketing · goal overlap: brand, marketing · location: United States",
+      "fitScore": 53,
+      "fitSummary": "53% target alignment · same line of work: brand · skill in title: brand · goal overlap: brand, marketing · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "428d71fc-54d2-41fd-82af-3f339ccad4db",
+      "title": "Associate Manager, Digital Commerce & TikTok Shop Operations",
+      "company": "e.l.f. Cosmetics",
+      "location": "New York, NY",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/fcd522c3-7cfd-4130-9dba-1464a17c7c2a",
+      "sourceType": "lever",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · same line of work: operations · skill in posting: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -5704,40 +5704,14 @@
       "origin": "monitored"
     },
     {
-      "id": "c3a430a2-cac5-44e4-9d36-42f56b57003f",
-      "title": "Associate Creative Director",
-      "company": "Tubi",
-      "location": "Los Angeles, CA (Hybrid); New York City, NY (Hybrid)",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8054234",
-      "sourceType": "greenhouse",
-      "fitScore": 83,
-      "fitSummary": "83% target alignment · title overlap: creative · skill overlap: creative operations, brand, agency, cross-functional · goal overlap: brand, advertising, marketing, sports · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "b60e0d95-50bc-4e21-97bc-a038bfd556f0",
       "title": "Sr. Manager, Standards & Brand Safety - Advertising",
       "company": "Tubi",
       "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid)",
       "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8100069",
       "sourceType": "greenhouse",
-      "fitScore": 76,
-      "fitSummary": "76% target alignment · title overlap: brand · skill overlap: creative operations, brand, cross-functional · goal overlap: brand, advertising, marketing, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "316e9e41-7789-4d31-a0a3-602ba75f0beb",
-      "title": "Manager, Standards & Brand Safety - Content",
-      "company": "Tubi",
-      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid)",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8100163",
-      "sourceType": "greenhouse",
-      "fitScore": 65,
-      "fitSummary": "65% target alignment · title overlap: brand · skill overlap: brand, cross-functional · goal overlap: brand, cross-functional · location: San Francisco Bay Area, United States",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · same line of work: brand · skill in title: brand · skill in posting: cross-functional · goal overlap: brand, advertising, marketing, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -5782,14 +5756,27 @@
       "origin": "monitored"
     },
     {
-      "id": "13636fbd-e131-43b2-8fdd-3115a11dadd9",
-      "title": "Manager, Original Content Production",
+      "id": "316e9e41-7789-4d31-a0a3-602ba75f0beb",
+      "title": "Manager, Standards & Brand Safety - Content",
       "company": "Tubi",
-      "location": "Los Angeles, CA (Hybrid)",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8109778",
+      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8100163",
       "sourceType": "greenhouse",
-      "fitScore": 57,
-      "fitSummary": "57% target alignment · skill overlap: project management, brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional · location: United States",
+      "fitScore": 55,
+      "fitSummary": "55% target alignment · same line of work: brand · skill in title: brand · skill in posting: cross-functional · goal overlap: brand, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "c3a430a2-cac5-44e4-9d36-42f56b57003f",
+      "title": "Associate Creative Director",
+      "company": "Tubi",
+      "location": "Los Angeles, CA (Hybrid); New York City, NY (Hybrid)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8054234",
+      "sourceType": "greenhouse",
+      "fitScore": 54,
+      "fitSummary": "54% target alignment · same line of work: creative · skill in posting: creative operations, brand, agency, cross-functional · goal overlap: brand, advertising, marketing, sports · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -5805,6 +5792,19 @@
       "fitSummary": "51% target alignment · skill overlap: project management, agency, cross-functional · goal overlap: agency, cross-functional · location: United States",
       "status": "new",
       "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "13636fbd-e131-43b2-8fdd-3115a11dadd9",
+      "title": "Manager, Original Content Production",
+      "company": "Tubi",
+      "location": "Los Angeles, CA (Hybrid)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8109778",
+      "sourceType": "greenhouse",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · same line of work: production · skill in posting: brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -6308,10 +6308,10 @@
       "location": "San Leandro, CA",
       "sourceUrl": "https://jobs.lever.co/Gantri/2f250e06-053c-4e64-b875-732dae2d8af0",
       "sourceType": "lever",
-      "fitScore": 46,
-      "fitSummary": "46% target alignment · skill overlap: integrated production, brand · goal overlap: brand, ownership · location: San Francisco Bay Area, United States",
+      "fitScore": 42,
+      "fitSummary": "42% target alignment · same line of work: production · goal overlap: ownership · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6516,10 +6516,10 @@
       "location": "Boston, MA; Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY; Washington, DC",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391787008",
       "sourceType": "greenhouse",
-      "fitScore": 47,
-      "fitSummary": "47% target alignment · title overlap: program · goal overlap: roles, ownership · location: San Francisco Bay Area, United States",
+      "fitScore": 36,
+      "fitSummary": "36% target alignment · same line of work: program · goal overlap: roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6555,10 +6555,10 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391211008",
       "sourceType": "greenhouse",
-      "fitScore": 68,
-      "fitSummary": "68% target alignment · title overlap: operations · skill overlap: project management, cross-functional · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
+      "fitScore": 42,
+      "fitSummary": "42% target alignment · same line of work: operations · skill in posting: project management, cross-functional · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -6724,10 +6724,10 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5388726008",
       "sourceType": "greenhouse",
-      "fitScore": 83,
-      "fitSummary": "83% target alignment · title overlap: program · skill overlap: creative operations, brand, agency, cross-functional · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States",
+      "fitScore": 44,
+      "fitSummary": "44% target alignment · same line of work: program · skill in posting: brand, agency, cross-functional · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -7849,32 +7849,6 @@
       "origin": "monitored"
     },
     {
-      "id": "f40909f5-a9d2-48f9-86d4-3085a5034ecc",
-      "title": "Member of Creative Studio (Web Designer - Marketing & Landing Pages)",
-      "company": "Perplexity",
-      "location": "New York City",
-      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/7ae341c4-411e-468c-bc26-bbdd8e55d388",
-      "sourceType": "ashby",
-      "fitScore": 70,
-      "fitSummary": "70% target alignment · title overlap: creative · skill overlap: brand, Member of Creative Studio, Brand & Creative · goal overlap: brand, marketing · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "05737ef4-5726-4848-9595-4cafe3d9a35a",
-      "title": "Program Manager, Talent Acquisition",
-      "company": "Perplexity",
-      "location": "San Francisco · Remote",
-      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/8ede25ea-9212-4007-bb99-feae4d1a3014",
-      "sourceType": "ashby",
-      "fitScore": 65,
-      "fitSummary": "65% target alignment · title overlap: program · skill overlap: project management, cross-functional · goal overlap: ownership, cross-functional · location: San Francisco Bay Area",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "13f4d98a-5142-414e-8455-9a661f0cfcd7",
       "title": "Workplace Operations Specialist",
       "company": "Perplexity",
@@ -7883,19 +7857,6 @@
       "sourceType": "ashby",
       "fitScore": 62,
       "fitSummary": "62% target alignment · title overlap: operations · skill overlap: project management, cross-functional · goal overlap: cross-functional · location: San Francisco Bay Area",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "22edda49-b69b-40e9-9481-bff9ce77aa12",
-      "title": "GTM Strategy & Operations Lead",
-      "company": "Perplexity",
-      "location": "San Francisco · Remote",
-      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/b75db90b-ca13-4a2f-aac4-c7764b631540",
-      "sourceType": "ashby",
-      "fitScore": 60,
-      "fitSummary": "60% target alignment · title overlap: operations · skill overlap: cross-functional · goal overlap: marketing, cross-functional · location: San Francisco Bay Area",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -7940,24 +7901,24 @@
       "origin": "monitored"
     },
     {
-      "id": "b9315c4a-37e0-4357-abaa-e64429e77912",
-      "title": "Sales Systems Engineer, Enterprise Operations",
+      "id": "f40909f5-a9d2-48f9-86d4-3085a5034ecc",
+      "title": "Member of Creative Studio (Web Designer - Marketing & Landing Pages)",
       "company": "Perplexity",
-      "location": "San Francisco · Remote",
-      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/6eedd99c-ff6a-470b-a7cc-3303e1c0b7fc",
+      "location": "New York City",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/7ae341c4-411e-468c-bc26-bbdd8e55d388",
       "sourceType": "ashby",
       "fitScore": 47,
-      "fitSummary": "47% target alignment · title overlap: operations · goal overlap: marketing, ownership · location: San Francisco Bay Area",
+      "fitSummary": "47% target alignment · same line of work: creative · skill in title: Member of Creative Studio · skill in posting: brand · goal overlap: brand, marketing · location: United States · company type you usually dismiss",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
     },
     {
-      "id": "554761cc-8721-4422-9768-be4539e81923",
-      "title": "Revenue Operations Analyst",
+      "id": "b9315c4a-37e0-4357-abaa-e64429e77912",
+      "title": "Sales Systems Engineer, Enterprise Operations",
       "company": "Perplexity",
       "location": "San Francisco · Remote",
-      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/03f8f956-1cb3-4945-81d1-73b7ff048d4e",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/6eedd99c-ff6a-470b-a7cc-3303e1c0b7fc",
       "sourceType": "ashby",
       "fitScore": 47,
       "fitSummary": "47% target alignment · title overlap: operations · goal overlap: marketing, ownership · location: San Francisco Bay Area",
@@ -8000,6 +7961,45 @@
       "sourceType": "ashby",
       "fitScore": 44,
       "fitSummary": "44% target alignment · skill overlap: cross-functional · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "05737ef4-5726-4848-9595-4cafe3d9a35a",
+      "title": "Program Manager, Talent Acquisition",
+      "company": "Perplexity",
+      "location": "San Francisco · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/8ede25ea-9212-4007-bb99-feae4d1a3014",
+      "sourceType": "ashby",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same line of work: program · skill in posting: project management, cross-functional · goal overlap: ownership, cross-functional · location: San Francisco Bay Area · company type you usually dismiss",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "22edda49-b69b-40e9-9481-bff9ce77aa12",
+      "title": "GTM Strategy & Operations Lead",
+      "company": "Perplexity",
+      "location": "San Francisco · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/b75db90b-ca13-4a2f-aac4-c7764b631540",
+      "sourceType": "ashby",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · same line of work: operations · skill in posting: cross-functional · goal overlap: marketing, cross-functional · location: San Francisco Bay Area · company type you usually dismiss",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "554761cc-8721-4422-9768-be4539e81923",
+      "title": "Revenue Operations Analyst",
+      "company": "Perplexity",
+      "location": "San Francisco · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/03f8f956-1cb3-4945-81d1-73b7ff048d4e",
+      "sourceType": "ashby",
+      "fitScore": 36,
+      "fitSummary": "36% target alignment · same line of work: operations · goal overlap: marketing, ownership · location: San Francisco Bay Area · company type you usually dismiss",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
