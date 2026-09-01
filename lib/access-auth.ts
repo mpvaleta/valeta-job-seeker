@@ -55,6 +55,46 @@ export function isAllowedIdentity(identity: string): boolean {
   return Boolean(ownerEmail) && identity === ownerEmail;
 }
 
+/**
+ * Resolves a bare token value to an identity, or null. The request-based
+ * resolveAccessIdentity below stays the primary entry point; this exists for
+ * the two places that hold a token value directly rather than a request — the
+ * login form posting a pasted token, and passkey login answering "which token
+ * does this verified email map back onto".
+ */
+export function identityForToken(token: string): AccessIdentity | null {
+  const expectedToken = process.env.APP_TOKEN?.trim();
+  const ownerEmail = process.env.APP_OWNER_EMAIL?.trim().toLowerCase();
+  if (!expectedToken || !ownerEmail || !token) return null;
+  if (timingSafeEqual(token, expectedToken)) return { email: ownerEmail };
+  for (const entry of extraAccessTokens()) {
+    if (timingSafeEqual(token, entry.token)) return { email: entry.email };
+  }
+  return null;
+}
+
+/**
+ * The inverse mapping, for passkey sign-in: a verified WebAuthn assertion
+ * proves an email (via the stored credential), and the session cookie this
+ * app runs on carries a token — so the email has to map back to the exact
+ * token that identifies it. Owner gets APP_TOKEN; anyone else gets their own
+ * EXTRA_ACCESS_TOKENS entry. An email with no token cannot be signed in.
+ */
+export function tokenForEmail(email: string): string | null {
+  const normalized = email.trim().toLowerCase();
+  const ownerEmail = process.env.APP_OWNER_EMAIL?.trim().toLowerCase();
+  const expectedToken = process.env.APP_TOKEN?.trim();
+  if (ownerEmail && expectedToken && normalized === ownerEmail) return expectedToken;
+  for (const entry of extraAccessTokens()) {
+    if (entry.email === normalized) return entry.token;
+  }
+  return null;
+}
+
+export function accessConfigured(): boolean {
+  return Boolean(process.env.APP_TOKEN?.trim() && process.env.APP_OWNER_EMAIL?.trim());
+}
+
 export function extractAccessToken(request: Request): string | null {
   const header = request.headers.get(ACCESS_TOKEN_HEADER);
   if (header?.trim()) {
