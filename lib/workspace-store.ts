@@ -1,6 +1,13 @@
 import { ensureRadarUser } from "./radar-store";
+import { compressionAvailable, GZIP_ENCODING, gunzipToText, gzipText, WorkspaceTooLargeError } from "./workspace-encoding.mjs";
 
-export const MAX_WORKSPACE_BYTES = 5 * 1024 * 1024;
+// Measured on the uncompressed JSON, because that is what the browser actually
+// holds and what the owner would have to shrink. A heavy real workspace is
+// around 2 MB, so the old 5 MB left less headroom than it appeared to — and
+// crossing it rejected the whole backup rather than part of it. Stored objects
+// are gzipped (about 3.2x on this kind of content), so this ceiling costs
+// roughly 8 MB in the bucket and on the wire at its very worst.
+export const MAX_WORKSPACE_BYTES = 25 * 1024 * 1024;
 
 type WorkspaceRevisionRow = {
   id: string;
@@ -12,6 +19,12 @@ type WorkspaceRevisionRow = {
   created_at: string;
 };
 
+async function readSnapshotObject(object: R2ObjectBody) {
+  const encoding = object.customMetadata?.encoding;
+  if (encoding !== GZIP_ENCODING) return await object.text();
+  return await gunzipToText(new Uint8Array(await object.arrayBuffer()), MAX_WORKSPACE_BYTES);
+}
+
 export async function readLatestWorkspace(db: D1Database, bucket: R2Bucket, email: string, displayName?: string | null) {
   const user = await ensureRadarUser(db, email, displayName);
   const revision = await db.prepare(`SELECT r.id, r.storage_key, r.content_hash, r.size_bytes, r.source_build, r.created_at
@@ -20,8 +33,7 @@ export async function readLatestWorkspace(db: D1Database, bucket: R2Bucket, emai
   if (!revision) return { revision: null, snapshot: null };
   const object = await bucket.get(revision.storage_key);
   if (!object) throw new Error("The latest workspace revision metadata exists, but its private object is unavailable.");
-  const raw = await object.text();
-  const snapshot = JSON.parse(raw) as unknown;
+  const snapshot = JSON.parse(await readSnapshotObject(object)) as unknown;
   return { revision: publicRevision(revision), snapshot };
 }
 
@@ -44,7 +56,7 @@ export async function readWorkspaceRevision(db: D1Database, bucket: R2Bucket, em
   if (!revision) throw new WorkspaceRevisionNotFoundError();
   const object = await bucket.get(revision.storage_key);
   if (!object) throw new Error("The requested private workspace revision is unavailable.");
-  return { revision: publicRevision(revision), snapshot: JSON.parse(await object.text()) as unknown };
+  return { revision: publicRevision(revision), snapshot: JSON.parse(await readSnapshotObject(object)) as unknown };
 }
 
 export async function restoreWorkspaceRevision(db: D1Database, bucket: R2Bucket, email: string, displayName: string | null | undefined, revisionId: string, sourceBuild: string) {
@@ -56,7 +68,7 @@ export async function restoreWorkspaceRevision(db: D1Database, bucket: R2Bucket,
 
 export async function saveWorkspaceRevision(db: D1Database, bucket: R2Bucket, email: string, displayName: string | null | undefined, raw: string, sourceBuild: string) {
   const bytes = new TextEncoder().encode(raw);
-  if (bytes.byteLength > MAX_WORKSPACE_BYTES) throw new Error("The private workspace is larger than the 5 MB backup limit.");
+  if (bytes.byteLength > MAX_WORKSPACE_BYTES) throw new WorkspaceTooLargeError(MAX_WORKSPACE_BYTES);
   const parsed = JSON.parse(raw) as unknown;
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("The workspace backup must be a JSON object.");
   const user = await ensureRadarUser(db, email, displayName);
@@ -67,10 +79,18 @@ export async function saveWorkspaceRevision(db: D1Database, bucket: R2Bucket, em
   if (current?.content_hash === contentHash) return { changed: false, revision: publicRevision(current) };
 
   const id = crypto.randomUUID();
-  const storageKey = `users/${user.id}/workspace/${id}.json`;
-  await bucket.put(storageKey, raw, {
-    httpMetadata: { contentType: "application/json; charset=utf-8" },
-    customMetadata: { owner: user.id, contentHash, sourceBuild },
+  const compress = compressionAvailable();
+  const storageKey = `users/${user.id}/workspace/${id}.json${compress ? ".gz" : ""}`;
+  const body = compress ? await gzipText(raw) : raw;
+  await bucket.put(storageKey, body, {
+    httpMetadata: compress
+      ? { contentType: "application/json; charset=utf-8", contentEncoding: GZIP_ENCODING }
+      : { contentType: "application/json; charset=utf-8" },
+    // The hash stays over the uncompressed JSON: it answers "is this the same
+    // workspace", which must not change just because the storage format did.
+    customMetadata: compress
+      ? { owner: user.id, contentHash, sourceBuild, encoding: GZIP_ENCODING }
+      : { owner: user.id, contentHash, sourceBuild },
   });
   await db.batch([
     db.prepare("INSERT INTO workspace_revisions (id, user_id, storage_key, content_hash, size_bytes, source_build) VALUES (?, ?, ?, ?, ?, ?)")
