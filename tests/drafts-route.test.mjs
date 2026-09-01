@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import { Miniflare } from "miniflare";
 import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
+import { memoryBucket } from "./helpers/memory-bucket.mjs";
 
 await installAccessEnv();
 
@@ -27,18 +28,6 @@ async function createDatabase() {
     for (const statement of migration.split("--> statement-breakpoint").map((value) => value.trim()).filter(Boolean)) await db.prepare(statement).run();
   }
   return { mf, db };
-}
-
-function memoryBucket() {
-  const objects = new Map();
-  return {
-    async get(key) {
-      const value = objects.get(key);
-      return value == null ? null : { text: async () => value };
-    },
-    async put(key, value) { objects.set(key, String(value)); },
-    objects,
-  };
 }
 
 const context = { waitUntil() {}, passThroughOnException() {} };

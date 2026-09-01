@@ -3,6 +3,7 @@ import { getRuntimeBucket, getRuntimeDatabase } from "@/lib/runtime-bindings";
 import { listWorkspaceRevisions, MAX_WORKSPACE_BYTES, readLatestWorkspace, readWorkspaceRevision, restoreWorkspaceRevision, saveWorkspaceRevision, WorkspaceRevisionNotFoundError } from "@/lib/workspace-store";
 import { isTrustedSameOriginMutation } from "@/lib/request-security";
 import { AccessAuthError, resolveAccessIdentity } from "@/lib/access-auth";
+import { GZIP_ENCODING, gunzipToText, WORKSPACE_ENCODING_HEADER, WorkspaceTooLargeError } from "@/lib/workspace-encoding.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -26,12 +27,19 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (!isTrustedSameOriginMutation(request)) return json({ ok: false, code: "cross_site_request_blocked", message: "This protected action must start inside V’s Job Seeker." }, 403);
+  // Cheap pre-filter only. A gzipped body reports its compressed length, so
+  // this rejects the obviously-enormous without being the real ceiling.
   const contentLength = Number(request.headers.get("content-length") || "0");
-  if (contentLength > MAX_WORKSPACE_BYTES) return json({ ok: false, code: "workspace_too_large", message: "The private workspace is larger than the 5 MB backup limit." }, 413);
+  if (contentLength > MAX_WORKSPACE_BYTES) return json({ ok: false, code: "workspace_too_large", message: `The private workspace is larger than the ${Math.round(MAX_WORKSPACE_BYTES / (1024 * 1024))} MB backup limit.` }, 413);
   try {
     const identity = await requireIdentity(request);
-    const raw = await request.text();
-    if (new TextEncoder().encode(raw).byteLength > MAX_WORKSPACE_BYTES) return json({ ok: false, code: "workspace_too_large", message: "The private workspace is larger than the 5 MB backup limit." }, 413);
+    // A compressed upload arrives as bytes. gunzipToText enforces the ceiling
+    // while it decompresses rather than after, so a small body that expands to
+    // gigabytes is stopped mid-stream instead of exhausting the Worker first.
+    const raw = request.headers.get(WORKSPACE_ENCODING_HEADER) === GZIP_ENCODING
+      ? await gunzipToText(await request.arrayBuffer(), MAX_WORKSPACE_BYTES)
+      : await request.text();
+    if (new TextEncoder().encode(raw).byteLength > MAX_WORKSPACE_BYTES) throw new WorkspaceTooLargeError(MAX_WORKSPACE_BYTES);
     const envelope = JSON.parse(raw) as { action?: unknown; revisionId?: unknown; sourceBuild?: unknown; snapshot?: unknown };
     if (!envelope || typeof envelope !== "object" || typeof envelope.sourceBuild !== "string") {
       return json({ ok: false, code: "invalid_workspace", message: "The private workspace backup is incomplete." }, 400);
@@ -74,6 +82,7 @@ class WorkspaceHttpError extends Error {
 function routeError(cause: unknown) {
   if (cause instanceof WorkspaceHttpError) return json({ ok: false, code: cause.code, message: cause.message }, cause.status);
   if (cause instanceof WorkspaceRevisionNotFoundError) return json({ ok: false, code: "revision_not_found", message: cause.message }, 404);
+  if (cause instanceof WorkspaceTooLargeError) return json({ ok: false, code: cause.code, message: cause.message }, 413);
   const message = cause instanceof Error ? cause.message : "The private workspace could not be backed up.";
   if (/no such table|D1_ERROR|binding is unavailable/i.test(message)) return json({ ok: false, code: "workspace_storage_unavailable", message: "Durable private backup is still being prepared. Browser autosave remains active." }, 503);
   if (/JSON|workspace backup/i.test(message)) return json({ ok: false, code: "invalid_workspace", message: "The private workspace backup could not be read." }, 400);

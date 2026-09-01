@@ -16,6 +16,7 @@ import { PLAYBOOK_GENERATION_RULE_LIMIT, prioritizeResumePlaybookRules } from "@
 import { preparePlaybookLibrary, prepareResumeEvidence } from "@/lib/career-evidence.mjs";
 import { factCandidates } from "@/lib/fact-candidates.mjs";
 import { buildBookmarklet } from "@/lib/autofill-bookmarklet.mjs";
+import { compressionAvailable, GZIP_ENCODING, gzipText, WORKSPACE_ENCODING_HEADER } from "@/lib/workspace-encoding.mjs";
 // The bookmarklet has to arrive with the click: application sites carry strict
 // Content-Security-Policy headers that block a script fetched from anywhere
 // else, while browsers exempt bookmarklets themselves. Both halves are embedded
@@ -64,7 +65,7 @@ type LinkedInStatus = { state: "checking" | "ready" | "error"; configured: boole
 type OperationProgress = { label: string; detail: string } | null;
 type LinkAssist = { kind: "linkedin" | "indeed" | "login"; title: string; message: string } | null;
 type WorkspaceSnapshot = { version: number; profile: Profile; writingStyle: WritingStyle; resumeTracks: ResumeTrack[]; activeTrackId: string; aiPreference: AiPreference; claudeModel?: string; playbookSettings: PlaybookSettings; applications: Application[]; jobSnapshots: JobSnapshot[]; generatedDrafts: GeneratedDraft[]; documents: SourceDocument[]; companies: CompanyTarget[]; roleDraft: { jobText: string; company: string; role: string; roleUrl: string } };
-type WorkspaceSync = { state: "loading" | "ready" | "saving" | "error"; message: string; lastSavedAt?: string };
+type WorkspaceSync = { state: "loading" | "ready" | "saving" | "error"; message: string; lastSavedAt?: string; bytes?: number; sentBytes?: number };
 type WorkspacePayload = { ok?: boolean; code?: string; message?: string; changed?: boolean; snapshot?: unknown; revision?: { id: string; createdAt: string; sizeBytes: number; sourceBuild: string } | null };
 type WorkspaceRevision = { id: string; createdAt: string; sizeBytes: number; sourceBuild: string; isCurrent: boolean };
 type ResumeAiResult = {
@@ -151,6 +152,17 @@ const SOURCE_TYPE_DETAILS: Record<SourceCategory, string> = {
 function safeErrorMessage(value: unknown) {
   const message = value instanceof Error ? value.message : typeof value === "string" ? value : "Unexpected error";
   return message.replace(/https?:\/\/\S+/gi, "[url]").replace(/\s+/g, " ").trim().slice(0, 500);
+}
+
+// Mirrors MAX_WORKSPACE_BYTES in lib/workspace-store.ts. Imported as a plain
+// constant rather than from the store, which pulls in D1 bindings the browser
+// bundle has no business carrying.
+const WORKSPACE_LIMIT_BYTES = 25 * 1024 * 1024;
+
+function formatBytes(value: number) {
+  if (value >= 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  if (value >= 1024) return `${Math.round(value / 1024)} KB`;
+  return `${value} bytes`;
 }
 
 function noticeTone(message: string) {
@@ -618,20 +630,27 @@ export function JobSeekerApp() {
     workspaceAbort.current = controller;
     setWorkspaceSync((current) => ({ ...current, state: "saving", message: manual ? "Backing up your private workspace…" : "Saving a durable private revision…" }));
     try {
+      const envelope = JSON.stringify({ sourceBuild: APP_BUILD, snapshot });
+      const rawBytes = new TextEncoder().encode(envelope).byteLength;
+      // Compressing is optional on purpose: a browser without CompressionStream
+      // still has to be able to back up, and the route accepts either form.
+      const compressed = compressionAvailable() ? await gzipText(envelope) : null;
       const response = await fetch("/api/workspace", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceBuild: APP_BUILD, snapshot }),
+        headers: compressed
+          ? { "Content-Type": "application/octet-stream", [WORKSPACE_ENCODING_HEADER]: GZIP_ENCODING }
+          : { "Content-Type": "application/json" },
+        body: compressed ? new Blob([compressed as BlobPart]) : envelope,
         signal: controller.signal,
       });
       const data = await readJsonResponse<WorkspacePayload>(response, "The durable private backup did not return readable app data.");
       if (!response.ok || !data.ok) throw new Error(data.message || "The durable private workspace could not be saved.");
       const savedAt = data.revision?.createdAt || new Date().toISOString();
-      setWorkspaceSync({ state: "ready", message: data.changed === false ? "Private backup is current" : "Durable private revision saved", lastSavedAt: savedAt });
+      setWorkspaceSync({ state: "ready", message: data.changed === false ? "Private backup is current" : "Durable private revision saved", lastSavedAt: savedAt, bytes: rawBytes, sentBytes: compressed ? compressed.byteLength : rawBytes });
       if (manual) setNotice(data.changed === false ? "Your durable private backup is already current." : "A new durable private workspace revision was saved.");
     } catch (cause) {
       if (controller.signal.aborted) return;
-      setWorkspaceSync({ state: "error", message: cause instanceof Error ? cause.message : "Durable backup failed; browser autosave remains active." });
+      setWorkspaceSync((current) => ({ ...current, state: "error", message: cause instanceof Error ? cause.message : "Durable backup failed; browser autosave remains active." }));
       logError("app", "workspace_backup_failed", cause);
       if (manual) setNotice(cause instanceof Error ? cause.message : "Durable backup failed. Browser autosave remains active.");
     } finally {
@@ -1629,6 +1648,18 @@ export function JobSeekerApp() {
 
       <section className="main-stage">
         <header className="topbar"><div><span className="kicker">V&apos;S PRIVATE JOB SEARCH OS</span><h1>{view === "workspace" ? "Turn a role into an evidence-backed application." : view === "radar" ? "Put the right companies on your daily radar." : view === "search" ? "Search every board the radar cannot reach." : view === "profile" ? "Your verified career profile." : view === "documents" ? "Build the knowledge behind every application." : view === "voice" ? "Teach every letter how you write." : view === "connections" ? "Connect sources without giving up control." : view === "companies" ? "Build your target list with intent." : view === "applications" ? "Your application pipeline." : view === "autofill" ? "Fill forms without starting over." : view === "data" ? "Recover and preserve every version." : "Choose and understand your AI."}</h1></div><button className={`status-pill workspace-sync ${workspaceSync.state}`} onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving"} title={workspaceSync.message}><i /> {workspaceSync.state === "saving" ? "Saving private revision…" : workspaceSync.state === "error" ? "Browser saved · retry backup" : workspaceSync.lastSavedAt ? "Private backup current" : "Private backup ready"}</button></header>
+        {/* A failed backup used to show only as a change of wording inside the
+            small pill in the header, which is easy to miss for days. What it
+            actually means is that everything since then exists in this browser
+            and nowhere else, so it says that, in a banner, until it is fixed. */}
+        {workspaceSync.state === "error" && <div className="workspace-alert" role="alert">
+          <strong>Your recent work is only in this browser.</strong>
+          <span>{workspaceSync.message} Until this succeeds, opening V’s on another device or browser will not show anything added since the last successful backup.</span>
+          <div>
+            <button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)}>Try the backup again</button>
+            <button onClick={exportWorkspace}>Download a copy now</button>
+          </div>
+        </div>}
         {notice && <button className={`notice ${noticeTone(notice)}`} onClick={() => setNotice("")}>{notice} ×</button>}
         {operationProgress && <div className="operation-status global-operation" role="status" aria-live="polite"><i /><div><strong>{operationProgress.label}</strong><span>{operationProgress.detail}</span></div></div>}
 
@@ -1934,7 +1965,9 @@ export function JobSeekerApp() {
         {view === "applications" && <section className="resume-library"><div className="table-head"><div><span>DOCUMENT LIBRARY</span><h2>{filteredResumeDrafts.length} of {resumeDrafts.length} saved résumé versions</h2></div><small>Every version is preserved and can be linked to an application.</small></div>{resumeDrafts.length > 0 && <div className="radar-inbox-controls"><label>Company<select value={documentFilters.company} onChange={(event) => setDocumentFilters({ ...documentFilters, company: event.target.value })}><option value="all">All companies</option>{documentCompanyOptions.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>{documentTrackOptions.length > 0 && <label>Track<select value={documentFilters.trackId} onChange={(event) => setDocumentFilters({ ...documentFilters, trackId: event.target.value })}><option value="all">All tracks</option>{documentTrackOptions.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>}<label>Provider<select value={documentFilters.provider} onChange={(event) => setDocumentFilters({ ...documentFilters, provider: event.target.value })}><option value="all">All providers</option>{documentProviderOptions.map((provider) => <option key={provider} value={provider}>{provider === "local" ? "Local draft" : provider}</option>)}</select></label><label>Search<input value={documentFilters.search} onChange={(event) => setDocumentFilters({ ...documentFilters, search: event.target.value })} placeholder="Role, company, or title" /></label></div>}{resumeDrafts.length === 0 ? <div className="empty-state compact"><strong>No résumé version saved yet.</strong><span>Generate or edit a résumé in Role workspace, then choose Save version.</span></div> : filteredResumeDrafts.length === 0 ? <div className="empty-state compact"><strong>No résumé versions match these filters.</strong><span>Change the company, track, provider, or search text.</span></div> : <div className="resume-version-list">{filteredResumeDrafts.map((draft) => <article key={draft.id}><div><strong>{draft.title}</strong><span>{draft.company} · {draft.role}</span><small>{draft.updatedAt} · {draft.provider === "local" || !draft.provider ? "Local draft" : `${draft.provider} · ${draft.model || "model recorded"}`} · {draft.playbookRuleCount ?? 0} playbook rules</small></div><button onClick={() => { setCompany(draft.company); setRole(draft.role); setDraftEditor(draft.content); setDraftEditorKey("resume"); setDraftIsExternal(draft.origin === "uploaded"); setOutput("resume"); setView("workspace"); setNotice("Saved résumé version opened for editing. The original version remains preserved."); }}>Open copy</button><button onClick={() => download(`${draft.company}-${draft.role}-resume.txt`.replace(/[^a-z0-9.-]+/gi, "-"), draft.content)}>Download</button></article>)}</div>}</section>}
 
         {view === "data" && <section className="data-workspace">
-          <div className="data-safety-card"><span>APPEND-ONLY PRIVATE HISTORY</span><h2>Recover records without deleting the current workspace.</h2><p>Every durable save creates an immutable private revision. “Merge preserved records” adds missing applications, sources, résumé versions, job descriptions, and companies to the current workspace. Current records win when the same ID exists.</p><div><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving" || !workspaceLoaded}>Save revision now</button><button onClick={() => void loadWorkspaceHistory()} disabled={workspaceHistoryState === "loading"}>{workspaceHistoryState === "loading" ? "Refreshing…" : "Refresh history"}</button><button onClick={exportWorkspace}>Download complete backup</button></div></div>
+          <div className="data-safety-card"><span>APPEND-ONLY PRIVATE HISTORY</span><h2>Recover records without deleting the current workspace.</h2><p>Every durable save creates an immutable private revision. “Merge preserved records” adds missing applications, sources, résumé versions, job descriptions, and companies to the current workspace. Current records win when the same ID exists.</p><p className="workspace-size">{workspaceSync.bytes
+            ? `Your workspace is ${formatBytes(workspaceSync.bytes)}${workspaceSync.sentBytes && workspaceSync.sentBytes < workspaceSync.bytes ? `, sent compressed as ${formatBytes(workspaceSync.sentBytes)}` : ""} — ${Math.round((workspaceSync.bytes / WORKSPACE_LIMIT_BYTES) * 100)}% of the ${Math.round(WORKSPACE_LIMIT_BYTES / (1024 * 1024))} MB backup limit.`
+            : "Save a revision to see how much of the backup limit your workspace uses."}</p><div><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving" || !workspaceLoaded}>Save revision now</button><button onClick={() => void loadWorkspaceHistory()} disabled={workspaceHistoryState === "loading"}>{workspaceHistoryState === "loading" ? "Refreshing…" : "Refresh history"}</button><button onClick={exportWorkspace}>Download complete backup</button></div></div>
           <div className="version-history-card"><div className="table-head"><div><span>PRIVATE VERSION HISTORY</span><h2>{workspaceRevisions.length} recent revisions</h2></div><strong>Nothing is deleted here</strong></div>{workspaceHistoryState === "loading" && !workspaceRevisions.length ? <div className="empty-state compact"><strong>Opening preserved versions…</strong></div> : workspaceRevisions.length ? <div className="version-history-list">{workspaceRevisions.map((revision) => <article key={revision.id} className={revision.isCurrent ? "current" : ""}><div><strong>{revision.isCurrent ? "Current private revision" : new Date(revision.createdAt).toLocaleString()}</strong><span>{revision.sourceBuild}</span><small>{Math.max(1, Math.round(revision.sizeBytes / 1024)).toLocaleString()} KB · {revision.id.slice(0, 8)}</small></div>{revision.isCurrent ? <b>ACTIVE</b> : <button onClick={() => void mergeWorkspaceRevision(revision.id)} disabled={workspaceHistoryState === "loading"}>Merge preserved records</button>}</article>)}</div> : <div className="empty-state compact"><strong>No durable revisions are visible yet.</strong><span>Your browser copy remains untouched. Choose Save revision now to create the first durable version.</span></div>}</div>
         </section>}
 
