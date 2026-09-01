@@ -5,7 +5,7 @@ import { analyzeRole } from "@/lib/recommendation-engine.mjs";
 import { classifyKnowledgeSource, mergeWritingSample, scopeForCategory, sourceScope, sourceScopeDescription, sourceScopeLabel, SOURCE_CATEGORIES } from "@/lib/knowledge-sources.mjs";
 import { CURATED_RESUME_PLAYBOOK } from "@/lib/resume-playbook.mjs";
 import { US_MARKET_REFERENCES } from "@/lib/us-market-references.mjs";
-import { readJsonResponse } from "@/lib/http-json.mjs";
+import { HttpJsonError, readJsonResponse } from "@/lib/http-json.mjs";
 import { extractLinkedInArchive, extractLinkedInSavedJobs } from "@/lib/linkedin-archive.mjs";
 import { parseResumeText, proseToHtml, resumeToHtml } from "@/lib/resume-document.mjs";
 import { RESUME_STANDARD_DIMENSIONS, auditResume } from "@/lib/resume-standards.mjs";
@@ -392,7 +392,16 @@ function isWorkspaceSnapshot(value: unknown): value is Partial<WorkspaceSnapshot
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-export function JobSeekerApp() {
+type JobSeekerAppProps = {
+  // Called when a request comes back 401 against a cookie that AccessGate
+  // already trusted as present — the shared token was rotated or revoked
+  // since this browser last logged in. Clears the stale cookie and bounces
+  // back to the entry screen with the server's own explanation, rather than
+  // leaving a broken, half-authenticated app on screen.
+  onAccessRevoked?: (message: string) => void;
+};
+
+export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
   const [view, setView] = useState<View>("workspace");
   const [output, setOutput] = useState<Output>("analysis");
   const [profile, setProfile] = useSavedState("valeta-profile-v2", initialProfile);
@@ -702,22 +711,9 @@ export function JobSeekerApp() {
   }
 
   useEffect(() => {
-    // The access token normally arrives once, in the URL (?token=...). Every
-    // API call after this one is a plain same-origin fetch with no token
-    // attached, so without this the first request works and everything
-    // after it 401s. Storing it as a cookie here makes the browser resend it
-    // automatically on every subsequent fetch; the token is then stripped
-    // from the visible URL so it doesn't linger in history or get shared.
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get("token");
-      if (token) {
-        document.cookie = `vjobs_token=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-        params.delete("token");
-        const nextSearch = params.toString();
-        window.history.replaceState(null, "", window.location.pathname + (nextSearch ? `?${nextSearch}` : "") + window.location.hash);
-      }
-    } catch {}
+    // AccessGate has already verified the token and written the cookie by the
+    // time this component mounts. This tick's only job now is the timing
+    // the workspace-load effect below was written against.
     const timer = window.setTimeout(() => setBrowserStateReady(true), 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -729,7 +725,18 @@ export function JobSeekerApp() {
       .then(async (response) => ({ response, data: await readJsonResponse<WorkspacePayload>(response, "The durable private backup could not be read.") }))
       .then(({ response, data }) => {
         if (!active) return;
-        if (!response.ok || !data.ok) throw new Error(data.message || "The durable private backup could not be opened.");
+        // A plain Error here would lose the HTTP status and the API's own error
+        // code the moment it crosses into .catch() below -- readJsonResponse
+        // only throws HttpJsonError for an empty or non-JSON body, so an
+        // ordinary error response (401 invalid token, 503 not configured, its
+        // JSON parsed fine) has to be turned into one explicitly to carry that
+        // information forward. Losing it here is what let a revoked token
+        // render the generic backup-failed banner forever instead of bouncing
+        // back to the login screen.
+        if (!response.ok || !data.ok) {
+          const payload = data as unknown as { code?: string };
+          throw new HttpJsonError(response.status, payload.code || "workspace_error", data.message || "The durable private backup could not be opened.");
+        }
         const remote = isWorkspaceSnapshot(data.snapshot) ? data.snapshot : null;
         if (remote) {
           const locallySaved = (key: string) => localStorage.getItem(key) !== null;
@@ -753,6 +760,10 @@ export function JobSeekerApp() {
       })
       .catch((cause) => {
         if (!active) return;
+        if (onAccessRevoked && cause instanceof HttpJsonError && (cause.status === 401 || cause.code === "invalid_token" || cause.code === "authentication_required")) {
+          onAccessRevoked(cause.message);
+          return;
+        }
         setWorkspaceSync({ state: "error", message: cause instanceof Error ? cause.message : "Durable backup is unavailable; browser autosave remains active." });
         setWorkspaceLoaded(true);
         logError("app", "workspace_restore_failed", cause);
