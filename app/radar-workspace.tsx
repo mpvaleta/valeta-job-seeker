@@ -40,8 +40,8 @@ type RadarMonitor = {
 };
 
 type RadarLearning = {
-  dismissal: { ready: boolean; words: string[]; categories: string[]; reason: string };
-  closed: { ready: boolean; words: string[]; companies: string[]; reason: string };
+  dismissal: { ready: boolean; words: string[]; categories: string[]; reason: string; count: number };
+  closed: { ready: boolean; words: string[]; companies: string[]; reason: string; count: number };
 };
 
 type RadarPayload = {
@@ -526,12 +526,15 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
         <label>Career goals<textarea value={profileDraft.goals} onChange={(event) => setProfileDraft({ ...profileDraft, goals: event.target.value })} /></label>
         {learning && <div className="radar-learning">
           <strong>What V’s has learned from your decisions</strong>
-          <p><b>Roles you marked no longer available:</b> {learning.closed.ready
-            ? <>ranking roles about <b>{learning.closed.words.join(", ")}</b> higher{learning.closed.companies.length ? <> · employers that keep posting them: {learning.closed.companies.join(", ")}</> : null}. Add any of those words to Target positions above to make it permanent.</>
-            : learning.closed.reason}</p>
-          <p><b>Roles you marked “Not for me”:</b> {learning.dismissal.ready
+          <p><b>{learning.closed.count} marked “no longer available”:</b> {learning.closed.ready
+            ? <>ranking roles about <b>{learning.closed.words.join(", ")}</b> higher. Add any of those words to Target positions above to make it permanent.</>
+            : learning.closed.reason}{learning.closed.companies.length
+              ? <> Employers that keep posting roles you wanted: <b>{learning.closed.companies.join(", ")}</b>.</>
+              : null}</p>
+          <p><b>{learning.dismissal.count} marked “Not for me”:</b> {learning.dismissal.ready
             ? <>ranking roles about <b>{learning.dismissal.words.join(", ")}</b> lower{learning.dismissal.categories.length ? <>, and the company types {learning.dismissal.categories.join(", ")}</> : null}. Words from your own targets and skills are never learned against you.</>
             : learning.dismissal.reason}</p>
+          <p>“Saw it / applied” is recorded and deliberately teaches nothing — applying to a role is interest, not a verdict on the kind of work.</p>
         </div>}
         <div className="radar-preferences"><fieldset><legend>Work style</legend>{["On-site", "Hybrid", "Remote"].map((mode) => <label key={mode}><input type="checkbox" checked={profileDraft.workModes.includes(mode)} onChange={(event) => setProfileDraft({ ...profileDraft, workModes: event.target.checked ? [...profileDraft.workModes, mode] : profileDraft.workModes.filter((item) => item !== mode) })} />{mode}</label>)}</fieldset><label>Minimum alignment <strong>{profileDraft.minScore}%</strong><input type="range" min="20" max="90" step="5" value={profileDraft.minScore} onChange={(event) => setProfileDraft({ ...profileDraft, minScore: Number(event.target.value) })} /></label><label>Company stage<select value={profileDraft.companyStagePreference} onChange={(event) => setProfileDraft({ ...profileDraft, companyStagePreference: event.target.value as RadarProfile["companyStagePreference"] })}>{STAGE_PREFERENCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div>
       </article>
