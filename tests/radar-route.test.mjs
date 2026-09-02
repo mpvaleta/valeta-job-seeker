@@ -1027,6 +1027,65 @@ test("a full scan is bounded, covers the longest-waiting targets first, and repo
   }
 });
 
+test("a throttled scan reads targets with a saved board before it spends on website-only targets", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  const originalFetch = globalThis.fetch;
+  try {
+    // Six website-only targets first: each burns the page read plus every
+    // common careers path, the expensive shape that starved the real boards
+    // for weeks. The board target is added last on purpose.
+    for (let index = 0; index < 6; index += 1) {
+      const added = await worker.fetch(new Request("http://localhost/api/radar", {
+        method: "POST", headers,
+        body: JSON.stringify({ action: "add_monitor", monitor: { company: `Site ${index}`, websiteUrl: `https://site-${index}.example.com`, cadence: "manual" } }),
+      }), env, context);
+      assert.equal(added.status, 200);
+    }
+    const board = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "add_monitor", monitor: { company: "Board Co", careersUrl: "https://boards.greenhouse.io/boardco", cadence: "manual" } }),
+    }), env, context);
+    assert.equal(board.status, 200);
+
+    // A website that answers with a real page but lists no roles is the
+    // expensive shape: the page read completes with nothing, so every common
+    // careers path is tried too. A source that *fails* outright would be
+    // charged the one-attempt floor and not reproduce the starvation.
+    const prose = "We are an independent studio making brand work for clients who care about craft. ".repeat(20);
+    globalThis.fetch = async (input) => {
+      if (String(input).includes("greenhouse.io")) return Response.json({ jobs: [] });
+      return new Response(`<html><head><title>Studio</title></head><body><main><h1>About the studio</h1><p>${prose}</p></main></body></html>`, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    };
+    const scanned = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+    }), env, context);
+    const data = await scanned.json();
+    assert.equal(scanned.status, 200);
+    assert.ok(data.result.checked < 7, `expected a partial slice, got ${data.result.checked}`);
+    const boardMonitor = data.monitors.find((monitor) => monitor.company === "Board Co");
+    assert.ok(boardMonitor?.lastCheckedAt, "the board target is read in the first run even though it was added last");
+
+    // Once read, the board is no longer due and rejoins the rotation, so
+    // repeated manual runs still reach every website-only target instead of
+    // re-reading the same board forever.
+    let reached = 1;
+    for (let run = 0; run < 6 && reached < 7; run += 1) {
+      const next = await worker.fetch(new Request("http://localhost/api/radar", {
+        method: "POST", headers, body: JSON.stringify({ action: "scan" }),
+      }), env, context);
+      reached = (await next.json()).monitors.filter((monitor) => monitor.lastCheckedAt).length;
+    }
+    assert.equal(reached, 7, "every target is reached by repeated runs");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
 test("a posting that vanishes from a re-read board is flagged, not deleted", async () => {
   const { mf, db } = await createDatabase();
   const worker = await loadWorker();

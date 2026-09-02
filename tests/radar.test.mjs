@@ -478,6 +478,23 @@ test("Greenhouse discovery uses its public jobs API and preserves original links
   assert.match(calls[0], /boards-api\.greenhouse\.io/);
 });
 
+test("a board larger than the old 300-role cap is read in full", async () => {
+  // OpenAI lists ~770 roles and Anthropic ~570. A read cut at 300 was still
+  // stamped as a complete listing read, so live roles past the cut were
+  // badged "no longer on the company board".
+  const jobs = Array.from({ length: 400 }, (_, index) => ({
+    title: `Producer ${index + 1}`,
+    location: { name: "San Francisco, CA" },
+    content: "<p>Production role.</p>",
+    absolute_url: `https://boards.greenhouse.io/example/jobs/${index + 1}`,
+    updated_at: "2026-07-18T00:00:00Z",
+  }));
+  const result = await discoverTargetJobs({ company: "Example", careersUrl: "https://boards.greenhouse.io/example" }, {
+    fetchImpl: async () => Response.json({ jobs }),
+  });
+  assert.equal(result.length, 400);
+});
+
 test("company homepage discovery follows a ranked Careers or Opportunities hub once", async () => {
   const calls = [];
   const jobs = await discoverTargetJobs({ company: "Example", websiteUrl: "https://example.com" }, {
