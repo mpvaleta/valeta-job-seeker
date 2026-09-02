@@ -230,30 +230,35 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
   };
 }
 
-// Removes discoveries the role gate now rejects.
+// Clears discoveries the role gate now rejects out of the inbox.
 //
 // Rows collected before the gate existed keep their old, inflated score, and
 // there can be thousands of them. Read-time re-derivation already stops them
-// counting as matches, but the owner still has to scroll past them, so this
-// clears them out for good.
+// counting as matches, but the owner still has to scroll past them.
+//
+// They are archived, not deleted. Archiving empties the inbox exactly as well,
+// and it is reversible: the gate is only as good as the titles the owner
+// thought to write down, so a role cleared today can turn out to have been
+// wanted once a target title is added — and "Restore" brings it back. A DELETE
+// was the one action in this app that destroyed the owner's data outright, with
+// no undo and no revision history behind it.
 //
 // Only untouched rows go. Anything shortlisted, archived or dismissed carries a
-// decision the owner made — a dismissal is also what the radar learns from — and
-// deleting those would destroy that record to tidy a list.
+// decision the owner made, and a dismissal is also what the radar learns from.
 export async function purgeOffTargetOpportunities(db: D1Database, userId: string) {
   const profileRow = await db.prepare("SELECT * FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<ProfileRow>();
   const profile = profileFromRow(profileRow);
   const rows = await db.prepare("SELECT id, title FROM job_opportunities WHERE user_id = ? AND status IN ('new', 'reviewing')").bind(userId).all<{ id: string; title: string }>();
-  const doomed = (rows.results || [])
+  const offTarget = (rows.results || [])
     .filter((row) => titleRelevance(row.title, profile.titles, profile.skills).tier === "none")
     .map((row) => row.id);
   // D1 caps how many parameters one statement takes, so this goes out in
   // batches rather than as a single enormous IN list.
-  for (let index = 0; index < doomed.length; index += 90) {
-    const chunk = doomed.slice(index, index + 90);
-    await db.prepare(`DELETE FROM job_opportunities WHERE user_id = ? AND id IN (${chunk.map(() => "?").join(", ")})`).bind(userId, ...chunk).run();
+  for (let index = 0; index < offTarget.length; index += 90) {
+    const chunk = offTarget.slice(index, index + 90);
+    await db.prepare(`UPDATE job_opportunities SET status = 'archived', updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND id IN (${chunk.map(() => "?").join(", ")})`).bind(userId, ...chunk).run();
   }
-  return { removed: doomed.length, kept: (rows.results || []).length - doomed.length };
+  return { archived: offTarget.length, kept: (rows.results || []).length - offTarget.length };
 }
 
 export async function saveRadarProfile(db: D1Database, userId: string, value: Partial<RadarProfile>) {
@@ -750,10 +755,27 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   // promotes itself into this lane.
   const boardDue = (monitor: { careersUrl: string; due: boolean; lastCheckedAt: string | null }) =>
     Boolean(monitor.careersUrl) && (monitor.due || !monitor.lastCheckedAt);
+  /*
+   * A board that failed its last read waits behind the boards that work.
+   *
+   * A dead ATS token — a company that renamed its board and left no website to
+   * recover from — costs two attempts on every run, forever, and can never
+   * repair itself. Those attempts were being spent ahead of boards that return
+   * roles. The demotion is time-boxed rather than permanent: after three days a
+   * failed board rejoins the front, so one that was merely down for an
+   * afternoon comes back on its own and nothing is ever quietly dropped.
+   */
+  const RETRY_FAILED_BOARD_AFTER_MS = 3 * 24 * 60 * 60 * 1_000;
+  const failingRecently = (monitor: { lastRunStatus: string | null; lastCheckedAt: string | null }) => {
+    if (monitor.lastRunStatus !== "failed" || !monitor.lastCheckedAt) return false;
+    const checked = utcTimestampMs(monitor.lastCheckedAt);
+    return Number.isFinite(checked) && Date.now() - checked < RETRY_FAILED_BOARD_AFTER_MS;
+  };
   const queue = options.monitorId
     ? eligible.slice(0, 1)
     : [...eligible].sort((left, right) =>
       Number(!boardDue(left)) - Number(!boardDue(right))
+      || Number(failingRecently(left)) - Number(failingRecently(right))
       || (left.lastCheckedAt || "").localeCompare(right.lastCheckedAt || ""));
   // A single-target scan always runs, however expensive it turns out to be.
   const throttled = !options.monitorId;
@@ -918,6 +940,9 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       // The in-memory index keeps deduplication correct even though the
       // inserts have not landed yet.
       const jobStatements: D1PreparedStatement[] = [];
+      // Rows this read is about to stamp itself, so the sweep below does not
+      // stamp them a second time.
+      const touchedIds = new Set<string>();
       // Every scored posting used to be written to the inbox — up to 150 per
       // company, across 100+ monitored companies — so a scan buried a handful
       // of real matches under thousands of rows the scorer had already rejected.
@@ -930,6 +955,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       for (const { job, match } of worthKeeping) {
         const existing = index.get(opportunityKey(job.sourceUrl));
         if (existing) {
+          touchedIds.add(existing.id);
           jobStatements.push(db.prepare("UPDATE job_opportunities SET company_id = ?, title = ?, location = ?, source_type = ?, fit_score = ?, fit_summary = ?, updated_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
             .bind(monitor.companyId, job.title, job.location || null, job.sourceType || "public-careers-page", match.score, match.summary, existing.id, userId));
         } else {
@@ -952,6 +978,26 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       // mutating status on a scan that merely looked truncated would bury
       // roles the user had already shortlisted, and the badge conveys the
       // same fact without touching the row's state.
+      /*
+       * Every posting this read confirmed is still up, not only the ones worth
+       * storing.
+       *
+       * The loop above refreshes last_seen_at for the rows it writes, which is
+       * the rows that pass the score floor today. A stored posting that is
+       * still on the board but has since fallen below that floor — the owner
+       * narrowed a target title, or raised the minimum — was left with an old
+       * last_seen_at, and the next complete read of that board then badged it
+       * "No longer on the company board". That badge is now a decision the
+       * owner acts on and the radar learns from, so a false one is worse than
+       * it was: it teaches from a role that never closed.
+       */
+      const stillListed = [...new Set(jobs
+        .map((job) => index.get(opportunityKey(job.sourceUrl))?.id)
+        .filter((id): id is string => typeof id === "string" && !touchedIds.has(id)))];
+      for (let cursor = 0; cursor < stillListed.length; cursor += 90) {
+        const chunk = stillListed.slice(cursor, cursor + 90);
+        jobStatements.push(db.prepare(`UPDATE job_opportunities SET last_seen_at = CURRENT_TIMESTAMP WHERE user_id = ? AND id IN (${chunk.map(() => "?").join(", ")})`).bind(userId, ...chunk));
+      }
       if (jobStatements.length) await db.batch(jobStatements);
       const savedAttempt = discovery.attempts.find((attempt) => attempt.purpose === "saved-careers");
       const repairedSource = clean(discovery.recommendedCareersUrl, 4_000);
@@ -982,10 +1028,22 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
         : completedSources.length
           ? " Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
           : " Zero-result reason: no public source responded on this run.";
+      // "completed" means a source answered, not that the code reached the end
+      // of the function. A run where nothing responded — a renamed ATS board
+      // with no website to recover from is the standing case — was recorded as
+      // "completed · 0 found", which reads on the Targets tab exactly like a
+      // healthy board with no matching roles, and left the scan queue with no
+      // way to tell a dead source from a quiet one.
+      //
+      // Both halves are required. A blocked search that still yielded a direct
+      // public job lead — Meta's careers page is the standing example — read
+      // something real, and calling that run failed would be as wrong in the
+      // other direction.
+      const nothingResponded = completedSources.length === 0 && jobs.length === 0;
       const statements = [
         db.prepare("UPDATE company_monitors SET last_checked_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?").bind(monitor.id, userId),
         db.prepare("INSERT INTO monitor_runs (id, monitor_id, run_status, found_count, change_summary) VALUES (?, ?, ?, ?, ?)")
-          .bind(runId, monitor.id, "completed", matches.length, `${triggerLabel} · ${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${worthKeeping.length - matches.length} near misses kept · ${scored.length - worthKeeping.length} filtered out by the role/market gates · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}${zeroReason}`),
+          .bind(runId, monitor.id, nothingResponded ? "failed" : "completed", matches.length, `${triggerLabel} · ${jobs.length} verified roles read · ${matches.length} met the ${profile.minScore}% minimum · ${worthKeeping.length - matches.length} near misses kept · ${scored.length - worthKeeping.length} filtered out by the role/market gates · ${monitorAdded} new (${monitorMatchedAdded} matching) · ${discovery.attempts.length} source${discovery.attempts.length === 1 ? "" : "s"} tried${rejectedNavigationCount ? ` · ${rejectedNavigationCount} navigation/non-job ${rejectedNavigationCount === 1 ? "link" : "links"} excluded` : ""}. ${sourceCoverage} ${sourceNote}${zeroReason}`),
       ];
       if (repairStatement) statements.unshift(repairStatement);
       // Only a read that produced at least one complete-board posting counts
