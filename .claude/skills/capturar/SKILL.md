@@ -178,5 +178,9 @@ with `source: "linkedin"`. List the rest to him.
 
 ## Mobile
 
-This routine needs his Mac's Chrome. On the iPhone the same box accepts what the bookmarklet's
-"Capture list" copies — that is a separate, later change to `lib/autofill-bookmarklet.mjs`.
+This routine needs his Mac's Chrome, because Claude drives that browser. The iPhone does not need
+Claude at all: on a LinkedIn or Indeed results page he taps the V's autofill bookmark, presses
+"Copy N roles", and pastes into "Paste a captured list" in Open job search. The reader behind that
+button is `extension/results-capture.js`, the same module the Chrome extension loads — fix a
+selector once and both companions get it. He must re-add the bookmark after any change to the
+bookmarklet, since its code lives inside the saved URL.

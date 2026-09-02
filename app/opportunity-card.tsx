@@ -14,7 +14,7 @@ export type RadarOpportunity = {
   location: string;
   sourceUrl: string;
   sourceType: string;
-  origin: "monitored" | "v-watch" | "imported" | "linkedin-saved";
+  origin: "monitored" | "v-watch" | "imported" | "linkedin-saved" | "captured";
   importedByUser?: boolean;
   targetPosition: string;
   fitScore: number;
@@ -54,10 +54,12 @@ type Props = {
 export function OpportunityCard({ opportunity, minScore, onStatus, onPrepare }: Props) {
   const originLabel = opportunity.origin === "v-watch" ? "Suggested by V’s"
     : opportunity.origin === "imported" ? "Imported by you"
+    : opportunity.origin === "captured" ? "Captured from a search"
     : opportunity.origin === "linkedin-saved" ? "Saved on LinkedIn"
     : "Company you monitor";
   const originNote = opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch"
     : opportunity.origin === "imported" ? "Imported from a link you provided"
+    : opportunity.origin === "captured" ? "Captured from a results page you were reading"
     : opportunity.origin === "linkedin-saved" ? "From your official LinkedIn saved-jobs export"
     : "Found from a monitored company";
   return <article className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}>

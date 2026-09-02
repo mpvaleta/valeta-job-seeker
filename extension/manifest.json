@@ -19,6 +19,7 @@
       ],
       "js": [
         "autofill-mapping.js",
+        "results-capture.js",
         "content.js"
       ],
       "run_at": "document_idle"

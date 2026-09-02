@@ -177,7 +177,13 @@ export async function POST(request: Request) {
           location: optionalText(entry.location, 240),
           description: optionalText(entry.description, 8_000),
         };
-      }), input.source === "captured" ? "imported" : "linkedin-saved");
+      // Provenance, honestly. No source at all is the official LinkedIn export.
+      // Any stated source — "linkedin" or "captured", the only two the browser
+      // companion and the paste box send — means the owner read a results page
+      // themselves, which is a capture whatever board it was on. Filing a
+      // LinkedIn capture as "Saved on LinkedIn" claimed something that never
+      // happened, and filing an Indeed one that way was simply wrong.
+      }), input.source ? "captured" : "linkedin-saved");
     } else {
       return error(400, "invalid_action", "Choose a valid radar action.");
     }

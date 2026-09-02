@@ -166,7 +166,11 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     const offTargetRole = titleRelevance(row.title, profile.titles, profile.skills).tier === "none";
     const exclusionHit = offTargetRole || /review exclusion:|startups-only filter|location filter|role filter/i.test(row.fit_summary || "");
     const monitor = row.company_id ? monitorByCompanyId.get(row.company_id) : undefined;
-    const origin = row.source_type === "v-watch" ? "v-watch" : row.source_type === "imported" ? "imported" : row.source_type === "linkedin-saved" ? "linkedin-saved" : "monitored";
+    const origin = row.source_type === "v-watch" ? "v-watch"
+      : row.source_type === "imported" ? "imported"
+      : row.source_type === "captured" ? "captured"
+      : row.source_type === "linkedin-saved" ? "linkedin-saved"
+      : "monitored";
     // The posting came from a complete board read, the board has since been
     // read completely again, and the posting was not in that newer read — the
     // employer has most likely closed or unlisted it. Postings refreshed
@@ -193,7 +197,7 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
         : classification.trackLabel,
       // An imported role came from a page the user opened themselves, so its
       // employer may never have been reachable by an automated scan.
-      importedByUser: origin === "imported" || origin === "linkedin-saved",
+      importedByUser: origin === "imported" || origin === "linkedin-saved" || origin === "captured",
       fitScore,
       fitSummary: row.fit_summary || "No fit summary available.",
       alignmentPasses: fitScore >= profile.minScore && !exclusionHit,
@@ -632,7 +636,7 @@ export async function importLinkedInSavedJobs(
   // owner picked out themselves, which is what "imported" already means. Both
   // the origin filter and the row's label read this, so filing everything as
   // LinkedIn mislabelled every non-LinkedIn capture.
-  sourceType: "linkedin-saved" | "imported" = "linkedin-saved",
+  sourceType: "linkedin-saved" | "imported" | "captured" = "linkedin-saved",
 ) {
   const dashboard = await readRadarDashboard(db, userId);
   const index = await loadOpportunityIndex(db, userId);

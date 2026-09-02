@@ -16,6 +16,9 @@ import type { JobSearchUrl } from "@/lib/job-boards.mjs";
 import type { DismissalReason } from "@/lib/radar.mjs";
 
 type Props = {
+  // Held by the app so they ride the durable workspace backup to every device.
+  settings: JobSearchSettings;
+  onSettingsChange: (settings: JobSearchSettings) => void;
   onNotice: (message: string) => void;
   onError: (code: string, message: unknown, context?: Record<string, string | number | boolean>) => void;
   onPrepare?: (opportunity: RadarOpportunity) => void | Promise<void>;
@@ -34,14 +37,18 @@ type RadarPayload = {
   };
 };
 
-const SETTINGS_KEY = "vjs.job-search.settings.v1";
+// Exported because the settings now live in the app's synced workspace state
+// rather than in this component: they were per-browser, so the roles Marcos
+// searches for on the Mac were not the roles his phone offered. The key is
+// unchanged, so a browser that already has them keeps them.
+export const JOB_SEARCH_SETTINGS_KEY = "vjs.job-search.settings.v1";
 const OPENED_KEY = "vjs.job-search.opened.v1";
 // Chrome allows a burst of window.open calls from one click gesture, then
 // starts blocking. Six is comfortably inside that budget on every browser
 // tested, and more than six tabs at once is not a search anyone reads.
 const OPEN_ALL_LIMIT = 6;
 
-type Settings = {
+export type JobSearchSettings = {
   // null means "never chosen", which is what makes the saved target positions
   // an opening default rather than a value that reappears the moment the last
   // keyword is removed. An empty array is a deliberate choice and is honored.
@@ -51,7 +58,7 @@ type Settings = {
   postedWithinDays: number;
 };
 
-const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_JOB_SEARCH_SETTINGS: JobSearchSettings = {
   keywords: null,
   locationIds: ["bay-area", "remote-us"],
   boardIds: JOB_BOARDS.map((board) => board.id),
@@ -84,8 +91,11 @@ function relativeTime(iso: string) {
   return days === 1 ? "yesterday" : `${days}d ago`;
 }
 
-export function JobSearchWorkspace({ onNotice, onError, onPrepare }: Props) {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+export function JobSearchWorkspace({ settings: savedSettings, onSettingsChange, onNotice, onError, onPrepare }: Props) {
+  // A value stored before a field existed would arrive without it, so the
+  // defaults fill the gaps rather than letting an undefined reach the URL
+  // builder.
+  const settings = { ...DEFAULT_JOB_SEARCH_SETTINGS, ...savedSettings };
   const [opened, setOpened] = useState<Record<string, string>>({});
   const [keywordDraft, setKeywordDraft] = useState("");
   const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([]);
@@ -104,7 +114,6 @@ export function JobSearchWorkspace({ onNotice, onError, onPrepare }: Props) {
   // uses elsewhere in the app.
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setSettings(readStored(SETTINGS_KEY, DEFAULT_SETTINGS));
       setOpened(readStored<Record<string, string>>(OPENED_KEY, {}));
     }, 0);
     return () => window.clearTimeout(timer);
@@ -159,13 +168,10 @@ export function JobSearchWorkspace({ onNotice, onError, onPrepare }: Props) {
     }
   }
 
-  function persist(next: Settings) {
-    setSettings(next);
-    try {
-      window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-    } catch {
-      // Private-mode storage refusals are not worth interrupting the search.
-    }
+  // The app owns the value and writes it to both this browser and the durable
+  // backup; this tab only says what changed.
+  function persist(next: JobSearchSettings) {
+    onSettingsChange(next);
   }
 
   // Until the owner edits the list, their saved target positions are the
@@ -323,7 +329,7 @@ export function JobSearchWorkspace({ onNotice, onError, onPrepare }: Props) {
   // results list, or their LinkedIn export. Newest first, always — this tab is
   // worked as a queue, so what arrived last is what has not been looked at.
   const filed = useMemo(() => opportunities
-    .filter((item) => item.origin === "imported" || item.origin === "linkedin-saved")
+    .filter((item) => item.origin === "imported" || item.origin === "linkedin-saved" || item.origin === "captured")
     .sort((left, right) => right.discoveredAt.localeCompare(left.discoveredAt) || right.fitScore - left.fitScore), [opportunities]);
   const filedTotal = filed.length;
   const visibleFiled = showHidden ? filed : filed.filter((item) => item.status !== "dismissed" && item.status !== "archived" && item.status !== "expired");

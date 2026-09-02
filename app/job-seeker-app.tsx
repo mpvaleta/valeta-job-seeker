@@ -20,17 +20,20 @@ import { compressionAvailable, GZIP_ENCODING, gzipText, WORKSPACE_ENCODING_HEADE
 import { PasskeyCard } from "./passkey-card";
 // The bookmarklet has to arrive with the click: application sites carry strict
 // Content-Security-Policy headers that block a script fetched from anywhere
-// else, while browsers exempt bookmarklets themselves. Both halves are embedded
+// else, while browsers exempt bookmarklets themselves. Every half is embedded
 // as source rather than re-implemented, so the rules that decide what is safe to
-// fill can never drift from the ones the extension and its tests use.
+// fill — and the selectors that read a board's result cards — can never drift
+// from the ones the extension and its tests use.
 import autofillMappingSource from "../extension/autofill-mapping.js?raw";
+import resultsCaptureSource from "../extension/results-capture.js?raw";
 import autofillRuntimeSource from "../lib/autofill-bookmarklet-runtime.js?raw";
 import { auditEvidence } from "@/lib/evidence-conflicts.mjs";
 import type { EvidenceAudit } from "@/lib/evidence-conflicts.mjs";
 import { estimateUsageCost, formatEstimatedCost } from "@/lib/ai-pricing.mjs";
 import { findReusableResumes } from "@/lib/resume-reuse.mjs";
 import { RadarWorkspace } from "./radar-workspace";
-import { JobSearchWorkspace } from "./job-search-workspace";
+import { DEFAULT_JOB_SEARCH_SETTINGS, JOB_SEARCH_SETTINGS_KEY, JobSearchWorkspace } from "./job-search-workspace";
+import type { JobSearchSettings } from "./job-search-workspace";
 import type { RadarOpportunity } from "./radar-workspace";
 import type { ApplicationRecommendation } from "@/lib/recommendation-engine.mjs";
 import type { SourceCategory, SourceScope } from "@/lib/knowledge-sources.mjs";
@@ -65,7 +68,7 @@ type LinkReadPayload = { ok?: boolean; code?: string; message?: string; source?:
 type LinkedInStatus = { state: "checking" | "ready" | "error"; configured: boolean; connected: boolean; message: string; identity?: { name?: string; email?: string; picture?: string } };
 type OperationProgress = { label: string; detail: string } | null;
 type LinkAssist = { kind: "linkedin" | "indeed" | "login"; title: string; message: string } | null;
-type WorkspaceSnapshot = { version: number; profile: Profile; writingStyle: WritingStyle; resumeTracks: ResumeTrack[]; activeTrackId: string; aiPreference: AiPreference; claudeModel?: string; playbookSettings: PlaybookSettings; applications: Application[]; jobSnapshots: JobSnapshot[]; generatedDrafts: GeneratedDraft[]; documents: SourceDocument[]; companies: CompanyTarget[]; roleDraft: { jobText: string; company: string; role: string; roleUrl: string } };
+type WorkspaceSnapshot = { version: number; profile: Profile; writingStyle: WritingStyle; resumeTracks: ResumeTrack[]; activeTrackId: string; aiPreference: AiPreference; claudeModel?: string; playbookSettings: PlaybookSettings; applications: Application[]; jobSnapshots: JobSnapshot[]; generatedDrafts: GeneratedDraft[]; documents: SourceDocument[]; companies: CompanyTarget[]; jobSearchSettings?: JobSearchSettings; roleDraft: { jobText: string; company: string; role: string; roleUrl: string } };
 type WorkspaceSync = { state: "loading" | "ready" | "saving" | "error"; message: string; lastSavedAt?: string; bytes?: number; sentBytes?: number };
 type WorkspacePayload = { ok?: boolean; code?: string; message?: string; changed?: boolean; snapshot?: unknown; revision?: { id: string; createdAt: string; sizeBytes: number; sourceBuild: string } | null };
 type WorkspaceRevision = { id: string; createdAt: string; sizeBytes: number; sourceBuild: string; isCurrent: boolean };
@@ -418,6 +421,10 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
   const [autofillResumeVersionId, setAutofillResumeVersionId] = useSavedState("v-jobs-autofill-resume-v1", "");
   const [documents, setDocuments] = useSavedState<SourceDocument[]>("valeta-documents-v1", []);
   const [companies, setCompanies] = useSavedState<CompanyTarget[]>("valeta-companies-v1", []);
+  // The Open job search tab's roles, places, boards, and freshness window. Held
+  // here rather than in that tab so they travel in the workspace backup — they
+  // were per-browser, which meant the phone searched for something else.
+  const [jobSearchSettings, setJobSearchSettings] = useSavedState<JobSearchSettings>(JOB_SEARCH_SETTINGS_KEY, DEFAULT_JOB_SEARCH_SETTINGS);
   // The active intake is intentionally transient. Completed descriptions remain
   // preserved in jobSnapshots and durable workspace revisions.
   const [jobText, setJobText] = useState("");
@@ -618,7 +625,7 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
   } : recommendation;
 
   const workspaceSnapshot = useMemo<WorkspaceSnapshot>(() => ({
-    version: 5,
+    version: 6,
     profile,
     writingStyle,
     resumeTracks: normalizedTracks,
@@ -631,8 +638,9 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
     generatedDrafts,
     documents,
     companies,
+    jobSearchSettings,
     roleDraft: { jobText, company, role, roleUrl },
-  }), [activeTrackId, aiPreference, applications, claudeModel, companies, company, documents, generatedDrafts, jobSnapshots, jobText, normalizedTracks, playbookSettings, profile, role, roleUrl, writingStyle]);
+  }), [activeTrackId, aiPreference, applications, claudeModel, companies, company, documents, generatedDrafts, jobSearchSettings, jobSnapshots, jobText, normalizedTracks, playbookSettings, profile, role, roleUrl, writingStyle]);
 
   const saveWorkspaceBackup = useCallback(async (snapshot: WorkspaceSnapshot, manual = false) => {
     workspaceAbort.current?.abort();
@@ -752,6 +760,7 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
           setActiveTrackId((current) => locallySaved("v-jobs-active-track-v1") ? current : typeof remote.activeTrackId === "string" ? remote.activeTrackId : current);
           setClaudeModel((current) => locallySaved("v-jobs-claude-model-v1") ? current : typeof remote.claudeModel === "string" ? remote.claudeModel : current);
           setAiPreference((current) => locallySaved("valeta-ai-preference-v1") ? preferLocalObject(remote.aiPreference, current) : preferLocalObject(current, remote.aiPreference && typeof remote.aiPreference === "object" ? remote.aiPreference as AiPreference : current));
+          setJobSearchSettings((current) => locallySaved(JOB_SEARCH_SETTINGS_KEY) ? current : remote.jobSearchSettings && typeof remote.jobSearchSettings === "object" ? { ...current, ...remote.jobSearchSettings } : current);
           setPlaybookSettings((current) => locallySaved("valeta-playbook-settings-v1") ? preferLocalObject(remote.playbookSettings, current) : preferLocalObject(current, remote.playbookSettings && typeof remote.playbookSettings === "object" ? remote.playbookSettings as PlaybookSettings : current));
           // Earlier active role drafts remain preserved inside revision history,
           // but are not reopened automatically after reload.
@@ -770,7 +779,7 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
         logError("app", "workspace_restore_failed", cause);
       });
     return () => { active = false; };
-  }, [browserStateReady, logError, setActiveTrackId, setAiPreference, setApplications, setClaudeModel, setCompanies, setDocuments, setGeneratedDrafts, setJobSnapshots, setJobText, setPlaybookSettings, setProfile, setResumeTracks, setRole, setRoleUrl, setWritingStyle, setCompany]);
+  }, [browserStateReady, logError, setActiveTrackId, setAiPreference, setApplications, setClaudeModel, setCompanies, setDocuments, setGeneratedDrafts, setJobSearchSettings, setJobSnapshots, setJobText, setPlaybookSettings, setProfile, setResumeTracks, setRole, setRoleUrl, setWritingStyle, setCompany]);
 
   useEffect(() => {
     if (!workspaceLoaded) return;
@@ -933,7 +942,7 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
   // profile and the written answers but not the résumé text: a file input is
   // always handed back to the user, so only the résumé's title is needed.
   const autofillBookmarklet = useMemo(
-    () => buildBookmarklet({ mappingSource: autofillMappingSource, runtimeSource: autofillRuntimeSource, data: autofillData }),
+    () => buildBookmarklet({ mappingSource: autofillMappingSource, captureSource: resultsCaptureSource, runtimeSource: autofillRuntimeSource, data: autofillData }),
     [autofillData],
   );
 
@@ -1785,7 +1794,7 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
 
         {view === "radar" && <RadarWorkspace savedLinkedInJobs={linkedInSavedJobs} careerEvidence={radarCareerEvidence} onOpenJobSearch={() => setView("search")} onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
 
-        {view === "search" && <JobSearchWorkspace onNotice={setNotice} onPrepare={prepareRadarOpportunity} onError={(code, message, context) => logError("job-search", code, message, context)} />}
+        {view === "search" && <JobSearchWorkspace settings={jobSearchSettings} onSettingsChange={setJobSearchSettings} onNotice={setNotice} onPrepare={prepareRadarOpportunity} onError={(code, message, context) => logError("job-search", code, message, context)} />}
 
         {view === "ai" && <section className="ai-reliability">
           <div className="ai-status-card">
@@ -1991,8 +2000,9 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
                   in JSX, and this is the one place where that is the whole point. */}
               <a className="bookmarklet-chip" ref={(node) => { if (node) node.setAttribute("href", autofillBookmarklet); }} onClick={(event) => event.preventDefault()} title="Drag me to the bookmarks bar. Then, on any application form, click the bookmark.">↦ V’s autofill</a>
               <p>On any application form, click the bookmark. It shows what it can fill and what it is leaving to you, then fills only after you press the button. It never submits, and never answers a question about salary, work authorization, or anything protected.</p>
+              <p>On a LinkedIn or Indeed <b>results</b> page the same bookmark reads the roles listed in front of you and copies them. Paste that into “Paste a captured list” in Open job search and every one is scored and filed. This is what makes the iPhone work: no extension, nothing installed, and no page is ever opened or fetched on your behalf.</p>
               <div><button onClick={() => copyText(autofillBookmarklet, setNotice)}>Copy bookmarklet link</button><button onClick={() => copyText(autofillData,setNotice)}>Copy package</button><button onClick={() => download("v-jobs-autofill-profile.json",autofillData,"application/json")}>Download JSON</button></div>
-              <small><b>iPhone:</b> copy the link above, bookmark any page in Safari, then edit that bookmark and paste the link over its address. <b>Chrome extension:</b> still supported, and still the only way to capture a results page — Copy package or Download JSON feed it. Regenerate the bookmarklet whenever your profile or the selected résumé changes.</small>
+              <small><b>iPhone:</b> copy the link above, bookmark any page in Safari, then edit that bookmark and paste the link over its address. <b>Chrome extension:</b> still supported, and still the only one that can send a captured list straight to V’s without the clipboard — Copy package or Download JSON feed it. Regenerate the bookmarklet whenever your profile or the selected résumé changes.</small>
             </div></div>
         </section>}
       </section>
