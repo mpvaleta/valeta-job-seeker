@@ -220,8 +220,10 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     monitors,
     opportunities,
     learning: {
-      dismissal: { ready: dismissalSignal.ready, words: dismissalSignal.words, categories: dismissalSignal.categories, reason: dismissalSignal.reason },
-      closed: { ready: closedSignal.ready, words: closedSignal.words, companies: closedSignal.companies, reason: closedSignal.reason },
+      // The counts travel too, so the goals tab can show the evidence behind
+      // the verdict rather than asserting that learning happens.
+      dismissal: { ready: dismissalSignal.ready, words: dismissalSignal.words, categories: dismissalSignal.categories, reason: dismissalSignal.reason, count: dismissalSignal.stats.teachingDismissals },
+      closed: { ready: closedSignal.ready, words: closedSignal.words, companies: closedSignal.companies, reason: closedSignal.reason, count: closedSignal.stats.closedRead },
     },
     opportunityTotal: Number(opportunityCountRow?.count || 0),
     excludedNavigationCount: opportunityRows.length - visibleOpportunityRows.length,

@@ -1354,6 +1354,7 @@ test("a decision taken on a selection is stored, and teaches, like a single one"
     // bulk press — the same words a row-by-row pass would have taught.
     assert.equal(cleared.learning.dismissal.ready, true, JSON.stringify(cleared.learning.dismissal));
     assert.ok(cleared.learning.dismissal.words.includes("software"), JSON.stringify(cleared.learning.dismissal.words));
+    assert.equal(cleared.learning.dismissal.count, 4);
 
     // An unknown id in the selection is ignored rather than failing the batch.
     const mixed = await post({ action: "set_opportunity_status", opportunityIds: ["bulk-0", "does-not-exist"], status: "reviewing" });
@@ -1481,6 +1482,10 @@ test("a closed listing is stored, shown back, and teaches the next scan upward",
     assert.equal(closed.learning.closed.ready, true, JSON.stringify(closed.learning.closed));
     assert.ok(closed.learning.closed.words.includes("event"), JSON.stringify(closed.learning.closed.words));
     assert.ok(closed.learning.closed.companies.includes("Example Studio"));
+    // The count travels with the verdict, so the goals tab shows the evidence
+    // rather than asserting that learning happens.
+    assert.equal(closed.learning.closed.count, 3);
+    assert.equal(closed.learning.dismissal.count, 0, "a closed listing is not a rejection and must not count as one");
 
     // A new role of the same kind now ranks above where an identical one sat
     // before the radar learned anything.
