@@ -286,75 +286,12 @@ function captureVisibleRole() {
 /**
  * Read the result list on a job-search page the user is already looking at.
  *
- * This is the same posture as captureVisibleRole, widened from one job to the
- * list: nothing is fetched, nothing is crawled, no page is opened that the
- * user did not open. It reads the rendered DOM of the tab in front of them and
- * hands back the rows, so filing twenty-five roles costs one click instead of
- * twenty-five round trips through the clipboard.
+ * The DOM half lives in results-capture.js, loaded before this script, because
+ * the bookmarklet embeds the same module — the iPhone has no extension, and two
+ * copies of these selectors would drift apart the first time a board reskins.
  */
 function captureVisibleList() {
-  const host = location.hostname.toLowerCase();
-  const clean = (value) => (value || "").replace(/\s+/g, " ").trim();
-  const rows = [];
-
-  if (host.includes("linkedin.com")) {
-    // LinkedIn renames its list classes often, so the anchor's href is the
-    // anchor of this extraction, not any one class name: every result links to
-    // /jobs/view/<id>, and that link sits inside the card.
-    for (const link of document.querySelectorAll('a[href*="/jobs/view/"]')) {
-      const id = (link.getAttribute("href") || "").match(/\/jobs\/view\/(\d+)/);
-      if (!id) continue;
-      const card = link.closest("li, .job-card-container, [data-job-id]") || link.parentElement;
-      const title = clean(link.getAttribute("aria-label")) || clean(link.innerText).split("\n")[0];
-      if (!title) continue;
-      const cardText = clean(card?.innerText || "");
-      const subtitle = card?.querySelector(".job-card-container__primary-description, .artdeco-entity-lockup__subtitle, .job-card-container__company-name");
-      const meta = card?.querySelector(".job-card-container__metadata-item, .artdeco-entity-lockup__caption, .job-card-container__metadata-wrapper");
-      rows.push({
-        title,
-        company: clean(subtitle?.innerText),
-        location: clean(meta?.innerText),
-        url: `https://www.linkedin.com/jobs/view/${id[1]}/`,
-        description: cardText.slice(0, 600),
-      });
-    }
-  } else if (host.includes("indeed.")) {
-    for (const card of document.querySelectorAll(".job_seen_beacon, [data-testid='slider_item']")) {
-      const link = card.querySelector("a[id^='job_'], a[data-jk], h2 a");
-      const key = link?.getAttribute("data-jk") || (link?.getAttribute("id") || "").replace(/^job_/, "");
-      const title = clean(card.querySelector("h2")?.innerText);
-      if (!title || !key) continue;
-      rows.push({
-        title,
-        company: clean(card.querySelector("[data-testid='company-name']")?.innerText),
-        location: clean(card.querySelector("[data-testid='text-location']")?.innerText),
-        url: `https://www.indeed.com/viewjob?jk=${encodeURIComponent(key)}`,
-        description: clean(card.innerText).slice(0, 600),
-      });
-    }
-  } else {
-    // Any other board: every link that looks like a job-details page, deduped
-    // by URL. Weaker than a purpose-built extractor, but it means a board
-    // nobody anticipated still produces something usable.
-    for (const link of document.querySelectorAll('a[href*="/job"], a[href*="/jobs/"], a[href*="/careers/"]')) {
-      const href = link.href;
-      if (!/^https?:/i.test(href) || !/\d|\/jobs?\/[a-z0-9-]{8,}/i.test(href)) continue;
-      const title = clean(link.innerText).split("\n")[0];
-      if (!title || title.length < 6) continue;
-      rows.push({ title, company: "", location: "", url: href, description: "" });
-    }
-  }
-
-  return {
-    schema: "v-jobs-list-capture-v1",
-    sourceUrl: location.href,
-    pageTitle: document.title,
-    // Which board this came from, so the app can record honest provenance
-    // rather than filing every capture as a LinkedIn one.
-    source: host.includes("linkedin.com") ? "linkedin" : host.includes("indeed.") ? "indeed" : "other",
-    capturedAt: new Date().toISOString(),
-    rows: VJobsAutofill.normalizeCapturedRows(rows),
-  };
+  return VJobsCapture.captureVisibleList();
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

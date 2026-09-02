@@ -6,6 +6,7 @@ import { buildBookmarklet, compactAutofillData } from "../lib/autofill-bookmarkl
 
 const mappingSource = await readFile(new URL("../extension/autofill-mapping.js", import.meta.url), "utf8");
 const runtimeSource = await readFile(new URL("../lib/autofill-bookmarklet-runtime.js", import.meta.url), "utf8");
+const captureSource = await readFile(new URL("../extension/results-capture.js", import.meta.url), "utf8");
 
 const fullPackage = {
   version: 1,
@@ -34,7 +35,7 @@ test("a package with no résumé selected still produces valid data", () => {
 });
 
 test("the bookmarklet is a self-contained javascript: URL small enough to save", () => {
-  const bookmarklet = buildBookmarklet({ mappingSource, runtimeSource, data: fullPackage });
+  const bookmarklet = buildBookmarklet({ mappingSource, captureSource, runtimeSource, data: fullPackage });
   assert.ok(bookmarklet.startsWith("javascript:"));
   assert.ok(!bookmarklet.includes("RRRRRRRRRR"), "the résumé body must not travel in the URL");
   // Browsers accept far more than this, but a bookmark that grows without
@@ -47,8 +48,12 @@ test("the bookmarklet is a self-contained javascript: URL small enough to save",
 
 // The point of embedding the extension's module rather than re-implementing it.
 test("the bookmarklet carries the same mapping rules the extension uses", () => {
-  const body = decodeURIComponent(buildBookmarklet({ mappingSource, runtimeSource, data: fullPackage }).slice("javascript:".length));
+  const body = decodeURIComponent(buildBookmarklet({ mappingSource, captureSource, runtimeSource, data: fullPackage }).slice("javascript:".length));
   assert.ok(body.includes("root.VJobsAutofill"), "the mapping module must be embedded");
+  // Same reason, for the half that reads a board's result cards: the phone has
+  // no extension, and a second copy of those selectors would drift.
+  assert.ok(body.includes("root.VJobsCapture"), "the results-capture module must be embedded");
+  assert.ok(body.includes("captureVisibleList"), "and the bookmarklet must be able to call it");
   const sandbox = { globalThis: undefined };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
@@ -67,7 +72,7 @@ test("a U+2028 in the data cannot break the script it is embedded in", () => {
   // Legal in JSON, but a line terminator in JavaScript source: pasted text can
   // carry one, and unescaped it would end the assignment statement mid-value.
   const data = { profile: { fullName: "Marcos\u2028Valeta", portfolio: "a\u2029b" } };
-  const body = decodeURIComponent(buildBookmarklet({ mappingSource, runtimeSource, data }).slice("javascript:".length));
+  const body = decodeURIComponent(buildBookmarklet({ mappingSource, captureSource, runtimeSource, data }).slice("javascript:".length));
   const assignment = body.split("\n").find((line) => line.startsWith("globalThis.__VJOBS_AUTOFILL_DATA__"));
   assert.ok(assignment, "the data assignment must be a single line");
   assert.ok(assignment.includes("\\u2028") && assignment.includes("\\u2029"), "both separators must be escaped");

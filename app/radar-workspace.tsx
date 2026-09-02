@@ -188,7 +188,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
   const [trackFilter, setTrackFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
-  const [originFilter, setOriginFilter] = useState<"all" | "monitored" | "v-watch" | "imported" | "linkedin-saved">("all");
+  const [originFilter, setOriginFilter] = useState<"all" | "monitored" | "v-watch" | "imported" | "linkedin-saved" | "captured">("all");
   // Newest first is the default the owner asked for: a job board is a queue,
   // and a role collected an hour ago is worth more than a higher-scoring one
   // that has been sitting in the inbox for a fortnight. Best match is still one
@@ -697,7 +697,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
         <div className="radar-filters" aria-label="Alignment filter">{([["all",`All alignment (${opportunities.length})`],["matching",`Matching (${matchingCount})`],["below",`Below threshold (${belowThresholdCount})`]] as const).map(([id, label]) => <button key={id} className={alignmentFilter === id ? "selected" : ""} onClick={() => setAlignmentFilter(id)}>{label}</button>)}</div>
         <div className="radar-filters" aria-label="Sort order">{([["newest", "Newest first"], ["score", "Best match"]] as const).map(([id, label]) => <button key={id} className={sortOrder === id ? "selected" : ""} aria-pressed={sortOrder === id} onClick={() => setSortOrder(id)} title={id === "newest" ? "Most recently collected roles at the top." : "Highest alignment score at the top."}>{label}</button>)}</div>
         <label>Company<select value={companyFilter} onChange={(event) => setCompanyFilter(event.target.value)}><option value="all">All companies</option>{companyOptions.map((companyName) => <option key={companyName} value={companyName}>{companyName}</option>)}</select></label>
-        <label>Found by<select value={originFilter} onChange={(event) => setOriginFilter(event.target.value as "all" | "monitored" | "v-watch" | "imported" | "linkedin-saved")}><option value="all">All discovery sources</option><option value="monitored">Companies I monitor</option><option value="v-watch">Suggested by V’s</option><option value="imported">Imported by me</option><option value="linkedin-saved">Saved on LinkedIn</option></select></label>
+        <label>Found by<select value={originFilter} onChange={(event) => setOriginFilter(event.target.value as "all" | "monitored" | "v-watch" | "imported" | "linkedin-saved" | "captured")}><option value="all">All discovery sources</option><option value="monitored">Companies I monitor</option><option value="v-watch">Suggested by V’s</option><option value="captured">Captured from a search</option><option value="imported">Imported by me</option><option value="linkedin-saved">Saved on LinkedIn</option></select></label>
         <label>Target position<select value={targetFilter} onChange={(event) => setTargetFilter(event.target.value)}><option value="all">All target positions</option>{targetOptions.map((target) => <option key={target} value={target}>{target}</option>)}</select></label>
         <div className="radar-filters" aria-label="Location filter — pick one or more regions">
           <button className={locationRegions.length === 0 ? "selected" : ""} onClick={() => setLocationRegions([])}>All locations</button>
