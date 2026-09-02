@@ -384,11 +384,11 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
   async function cleanUpInbox() {
     const offTarget = opportunities.filter((item) => item.offTargetRole && (item.status === "new" || item.status === "reviewing")).length;
     if (!offTarget) { onNotice("Nothing to clear — every role in the inbox matches one of your target positions."); return; }
-    const data = await mutate({ action: "cleanup_inbox" }, "cleanup", "Removing roles that match none of your target positions…");
+    const data = await mutate({ action: "cleanup_inbox" }, "cleanup", "Archiving roles that match none of your target positions…");
     if (data) {
-      const removed = (data as { result?: { removed?: number } }).result?.removed ?? 0;
-      onNotice(removed
-        ? `Removed ${removed} ${removed === 1 ? "role that matched" : "roles that matched"} none of your target positions. Anything you approved, dismissed, or archived was left alone.`
+      const archived = (data as { result?: { archived?: number } }).result?.archived ?? 0;
+      onNotice(archived
+        ? `Archived ${archived} ${archived === 1 ? "role that matched" : "roles that matched"} none of your target positions. Nothing was deleted — they are under Archived, and Restore brings any of them back. Anything you approved or dismissed was left alone.`
         : "Nothing to clear — every role in the inbox matches one of your target positions.");
     }
   }
@@ -678,7 +678,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
     </section>}
 
     {radarTab === "inbox" && <section className="radar-inbox">
-      <div className="radar-section-head"><div><span>DISCOVERY INBOX</span><h2>{visibleOpportunities.length} discovered {visibleOpportunities.length === 1 ? "role" : "roles"}{opportunityTotal > opportunities.length ? ` · ${opportunityTotal} total` : ""}</h2><small>{opportunityTotal > opportunities.length ? `Showing the newest ${opportunities.length} of ${opportunityTotal} preserved discoveries — nothing was deleted. ` : ""}V keeps below-threshold discoveries too, so a working scan never looks empty.</small></div><div className="radar-filters">{([['active','Active'],['shortlisted','Approved'],['dismissed','Dismissed'],['archived','Archived'],['all','All statuses']] as const).map(([id, label]) => <button key={id} className={filter === id ? "selected" : ""} onClick={() => setFilter(id)}>{label}</button>)}{offTargetCount > 0 && <button className="cleanup" onClick={cleanUpInbox} disabled={Boolean(busy)} title="Deletes untouched roles whose title matches none of your target positions. Approved, dismissed, and archived roles are never removed.">{busy === "cleanup" ? "Clearing…" : `Clear ${offTargetCount} off-target`}</button>}</div></div>
+      <div className="radar-section-head"><div><span>DISCOVERY INBOX</span><h2>{visibleOpportunities.length} discovered {visibleOpportunities.length === 1 ? "role" : "roles"}{opportunityTotal > opportunities.length ? ` · ${opportunityTotal} total` : ""}</h2><small>{opportunityTotal > opportunities.length ? `Showing the newest ${opportunities.length} of ${opportunityTotal} preserved discoveries — nothing was deleted. ` : ""}V keeps below-threshold discoveries too, so a working scan never looks empty.</small></div><div className="radar-filters">{([['active','Active'],['shortlisted','Approved'],['dismissed','Dismissed'],['archived','Archived'],['all','All statuses']] as const).map(([id, label]) => <button key={id} className={filter === id ? "selected" : ""} onClick={() => setFilter(id)}>{label}</button>)}{offTargetCount > 0 && <button className="cleanup" onClick={cleanUpInbox} disabled={Boolean(busy)} title="Archives untouched roles whose title matches none of your target positions. Nothing is deleted: they move to Archived, where Restore brings any of them back. Approved and dismissed roles are left alone.">{busy === "cleanup" ? "Clearing…" : `Clear ${offTargetCount} off-target`}</button>}</div></div>
       <div className="radar-category-chips" aria-label="Company type shortcuts">
         <small>Jump to</small>
         {CATEGORY_SHORTCUTS.map((shortcut) => {

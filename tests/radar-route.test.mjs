@@ -332,7 +332,11 @@ test("background cron route requires the scheduler secret and labels runs as bac
     const dashboard = await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
     const dashboardData = await dashboard.json();
     assert.equal(dashboardData.automation.backgroundScheduler, "enabled");
-    assert.equal(dashboardData.monitors[0].lastRunStatus, "completed");
+    // Nothing responded and nothing was read, so the run is a failure rather
+    // than a quiet success. Recorded as "completed · 0 found", it read on the
+    // Targets tab exactly like a healthy board with no matching roles, and the
+    // scan queue had no way to tell a dead source from a quiet one.
+    assert.equal(dashboardData.monitors[0].lastRunStatus, "failed");
     assert.match(dashboardData.monitors[0].lastRunSummary, /^Background scheduled scan · /);
     assert.match(dashboardData.monitors[0].lastRunSummary, /Zero-result reason: no public source responded/);
     assert.ok(Number.isFinite(new Date(dashboardData.monitors[0].nextDueAt).getTime()));
@@ -1027,6 +1031,59 @@ test("a full scan is bounded, covers the longest-waiting targets first, and repo
   }
 });
 
+// A dead ATS token costs two attempts on every run and can never repair
+// itself. It was spending them ahead of boards that return roles.
+test("a board that failed its last read waits behind the boards that work", async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  const originalFetch = globalThis.fetch;
+  try {
+    const post = async (body) => {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", { method: "POST", headers, body: JSON.stringify(body) }), env, context);
+      assert.equal(response.status, 200);
+      return response.json();
+    };
+    // Thirteen boards against a company cap of twelve, so exactly one is left
+    // out of every run and the queue order becomes observable. The dead one is
+    // named to sort first, so the first run reaches it and records the failure.
+    await post({ action: "add_monitor", monitor: { company: "Aaa Dead Board", careersUrl: "https://boards.greenhouse.io/gone", cadence: "twice_daily" } });
+    for (let index = 1; index <= 12; index += 1) {
+      await post({ action: "add_monitor", monitor: { company: `Board ${String(index).padStart(2, "0")}`, careersUrl: `https://boards.greenhouse.io/board${index}`, cadence: "twice_daily" } });
+    }
+    globalThis.fetch = async (input) => {
+      if (String(input).includes("/gone")) throw new Error("board not found");
+      return Response.json({ jobs: [] });
+    };
+
+    const runsFor = async (company) => {
+      const row = await db.prepare(`SELECT COUNT(*) AS count FROM monitor_runs mr
+        JOIN company_monitors m ON m.id = mr.monitor_id JOIN companies c ON c.id = m.company_id
+        WHERE c.name = ?`).bind(company).first();
+      return Number(row.count);
+    };
+    await post({ action: "scan" });
+    const deadStatus = await db.prepare(`SELECT mr.run_status FROM monitor_runs mr
+      JOIN company_monitors m ON m.id = mr.monitor_id JOIN companies c ON c.id = m.company_id
+      WHERE c.name = 'Aaa Dead Board'`).first();
+    assert.equal(deadStatus.run_status, "failed", "the dead board must actually record a failure for this to test anything");
+    assert.equal(await runsFor("Aaa Dead Board"), 1, "and it is read on the first run, when nothing is known about it");
+
+    // Four more runs. The dead board sorts first by name and was checked at the
+    // same second as the rest, so without the demotion it would take a slot in
+    // every one of them.
+    for (let run = 0; run < 4; run += 1) await post({ action: "scan" });
+    assert.equal(await runsFor("Aaa Dead Board"), 1, "a board that just failed never takes a slot from a working one");
+    for (let index = 1; index <= 12; index += 1) {
+      const company = `Board ${String(index).padStart(2, "0")}`;
+      assert.ok(await runsFor(company) >= 1, `${company} must have been read`);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
 test("a throttled scan reads targets with a saved board before it spends on website-only targets", async () => {
   const { mf, db } = await createDatabase();
   const worker = await loadWorker();
@@ -1259,6 +1316,57 @@ test("a not-relevant dismissal is stored, teaches the next scan, and stops teach
   }
 });
 
+// A false "no longer on the company board" badge is worse than it was: the
+// owner acts on it, and the radar now learns from what they mark closed.
+test("a posting still on the board keeps its last-seen date even when it no longer scores", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    globalThis.fetch = async () => Response.json({ jobs: ["Brand Project Manager", "Brand Project Assistant"].map((title, index) => ({
+      title,
+      location: { name: "Oakland, CA" },
+      content: "<p>Run brand programs with cross-functional partners.</p>",
+      absolute_url: `https://boards.greenhouse.io/example/jobs/${500 + index}`,
+      updated_at: "2026-08-01T00:00:00Z",
+    })) });
+    const post = async (body) => {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", { method: "POST", headers, body: JSON.stringify(body) }), env, context);
+      const data = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(data));
+      return data;
+    };
+    const goals = (minScore) => ({
+      titles: ["Brand Project Manager"], skills: [], locations: ["San Francisco Bay Area"],
+      workModes: ["Hybrid"], goals: "", exclusions: [], minScore,
+    });
+
+    await post({ action: "save_profile", profile: goals(20) });
+    await post({ action: "add_monitor", monitor: { company: "Example Studio", careersUrl: "https://boards.greenhouse.io/example", cadence: "daily" } });
+    const first = await post({ action: "scan" });
+    const assistant = first.opportunities.find((item) => item.title === "Brand Project Assistant");
+    assert.ok(assistant, "both roles are stored while the bar is low");
+
+    // Backdated so the refresh is observable: CURRENT_TIMESTAMP has one-second
+    // resolution, and both scans happen inside the same second here.
+    await db.prepare("UPDATE job_opportunities SET last_seen_at = '2020-01-01 00:00:00'").run();
+
+    // Raising the bar puts the assistant role under the near-miss floor, so
+    // the scan no longer writes its row — which is exactly the case that used
+    // to leave last_seen_at stale and then badge a live posting as withdrawn.
+    await post({ action: "save_profile", profile: goals(90) });
+    const second = await post({ action: "scan" });
+    const stale = second.opportunities.find((item) => item.title === "Brand Project Assistant");
+    assert.ok(stale.fitScore < 75, `the fixture needs this role under the floor, scored ${stale.fitScore}`);
+    assert.notEqual(stale.lastSeenAt, "2020-01-01 00:00:00", "a posting the read confirmed must have its last-seen date refreshed");
+    assert.equal(stale.listingLost, false, "and it must not be badged as gone from the board");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
 // Marking a listing closed is the opposite of rejecting it: the owner wanted
 // that role and the employer took it down. The whole path has to carry that —
 // the button's reason through the route, into the column, back out as a badge,
@@ -1343,7 +1451,7 @@ test("a closed listing is stored, shown back, and teaches the next scan upward",
 // scorer gave them, and there can be thousands of them. Clearing them is a
 // delete, so it has to be provably narrow: untouched rows only, never a role
 // the owner has approved, dismissed, or archived.
-test("clearing the inbox removes only untouched roles that match no target position", async () => {
+test("clearing the inbox archives only untouched roles that match no target position", async () => {
   const { mf, db } = await createDatabase();
   try {
     const worker = await loadWorker();
@@ -1390,18 +1498,27 @@ test("clearing the inbox removes only untouched roles that match no target posit
     assert.equal(before.opportunities.find((item) => item.id === "legacy-5").offTargetRole, false);
 
     const cleaned = await post({ action: "cleanup_inbox" });
-    assert.equal(cleaned.result.removed, 2, "only the untouched off-target rows go");
+    assert.equal(cleaned.result.archived, 2, "only the untouched off-target rows go");
 
-    const remaining = new Set(cleaned.opportunities.map((item) => item.id));
-    assert.ok(!remaining.has("legacy-1"), "an untouched off-target role is removed");
-    assert.ok(!remaining.has("legacy-2"), "a reviewing off-target role is removed");
-    assert.ok(remaining.has("legacy-3"), "a role the owner approved is never removed");
-    assert.ok(remaining.has("legacy-4"), "a dismissal is what the radar learns from and is never removed");
-    assert.ok(remaining.has("legacy-5"), "an on-target role is never removed");
+    // Cleared out of the inbox, but still on record: the gate is only as good
+    // as the titles the owner wrote down, so this has to be reversible.
+    const status = new Map(cleaned.opportunities.map((item) => [item.id, item.status]));
+    assert.equal(status.get("legacy-1"), "archived", "an untouched off-target role is archived");
+    assert.equal(status.get("legacy-2"), "archived", "a reviewing off-target role is archived");
+    assert.equal(status.get("legacy-3"), "shortlisted", "a role the owner approved is left alone");
+    assert.equal(status.get("legacy-4"), "dismissed", "a dismissal is what the radar learns from and is left alone");
+    assert.equal(status.get("legacy-5"), "new", "an on-target role is left alone");
+    const stored = await db.prepare("SELECT COUNT(*) AS count FROM job_opportunities").first();
+    assert.equal(Number(stored.count), 5, "nothing is deleted");
 
-    // Running it again is a no-op rather than an error.
+    // Running it again is a no-op rather than an error: the archived rows are
+    // no longer candidates, so it does not keep re-archiving them.
     const again = await post({ action: "cleanup_inbox" });
-    assert.equal(again.result.removed, 0);
+    assert.equal(again.result.archived, 0);
+
+    // And Restore brings one back to the active inbox.
+    const restored = await post({ action: "set_opportunity_status", opportunityId: "legacy-1", status: "reviewing" });
+    assert.equal(restored.opportunities.find((item) => item.id === "legacy-1").status, "reviewing");
   } finally {
     await mf.dispose();
   }
