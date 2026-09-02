@@ -83,10 +83,35 @@ Extraction that is known to work (verified 2026-09-02):
   rows.join('\n');
   ```
   Job URL = `https://www.indeed.com/viewjob?jk=<jk>`. If the output is truncated, call again with `.slice(10)`, `.slice(20)`.
-- **LinkedIn** — `read_page` (filter `interactive`, `max_chars` 60000): the tree lists
-  `link "<title>" href="https://www.linkedin.com/jobs/view/<id>/…"` per card; `get_page_text` gives the
-  card lines (title / company / location / posted). Pair them by title. Job URL = the href with
-  everything after `?` removed. Do **not** use `javascript_tool` to return LinkedIn hrefs.
+  **Indeed + remote (`sc=0kf:attr(DSQF7);`) ignores the OR grouping** and returns unrelated remote jobs
+  (verified: purchasing, security engineering, real-estate agents, insurance "producers"). For the
+  remote place on Indeed, run two or three single-keyword searches (`q=producer`, `q="project manager"`,
+  `q="creative operations"`) instead of the combined one — or skip Indeed remote when time is short;
+  LinkedIn remote covers it well.
+- **LinkedIn** (classic `/jobs/search/` list, verified 2026-09-02) — `read_page` does **not** list the
+  job cards, and cards outside the viewport are *occluded* (their `li[data-occludable-job-id]` keeps the
+  id but loses its text). So: scroll the results list with the native `computer scroll` action at the
+  list's coordinates (left column, e.g. `[350, 500]`), 8 ticks at a time, and after each scroll run a
+  **short** `javascript_tool` that appends the visible cards to `window.__vcap` (no `await`, no loops
+  with waits — a long-running evaluate on a LinkedIn tab hangs the debugger for 45 s and returns nothing):
+  ```js
+  (() => { const clean = s => String(s||'').replace(/[=?&#]/g,' ').replace(/\s+/g,' ').trim();
+    const acc = window.__vcap = window.__vcap || {};
+    for (const li of document.querySelectorAll('li[data-occludable-job-id]')) {
+      const id = li.getAttribute('data-occludable-job-id').trim();
+      const lines = (li.innerText||'').split('\n').map(s=>s.trim()).filter(Boolean);
+      if (!lines.length || acc[id]) continue;
+      const u = lines.filter((l,i)=>i===0||l!==lines[i-1]);   // the title is rendered twice
+      acc[id] = [id, clean(u[0]).slice(0,80), clean(u[1]).slice(0,40), clean(u[2]).slice(0,40), clean(u.slice(3).join(' · ')).slice(0,70)].join(' | ');
+    }
+    return Object.keys(acc).length; })()
+  ```
+  Do it as one `browser_batch`: `window.__vcap = {}` → scroll up 30 → collect → (scroll down 8 → wait 1 →
+  collect) × 5. Page 1 holds ~25 cards (about half are "Promoted" duplicates of each other; dedupe by id).
+  Then read `Object.values(window.__vcap)` in slices of 7–8 (the tool truncates long returns).
+  Lines are `id | title | company | location (On-site/Remote/Hybrid) | extras (posted, Promoted…)`.
+  Job URL = `https://www.linkedin.com/jobs/view/<id>/`. Never return hrefs from JS on LinkedIn.
+  A remote-US search is the same URL with `&f_WT=2&location=United States`.
 - **Google Jobs** (new `udm=8` jobs UI, verified 2026-09-02) — `get_page_text` gives title / company /
   "location • via Board" / "N days ago" per card, but the list holds **no job links**: each card is a
   button, and the apply links only render in the detail panel after the card is clicked. Google has
