@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_RADAR_PROFILE, RADAR_COMPANY_CATEGORIES, RADAR_MARKETS, RADAR_TRACKS, deriveRadarProfileFromCareer, withHomeMarket } from "@/lib/radar.mjs";
+import { DEFAULT_RADAR_PROFILE, RADAR_MARKETS, deriveRadarProfileFromCareer, withHomeMarket } from "@/lib/radar.mjs";
 import { AGENCY_PACK_GROUPS } from "@/lib/agency-radar-pack";
 import { readJsonResponse } from "@/lib/http-json.mjs";
-import { OpportunityCard } from "./opportunity-card";
+import { OpportunityInbox } from "./opportunity-inbox";
 import { compactDate, compactDateTime } from "./radar-format";
 import type { DismissalReason, RadarProfile } from "@/lib/radar.mjs";
 
@@ -132,37 +132,6 @@ const TARGET_TYPES = [
 
 const REFERENCE_SOURCES = ["None", "LinkedIn", "Indeed", "Glassdoor", "Other job board"];
 
-// Region filters for the discovery inbox. Job locations arrive as free text
-// ("San Francisco or New York · hybrid", "United States · remote"), so exact
-// string matching made the old location dropdown nearly useless — one posting
-// per option. Regions match the text instead, and more than one can be on at
-// once.
-const LOCATION_REGIONS: Array<{ id: string; label: string; test: (location: string) => boolean }> = [
-  { id: "bay-area", label: "SF Bay Area", test: (value) => /san francisco|bay area|oakland|berkeley|emeryville|san jose|santa clara|sunnyvale|mountain view|palo alto|menlo park|redwood city|san mateo|san bruno|south san francisco|cupertino|fremont|foster city|burlingame|\bsf\b/i.test(value) },
-  { id: "remote", label: "Remote", test: (value) => /\bremote\b|\banywhere\b|work from home|\bwfh\b|\bdistributed\b/i.test(value) },
-  { id: "new-york", label: "New York", test: (value) => /new york|\bnyc\b|brooklyn|manhattan/i.test(value) },
-  { id: "los-angeles", label: "Los Angeles", test: (value) => /los angeles|santa monica|culver city|burbank|el segundo|\bla\b/i.test(value) },
-];
-
-// One-press shortcuts for the company types worth separating at a glance.
-// Startup leads deliberately: it is the category the owner asked to be able to
-// see on its own, and the one the full Company-type dropdown buried eleven
-// options deep.
-const CATEGORY_SHORTCUTS: Array<{ category: string; label: string; blurb: string }> = [
-  { category: "Startup / Early-stage", label: "Startups", blurb: "Early-stage and venture-backed companies, however the posting describes itself." },
-  { category: "Creative / Advertising Agency", label: "Advertising", blurb: "Creative shops: brand campaigns, broadcast, integrated production." },
-  { category: "Marketing Agency", label: "Marketing & digital", blurb: "Performance, brand, communications, and digital-experience firms." },
-  { category: "Production Company", label: "Production", blurb: "Content, experiential, and film production companies." },
-  { category: "Sports / Entertainment", label: "Sports", blurb: "Teams, venues, leagues, and entertainment properties." },
-  { category: "Brand / Consumer", label: "Brands", blurb: "Consumer brands with in-house creative and marketing teams." },
-  { category: "Technology", label: "Tech", blurb: "Technology companies hiring for brand, creative, and programme roles." },
-];
-
-function matchesSelectedRegions(location: string, selected: string[]) {
-  if (!selected.length) return true;
-  const named = LOCATION_REGIONS.filter((region) => region.test(location)).map((region) => region.id);
-  return selected.some((id) => id === "other" ? named.length === 0 : named.includes(id));
-}
 const initialDraft = profileToDraft(DEFAULT_RADAR_PROFILE);
 
 export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJobSearch, onPrepare, onNotice, onError }: Props) {
@@ -179,24 +148,11 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
   const [connectionMessage, setConnectionMessage] = useState("Opening your private radar…");
   const [busy, setBusy] = useState("");
   const [progress, setProgress] = useState("");
-  const [filter, setFilter] = useState<"active" | "shortlisted" | "dismissed" | "archived" | "all">("active");
   // The page used to stack goals, target management, imports, and the inbox in
   // one scroll; with 100+ monitored companies the inbox — the part that gets
   // daily attention — sat below a wall of configuration. Tabs put it first.
   const [radarTab, setRadarTab] = useState<"inbox" | "targets" | "goals">("inbox");
-  const [alignmentFilter, setAlignmentFilter] = useState<"all" | "matching" | "below">("all");
-  const [trackFilter, setTrackFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [companyFilter, setCompanyFilter] = useState("all");
-  const [originFilter, setOriginFilter] = useState<"all" | "monitored" | "v-watch" | "imported" | "linkedin-saved" | "captured">("all");
-  // Newest first is the default the owner asked for: a job board is a queue,
-  // and a role collected an hour ago is worth more than a higher-scoring one
-  // that has been sitting in the inbox for a fortnight. Best match is still one
-  // press away.
-  const [sortOrder, setSortOrder] = useState<"newest" | "score">("newest");
   const [importLinks, setImportLinks] = useState("");
-  const [targetFilter, setTargetFilter] = useState("all");
-  const [locationRegions, setLocationRegions] = useState<string[]>([]);
   const [company, setCompany] = useState("");
   // "Other" is a deliberate neutral default — TARGET_TYPES[0] is "Startup /
   // Early-stage" (ordered that way for the filter dropdown's prominence), so
@@ -217,50 +173,6 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
   const [contactDrafts, setContactDrafts] = useState<Record<string, { email: string; note: string }>>({});
 
   const savedTargetPositions = useMemo(() => list(profileDraft.titles), [profileDraft.titles]);
-  const companyOptions = useMemo(() => [...new Set([
-    ...monitors.map((monitor) => monitor.company),
-    ...opportunities.map((opportunity) => opportunity.company),
-  ])].sort((left, right) => left.localeCompare(right)), [monitors, opportunities]);
-  // Counted before the category filter itself is applied, so pressing one chip
-  // never makes the other chips read zero.
-  const categoryCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const opportunity of opportunities) {
-      if (opportunity.status === "dismissed" || opportunity.status === "archived") continue;
-      counts.set(opportunity.companyCategory, (counts.get(opportunity.companyCategory) || 0) + 1);
-    }
-    return counts;
-  }, [opportunities]);
-  const regionCounts = useMemo(() => {
-    const counts = new Map<string, number>([["other", 0]]);
-    for (const region of LOCATION_REGIONS) counts.set(region.id, 0);
-    for (const opportunity of opportunities) {
-      const named = LOCATION_REGIONS.filter((region) => region.test(opportunity.location));
-      if (!named.length) counts.set("other", (counts.get("other") || 0) + 1);
-      for (const region of named) counts.set(region.id, (counts.get(region.id) || 0) + 1);
-    }
-    return counts;
-  }, [opportunities]);
-  const targetOptions = useMemo(() => [...new Set([
-    ...savedTargetPositions,
-    ...monitors.map((monitor) => monitor.targetPosition).filter(Boolean),
-    ...opportunities.map((opportunity) => opportunity.targetPosition).filter(Boolean),
-  ])].sort((left, right) => left.localeCompare(right)), [monitors, opportunities, savedTargetPositions]);
-  const visibleOpportunities = useMemo(() => opportunities
-    // "expired" is the V's Job Watch batch ageing out: those rows carry the
-    // highest scores in the inbox, so left in Active they would sit above every
-    // fresh board match while pointing at roles that are weeks old.
-    .filter((item) => filter === "all" ? true : filter === "active" ? item.status !== "dismissed" && item.status !== "archived" && item.status !== "expired" : item.status === filter)
-    .filter((item) => alignmentFilter === "all" ? true : alignmentFilter === "matching" ? item.alignmentPasses : !item.alignmentPasses)
-    .filter((item) => trackFilter === "all" || item.trackId === trackFilter)
-    .filter((item) => categoryFilter === "all" || item.companyCategory === categoryFilter)
-    .filter((item) => companyFilter === "all" || item.company === companyFilter)
-    .filter((item) => originFilter === "all" || item.origin === originFilter)
-    .filter((item) => targetFilter === "all" || item.targetPosition === targetFilter || item.trackLabel === targetFilter)
-    .filter((item) => matchesSelectedRegions(item.location, locationRegions))
-    .sort((left, right) => sortOrder === "newest"
-      ? right.discoveredAt.localeCompare(left.discoveredAt) || right.fitScore - left.fitScore
-      : right.fitScore - left.fitScore || right.discoveredAt.localeCompare(left.discoveredAt)), [alignmentFilter, categoryFilter, companyFilter, filter, locationRegions, opportunities, originFilter, sortOrder, targetFilter, trackFilter]);
   const newCount = opportunities.filter((item) => item.status === "new").length;
   const shortlistedCount = opportunities.filter((item) => item.status === "shortlisted").length;
   const matchingCount = opportunities.filter((item) => item.alignmentPasses).length;
@@ -551,6 +463,28 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
     if (data && reason === "not_relevant") onNotice("Noted as not relevant. Once a few roles share a pattern, V’s starts ranking similar ones lower. Words from your own target titles and skills are never learned against you.");
   }
 
+  /*
+   * The same decision on a whole selection.
+   *
+   * One request, not one per row: the inbox runs to hundreds of roles, and
+   * clearing it a button at a time is the reason most of them never got a
+   * decision. The reason travels with the batch, so a bulk "Not for me" or
+   * "No longer available" teaches the scorer exactly as a single one does.
+   */
+  async function bulkUpdateOpportunities(ids: string[], status: RadarOpportunity["status"], reason?: DismissalReason) {
+    if (!ids.length) return;
+    const data = await mutate({ action: "set_opportunity_status", opportunityIds: ids, status, reason }, "bulk", `Updating ${ids.length} ${ids.length === 1 ? "role" : "roles"}…`);
+    if (!data) return;
+    const updated = (data as { result?: { updated?: number } }).result?.updated ?? ids.length;
+    onNotice(reason === "listing_closed"
+      ? `${updated} ${updated === 1 ? "role" : "roles"} filed as no longer available. They stay on record, and V's reads them as interest — roles like them are ranked higher from now on.`
+      : reason === "not_relevant"
+        ? `${updated} ${updated === 1 ? "role" : "roles"} marked not relevant. Once a few share a pattern, V's ranks similar ones lower.`
+        : status === "shortlisted"
+          ? `${updated} ${updated === 1 ? "role" : "roles"} approved for preparation. Nothing is submitted without you.`
+          : `${updated} ${updated === 1 ? "role" : "roles"} updated.`);
+  }
+
   async function prepare(opportunity: RadarOpportunity) {
     await updateOpportunity(opportunity, "reviewing");
     await onPrepare(opportunity);
@@ -678,36 +612,20 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
     </section>}
 
     {radarTab === "inbox" && <section className="radar-inbox">
-      <div className="radar-section-head"><div><span>DISCOVERY INBOX</span><h2>{visibleOpportunities.length} discovered {visibleOpportunities.length === 1 ? "role" : "roles"}{opportunityTotal > opportunities.length ? ` · ${opportunityTotal} total` : ""}</h2><small>{opportunityTotal > opportunities.length ? `Showing the newest ${opportunities.length} of ${opportunityTotal} preserved discoveries — nothing was deleted. ` : ""}V keeps below-threshold discoveries too, so a working scan never looks empty.</small></div><div className="radar-filters">{([['active','Active'],['shortlisted','Approved'],['dismissed','Dismissed'],['archived','Archived'],['all','All statuses']] as const).map(([id, label]) => <button key={id} className={filter === id ? "selected" : ""} onClick={() => setFilter(id)}>{label}</button>)}{offTargetCount > 0 && <button className="cleanup" onClick={cleanUpInbox} disabled={Boolean(busy)} title="Archives untouched roles whose title matches none of your target positions. Nothing is deleted: they move to Archived, where Restore brings any of them back. Approved and dismissed roles are left alone.">{busy === "cleanup" ? "Clearing…" : `Clear ${offTargetCount} off-target`}</button>}</div></div>
-      <div className="radar-category-chips" aria-label="Company type shortcuts">
-        <small>Jump to</small>
-        {CATEGORY_SHORTCUTS.map((shortcut) => {
-          const count = categoryCounts.get(shortcut.category) || 0;
-          return <button
-            key={shortcut.category}
-            className={`chip ${categoryFilter === shortcut.category ? "active" : ""}`}
-            onClick={() => setCategoryFilter(categoryFilter === shortcut.category ? "all" : shortcut.category)}
-            disabled={!count && categoryFilter !== shortcut.category}
-            title={shortcut.blurb}
-          >{shortcut.label} <b>{count}</b></button>;
-        })}
-        {categoryFilter !== "all" && <button className="chip clear" onClick={() => setCategoryFilter("all")}>Clear ×</button>}
-      </div>
-      <div className="radar-inbox-controls">
-        <div className="radar-filters" aria-label="Alignment filter">{([["all",`All alignment (${opportunities.length})`],["matching",`Matching (${matchingCount})`],["below",`Below threshold (${belowThresholdCount})`]] as const).map(([id, label]) => <button key={id} className={alignmentFilter === id ? "selected" : ""} onClick={() => setAlignmentFilter(id)}>{label}</button>)}</div>
-        <div className="radar-filters" aria-label="Sort order">{([["newest", "Newest first"], ["score", "Best match"]] as const).map(([id, label]) => <button key={id} className={sortOrder === id ? "selected" : ""} aria-pressed={sortOrder === id} onClick={() => setSortOrder(id)} title={id === "newest" ? "Most recently collected roles at the top." : "Highest alignment score at the top."}>{label}</button>)}</div>
-        <label>Company<select value={companyFilter} onChange={(event) => setCompanyFilter(event.target.value)}><option value="all">All companies</option>{companyOptions.map((companyName) => <option key={companyName} value={companyName}>{companyName}</option>)}</select></label>
-        <label>Found by<select value={originFilter} onChange={(event) => setOriginFilter(event.target.value as "all" | "monitored" | "v-watch" | "imported" | "linkedin-saved" | "captured")}><option value="all">All discovery sources</option><option value="monitored">Companies I monitor</option><option value="v-watch">Suggested by V’s</option><option value="captured">Captured from a search</option><option value="imported">Imported by me</option><option value="linkedin-saved">Saved on LinkedIn</option></select></label>
-        <label>Target position<select value={targetFilter} onChange={(event) => setTargetFilter(event.target.value)}><option value="all">All target positions</option>{targetOptions.map((target) => <option key={target} value={target}>{target}</option>)}</select></label>
-        <div className="radar-filters" aria-label="Location filter — pick one or more regions">
-          <button className={locationRegions.length === 0 ? "selected" : ""} onClick={() => setLocationRegions([])}>All locations</button>
-          {LOCATION_REGIONS.map((region) => <button key={region.id} className={locationRegions.includes(region.id) ? "selected" : ""} aria-pressed={locationRegions.includes(region.id)} onClick={() => setLocationRegions((current) => current.includes(region.id) ? current.filter((id) => id !== region.id) : [...current, region.id])}>{region.label} ({regionCounts.get(region.id) || 0})</button>)}
-          <button className={locationRegions.includes("other") ? "selected" : ""} aria-pressed={locationRegions.includes("other")} onClick={() => setLocationRegions((current) => current.includes("other") ? current.filter((id) => id !== "other") : [...current, "other"])}>Other ({regionCounts.get("other") || 0})</button>
-        </div>
-        <label>Career trail<select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}><option value="all">All trails</option>{RADAR_TRACKS.map((track) => <option key={track.id} value={track.id}>{track.label}</option>)}</select></label>
-        <label>Company type<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All company types</option>{RADAR_COMPANY_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
-      </div>
-      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <OpportunityCard key={opportunity.id} opportunity={opportunity} minScore={profileDraft.minScore} onStatus={updateOpportunity} onPrepare={prepare} />)}</div>}
+      <OpportunityInbox
+        opportunities={opportunities}
+        minScore={profileDraft.minScore}
+        busy={Boolean(busy)}
+        label="DISCOVERY INBOX"
+        totalCount={opportunityTotal}
+        extraTargets={savedTargetPositions}
+        note={<>{opportunityTotal > opportunities.length ? `The newest ${opportunities.length} of ${opportunityTotal} preserved discoveries are loaded — nothing was deleted. ` : ""}Tick the rows you have judged and decide on them together. V keeps below-threshold discoveries too, so a working scan never looks empty.</>}
+        actions={offTargetCount > 0 ? <button className="cleanup" onClick={cleanUpInbox} disabled={Boolean(busy)} title="Archives untouched roles whose title matches none of your target positions. Nothing is deleted: they move to Archived, where Restore brings any of them back. Approved and dismissed roles are left alone.">{busy === "cleanup" ? "Clearing…" : `Clear ${offTargetCount} off-target`}</button> : null}
+        emptyState={<div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div>}
+        onStatus={updateOpportunity}
+        onBulkStatus={bulkUpdateOpportunities}
+        onPrepare={prepare}
+      />
     </section>}
 
     {radarTab === "inbox" && <section className="radar-board-handoff">

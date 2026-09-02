@@ -14,6 +14,7 @@ import {
   seedDefaultRadarMonitors,
   seedRadarMonitorPack,
   setRadarOpportunityStatus,
+  setRadarOpportunityStatusBulk,
   updateRadarMonitor,
 } from "@/lib/radar-store";
 import { isLinkedInUrl, validatePublicUrl } from "@/lib/public-link-reader.mjs";
@@ -124,7 +125,15 @@ export async function POST(request: Request) {
       // reason is only meaningful on a dismissal, and the store discards
       // anything it does not recognise rather than defaulting, so a client that
       // omits it can never accidentally teach the scorer.
-      result = await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40), typeof input.reason === "string" ? input.reason.slice(0, 40) : undefined);
+      // One row or a selection: the browser sends opportunityIds when the
+      // owner acted on several at once, and the write is identical either way.
+      const reason = typeof input.reason === "string" ? input.reason.slice(0, 40) : undefined;
+      const ids = Array.isArray(input.opportunityIds)
+        ? input.opportunityIds.filter((id): id is string => typeof id === "string")
+        : [];
+      result = ids.length
+        ? await setRadarOpportunityStatusBulk(db, user.id, ids, text(input.status, 40), reason)
+        : await setRadarOpportunityStatus(db, user.id, text(input.opportunityId, 100), text(input.status, 40), reason);
     } else if (action === "cleanup_inbox") {
       result = await purgeOffTargetOpportunities(db, user.id);
     } else if (action === "scan") {

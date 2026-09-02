@@ -10,7 +10,7 @@ import {
   groupJobSearchUrls,
 } from "@/lib/job-boards.mjs";
 import { readJsonResponse } from "@/lib/http-json.mjs";
-import { OpportunityCard } from "./opportunity-card";
+import { OpportunityInbox } from "./opportunity-inbox";
 import type { RadarOpportunity } from "./opportunity-card";
 import type { JobSearchUrl } from "@/lib/job-boards.mjs";
 import type { DismissalReason } from "@/lib/radar.mjs";
@@ -106,7 +106,6 @@ export function JobSearchWorkspace({ settings: savedSettings, onSettingsChange, 
   // LinkedIn export — scored and decidable here rather than in the other tab.
   const [opportunities, setOpportunities] = useState<RadarOpportunity[]>([]);
   const [minScore, setMinScore] = useState(45);
-  const [showHidden, setShowHidden] = useState(false);
 
   // Hydrate after the first paint, not during it: the server has no
   // localStorage, so reading it inline would render different markup than the
@@ -170,6 +169,27 @@ export function JobSearchWorkspace({ settings: savedSettings, onSettingsChange, 
 
   // The app owns the value and writes it to both this browser and the durable
   // backup; this tab only says what changed.
+  async function bulkUpdateOpportunities(ids: string[], status: RadarOpportunity["status"], reason?: DismissalReason) {
+    if (!ids.length) return;
+    setBusy("bulk");
+    try {
+      const response = await fetch("/api/radar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set_opportunity_status", opportunityIds: ids, status, reason }),
+      });
+      const data = await readJsonResponse<RadarPayload>(response, "Those roles could not be updated.");
+      if (!response.ok || !data.ok) throw new Error(data.message || "Those roles could not be updated.");
+      applyPayload(data);
+      onNotice(`${ids.length} ${ids.length === 1 ? "role" : "roles"} updated.`);
+    } catch (cause) {
+      onError("job_search_bulk_status_failed", cause, { action: "set_opportunity_status" });
+      onNotice(cause instanceof Error ? cause.message : "Those roles could not be updated.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   function persist(next: JobSearchSettings) {
     onSettingsChange(next);
   }
@@ -331,8 +351,6 @@ export function JobSearchWorkspace({ settings: savedSettings, onSettingsChange, 
   const filed = useMemo(() => opportunities
     .filter((item) => item.origin === "imported" || item.origin === "linkedin-saved" || item.origin === "captured")
     .sort((left, right) => right.discoveredAt.localeCompare(left.discoveredAt) || right.fitScore - left.fitScore), [opportunities]);
-  const filedTotal = filed.length;
-  const visibleFiled = showHidden ? filed : filed.filter((item) => item.status !== "dismissed" && item.status !== "archived" && item.status !== "expired");
 
   const unusedSuggestions = suggestedKeywords.filter(
     (title) => !keywords.some((keyword) => keyword.toLowerCase() === title.toLowerCase()),
@@ -525,20 +543,19 @@ export function JobSearchWorkspace({ settings: savedSettings, onSettingsChange, 
     </section>
 
     <section className="radar-inbox">
-      <div className="radar-section-head">
-        <div>
-          <span>FILED FROM THIS TAB</span>
-          <h2>{visibleFiled.length} {visibleFiled.length === 1 ? "role" : "roles"} you brought in{filedTotal > visibleFiled.length ? ` · ${filedTotal} in all` : ""}</h2>
-          <small>Newest first, each with the same fit score and the same decisions as the Job radar inbox. Every role here came from a link you pasted, a list you captured, or your LinkedIn export — the roles the radar found on its own live in the radar tab.</small>
-        </div>
-        <div className="radar-filters">
-          <button className={showHidden ? "" : "selected"} onClick={() => setShowHidden(false)}>Active</button>
-          <button className={showHidden ? "selected" : ""} onClick={() => setShowHidden(true)}>Everything filed</button>
-        </div>
-      </div>
-      {!visibleFiled.length
-        ? <div className="empty-state compact"><strong>Nothing filed from this tab yet.</strong><span>Paste a job link or a captured results list above. Each role is scored against your radar goals and appears here with the score, so you never have to change tabs to decide on it.</span></div>
-        : <div className="radar-opportunity-list">{visibleFiled.map((opportunity) => <OpportunityCard key={opportunity.id} opportunity={opportunity} minScore={minScore} onStatus={updateOpportunity} onPrepare={onPrepare} />)}</div>}
+      <OpportunityInbox
+        opportunities={filed}
+        minScore={minScore}
+        busy={Boolean(busy)}
+        label="FILED FROM THIS TAB"
+        showCategoryChips={false}
+        showOriginFilter={false}
+        note="Every role you brought in by hand: a link you pasted, a list you captured, your LinkedIn export. Same score and the same decisions as the Job radar inbox — tick several and judge them together. What the radar found on its own lives in the radar tab."
+        emptyState={<div className="empty-state compact"><strong>Nothing filed from this tab yet.</strong><span>Paste a job link or a captured results list above. Each role is scored against your radar goals and appears here with the score, so you never have to change tabs to decide on it.</span></div>}
+        onStatus={updateOpportunity}
+        onBulkStatus={bulkUpdateOpportunities}
+        onPrepare={onPrepare}
+      />
     </section>
 
     <section className="job-search-playbook">

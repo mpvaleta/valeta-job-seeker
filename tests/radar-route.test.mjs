@@ -1316,6 +1316,55 @@ test("a not-relevant dismissal is stored, teaches the next scan, and stops teach
   }
 });
 
+// Deciding on a selection has to teach exactly what deciding one at a time
+// teaches, or clearing the inbox in bulk would quietly stop the learning.
+test("a decision taken on a selection is stored, and teaches, like a single one", async () => {
+  const { mf, db } = await createDatabase();
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    const post = async (body) => {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", { method: "POST", headers, body: JSON.stringify(body) }), env, context);
+      const data = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(data));
+      return data;
+    };
+    await post({ action: "save_profile", profile: {
+      titles: ["Brand Project Manager"], skills: [], locations: ["San Francisco Bay Area"],
+      workModes: ["Hybrid"], goals: "", exclusions: [], minScore: 20,
+    } });
+    const owner = await db.prepare("SELECT id FROM users LIMIT 1").first();
+    const titles = ["Software Engineer", "Software Developer", "Staff Software Engineer", "Software Architect"];
+    for (const [index, title] of titles.entries()) {
+      await db.prepare("INSERT INTO job_opportunities (id, user_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(`bulk-${index}`, owner.id, title, "Oakland, CA", `https://boards.greenhouse.io/bulk/jobs/${index}`, "greenhouse", 40, "40% target alignment", "new").run();
+    }
+
+    const cleared = await post({
+      action: "set_opportunity_status",
+      opportunityIds: titles.map((_, index) => `bulk-${index}`),
+      status: "dismissed",
+      reason: "not_relevant",
+    });
+    assert.equal(cleared.result.updated, 4, "every selected row is written in one request");
+
+    const stored = await db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE status = 'dismissed' AND dismissed_reason = 'not_relevant'").first();
+    assert.equal(Number(stored.count), 4, "the reason is recorded on each one, not only the status");
+    // Four is the sample the learner needs, so the signal is ready off a single
+    // bulk press — the same words a row-by-row pass would have taught.
+    assert.equal(cleared.learning.dismissal.ready, true, JSON.stringify(cleared.learning.dismissal));
+    assert.ok(cleared.learning.dismissal.words.includes("software"), JSON.stringify(cleared.learning.dismissal.words));
+
+    // An unknown id in the selection is ignored rather than failing the batch.
+    const mixed = await post({ action: "set_opportunity_status", opportunityIds: ["bulk-0", "does-not-exist"], status: "reviewing" });
+    assert.equal(mixed.opportunities.find((item) => item.id === "bulk-0").status, "reviewing");
+    // Restoring one drops the sample under the threshold, and the signal stops.
+    assert.equal(mixed.learning.dismissal.ready, false);
+  } finally {
+    await mf.dispose();
+  }
+});
+
 // A false "no longer on the company board" badge is worse than it was: the
 // owner acts on it, and the radar now learns from what they mark closed.
 test("a posting still on the board keeps its last-seen date even when it no longer scores", async () => {
