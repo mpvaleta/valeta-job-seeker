@@ -4,6 +4,7 @@ import {
   extractJobPostings,
   extractPublicPage,
   extractYouTubeCaptionTracks,
+  extractYouTubeDescription,
   extractYouTubeVideoId,
   isLinkedInUrl,
   parseYouTubeTranscript,
@@ -68,6 +69,60 @@ test("public article and YouTube transcript reads are bounded and deterministic"
   assert.equal(video.sourceType, "youtube-transcript");
   assert.match(video.text, /verified evidence/i);
   assert.equal(calls.length, 2);
+});
+
+/*
+ * YouTube stopped handing transcripts to servers.
+ *
+ * Measured September 2026 on five videos, creator captions and automatic
+ * alike: the timedtext endpoint answers HTTP 200 with an empty body, with a
+ * browser User-Agent, with a Referer, and through the innertube player API,
+ * which answers UNPLAYABLE. The watch page still advertises the caption
+ * tracks, so the old reader found tracks, fetched nothing, and failed with
+ * "no readable transcript could be extracted" — which blamed the parser for
+ * a door YouTube had closed.
+ */
+test("a video whose captions come back empty is imported as its description", async () => {
+  const watchHtml = '<!doctype html><title>Creative Operations, explained - YouTube</title><meta name="description" content="short"><script>window.player={"captionTracks":[{"baseUrl":"https://captions.example/transcript","languageCode":"en"}],"shortDescription":"A walk through how creative operations teams run intake, resourcing and delivery, with the rituals that keep a studio predictable week to week. Covers the intake form, the weekly resourcing pass, the delivery review, and what to do when a client changes the brief late. Chapters and links below."};</script>';
+  const source = await readPublicLink("https://youtu.be/abcdefghijk", {
+    fetchImpl: async (url) => String(url).includes("youtube.com/watch")
+      ? new Response(watchHtml, { headers: { "content-type": "text/html" } })
+      // What YouTube actually returns: 200, and nothing in it.
+      : new Response("", { headers: { "content-type": "application/json" } }),
+  });
+  assert.equal(source.sourceType, "youtube-description", "an empty transcript must not fail the whole import");
+  assert.match(source.text, /intake, resourcing and delivery/);
+  assert.equal(source.metadata.captions, "unavailable");
+  assert.equal(source.title, "Creative Operations, explained");
+});
+
+test("a video with no transcript and no description says what actually happened", async () => {
+  const watchHtml = '<!doctype html><title>Clip - YouTube</title><script>window.player={"captionTracks":[{"baseUrl":"https://captions.example/transcript","languageCode":"en"}],"shortDescription":"Too short."};</script>';
+  await assert.rejects(
+    () => readPublicLink("https://youtu.be/abcdefghijk", {
+      fetchImpl: async (url) => String(url).includes("youtube.com/watch")
+        ? new Response(watchHtml, { headers: { "content-type": "text/html" } })
+        : new Response("", { headers: { "content-type": "application/json" } }),
+    }),
+    /no longer hands video transcripts to apps.*Show transcript/is,
+  );
+});
+
+// A watch page is 1.2-1.7 MB of player JSON. The ordinary article ceiling of
+// 1.5 MB rejected the longer ones for size, before any of the above could run.
+test("a watch page larger than the article ceiling is still read", async () => {
+  const filler = "x".repeat(1_600_000);
+  const watchHtml = `<!doctype html><title>Long - YouTube</title><script>window.filler="${filler}";window.player={"shortDescription":"${"A detailed description of the talk. ".repeat(10)}"};</script>`;
+  const source = await readPublicLink("https://youtu.be/abcdefghijk", {
+    fetchImpl: async () => new Response(watchHtml, { headers: { "content-type": "text/html" } }),
+  });
+  assert.equal(source.sourceType, "youtube-description");
+  assert.match(source.text, /A detailed description of the talk/);
+});
+
+test("the full description is read from the player payload, not the truncated meta tag", () => {
+  assert.equal(extractYouTubeDescription('{"shortDescription":"Line one.\\nLine two \\u2014 with an em dash."}'), "Line one.\nLine two — with an em dash.");
+  assert.equal(extractYouTubeDescription("<html>no player payload</html>"), "");
 });
 
 test("LinkedIn pages are rejected instead of being scraped", async () => {
