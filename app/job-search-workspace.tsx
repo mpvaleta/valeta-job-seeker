@@ -10,17 +10,22 @@ import {
   groupJobSearchUrls,
 } from "@/lib/job-boards.mjs";
 import { readJsonResponse } from "@/lib/http-json.mjs";
+import { OpportunityCard } from "./opportunity-card";
+import type { RadarOpportunity } from "./opportunity-card";
 import type { JobSearchUrl } from "@/lib/job-boards.mjs";
+import type { DismissalReason } from "@/lib/radar.mjs";
 
 type Props = {
   onNotice: (message: string) => void;
   onError: (code: string, message: unknown, context?: Record<string, string | number | boolean>) => void;
+  onPrepare?: (opportunity: RadarOpportunity) => void | Promise<void>;
 };
 
 type RadarPayload = {
   ok?: boolean;
   message?: string;
-  profile?: { titles?: string[] };
+  profile?: { titles?: string[]; minScore?: number };
+  opportunities?: RadarOpportunity[];
   result?: {
     imported?: Array<{ url: string; title: string; company: string; score: number; status: "added" | "updated" }>;
     failures?: Array<{ url?: string; message: string }>;
@@ -79,7 +84,7 @@ function relativeTime(iso: string) {
   return days === 1 ? "yesterday" : `${days}d ago`;
 }
 
-export function JobSearchWorkspace({ onNotice, onError }: Props) {
+export function JobSearchWorkspace({ onNotice, onError, onPrepare }: Props) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [opened, setOpened] = useState<Record<string, string>>({});
   const [keywordDraft, setKeywordDraft] = useState("");
@@ -87,6 +92,11 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
   const [importLinks, setImportLinks] = useState("");
   const [captureText, setCaptureText] = useState("");
   const [busy, setBusy] = useState("");
+  // Everything filed from this tab — a pasted link, a captured results list, a
+  // LinkedIn export — scored and decidable here rather than in the other tab.
+  const [opportunities, setOpportunities] = useState<RadarOpportunity[]>([]);
+  const [minScore, setMinScore] = useState(45);
+  const [showHidden, setShowHidden] = useState(false);
 
   // Hydrate after the first paint, not during it: the server has no
   // localStorage, so reading it inline would render different markup than the
@@ -109,6 +119,7 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
       .then((data) => {
         if (!active) return;
         setSuggestedKeywords((data.profile?.titles || []).filter(Boolean));
+        applyPayload(data);
       })
       .catch((cause) => {
         if (!active) return;
@@ -118,6 +129,35 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
     // The callbacks are stable in the parent; the titles only need one read.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Every radar POST answers with the whole dashboard, so filing a list and
+  // deciding on a role both refresh this tab's list without a second request.
+  function applyPayload(data: RadarPayload) {
+    if (Array.isArray(data.opportunities)) setOpportunities(data.opportunities);
+    if (typeof data.profile?.minScore === "number") setMinScore(data.profile.minScore);
+  }
+
+  async function updateOpportunity(opportunity: RadarOpportunity, status: RadarOpportunity["status"], reason?: DismissalReason) {
+    setBusy(`opportunity-${opportunity.id}`);
+    try {
+      const response = await fetch("/api/radar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set_opportunity_status", opportunityId: opportunity.id, status, reason }),
+      });
+      const data = await readJsonResponse<RadarPayload>(response, "That role could not be updated.");
+      if (!response.ok || !data.ok) throw new Error(data.message || "That role could not be updated.");
+      applyPayload(data);
+      if (status === "shortlisted") onNotice("Role approved for preparation. V’s will not submit anything without you.");
+      if (reason === "listing_closed") onNotice("Filed as no longer available. The role stays on record, and V’s reads it as interest: once a few closed roles share a word, similar ones are ranked higher.");
+      if (reason === "not_relevant") onNotice("Noted as not relevant. Once a few roles share a pattern, V’s starts ranking similar ones lower.");
+    } catch (cause) {
+      onError("job_search_status_failed", cause, { action: "set_opportunity_status" });
+      onNotice(cause instanceof Error ? cause.message : "That role could not be updated.");
+    } finally {
+      setBusy("");
+    }
+  }
 
   function persist(next: Settings) {
     setSettings(next);
@@ -219,6 +259,7 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
       });
       const data = await readJsonResponse<RadarPayload>(response, "Those job links could not be read.");
       if (!response.ok || !data.ok) throw new Error(data.message || "Those job links could not be read.");
+      applyPayload(data);
       const imported = data.result?.imported?.length || 0;
       const failed = data.result?.failures?.length || 0;
       // Keep only what failed, so a second press retries exactly those.
@@ -265,6 +306,7 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
       });
       const data = await readJsonResponse<RadarPayload>(response, "The captured list could not be filed.");
       if (!response.ok || !data.ok) throw new Error(data.message || "The captured list could not be filed.");
+      applyPayload(data);
       const added = data.result?.added || 0;
       const updated = data.result?.updated || 0;
       setCaptureText("");
@@ -276,6 +318,15 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
       setBusy("");
     }
   }
+
+  // Rows this tab is responsible for: a link the owner pasted, a captured
+  // results list, or their LinkedIn export. Newest first, always — this tab is
+  // worked as a queue, so what arrived last is what has not been looked at.
+  const filed = useMemo(() => opportunities
+    .filter((item) => item.origin === "imported" || item.origin === "linkedin-saved")
+    .sort((left, right) => right.discoveredAt.localeCompare(left.discoveredAt) || right.fitScore - left.fitScore), [opportunities]);
+  const filedTotal = filed.length;
+  const visibleFiled = showHidden ? filed : filed.filter((item) => item.status !== "dismissed" && item.status !== "archived" && item.status !== "expired");
 
   const unusedSuggestions = suggestedKeywords.filter(
     (title) => !keywords.some((keyword) => keyword.toLowerCase() === title.toLowerCase()),
@@ -465,6 +516,23 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
           </div>
         </div>
       </div>
+    </section>
+
+    <section className="radar-inbox">
+      <div className="radar-section-head">
+        <div>
+          <span>FILED FROM THIS TAB</span>
+          <h2>{visibleFiled.length} {visibleFiled.length === 1 ? "role" : "roles"} you brought in{filedTotal > visibleFiled.length ? ` · ${filedTotal} in all` : ""}</h2>
+          <small>Newest first, each with the same fit score and the same decisions as the Job radar inbox. Every role here came from a link you pasted, a list you captured, or your LinkedIn export — the roles the radar found on its own live in the radar tab.</small>
+        </div>
+        <div className="radar-filters">
+          <button className={showHidden ? "" : "selected"} onClick={() => setShowHidden(false)}>Active</button>
+          <button className={showHidden ? "selected" : ""} onClick={() => setShowHidden(true)}>Everything filed</button>
+        </div>
+      </div>
+      {!visibleFiled.length
+        ? <div className="empty-state compact"><strong>Nothing filed from this tab yet.</strong><span>Paste a job link or a captured results list above. Each role is scored against your radar goals and appears here with the score, so you never have to change tabs to decide on it.</span></div>
+        : <div className="radar-opportunity-list">{visibleFiled.map((opportunity) => <OpportunityCard key={opportunity.id} opportunity={opportunity} minScore={minScore} onStatus={updateOpportunity} onPrepare={onPrepare} />)}</div>}
     </section>
 
     <section className="job-search-playbook">

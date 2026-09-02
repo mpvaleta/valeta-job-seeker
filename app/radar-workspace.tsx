@@ -4,35 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_RADAR_PROFILE, RADAR_COMPANY_CATEGORIES, RADAR_MARKETS, RADAR_TRACKS, deriveRadarProfileFromCareer, withHomeMarket } from "@/lib/radar.mjs";
 import { AGENCY_PACK_GROUPS } from "@/lib/agency-radar-pack";
 import { readJsonResponse } from "@/lib/http-json.mjs";
+import { OpportunityCard } from "./opportunity-card";
+import { compactDate, compactDateTime } from "./radar-format";
 import type { DismissalReason, RadarProfile } from "@/lib/radar.mjs";
 
-export type RadarOpportunity = {
-  id: string;
-  companyId: string | null;
-  company: string;
-  companyCategory: string;
-  trackId: string;
-  trackLabel: string;
-  title: string;
-  location: string;
-  sourceUrl: string;
-  sourceType: string;
-  origin: "monitored" | "v-watch" | "imported" | "linkedin-saved";
-  importedByUser?: boolean;
-  targetPosition: string;
-  fitScore: number;
-  fitSummary: string;
-  alignmentPasses: boolean;
-  exclusionHit: boolean;
-  offTargetRole: boolean;
-  status: "new" | "reviewing" | "shortlisted" | "dismissed" | "applied" | "archived" | "expired";
-  discoveredAt: string;
-  updatedAt: string;
-  lastSeenAt?: string | null;
-  // The company's board has been read completely since this posting was last
-  // seen there, and it was gone — likely closed or unlisted by the employer.
-  listingLost?: boolean;
-};
+// The card owns the shape now that Open job search renders the same rows.
+export type { RadarOpportunity } from "./opportunity-card";
+import type { RadarOpportunity } from "./opportunity-card";
 
 type RadarMonitor = {
   id: string;
@@ -61,6 +39,11 @@ type RadarMonitor = {
   lastRunAt: string | null;
 };
 
+type RadarLearning = {
+  dismissal: { ready: boolean; words: string[]; categories: string[]; reason: string };
+  closed: { ready: boolean; words: string[]; companies: string[]; reason: string };
+};
+
 type RadarPayload = {
   ok?: boolean;
   code?: string;
@@ -68,6 +51,7 @@ type RadarPayload = {
   profile?: RadarProfile;
   monitors?: RadarMonitor[];
   opportunities?: RadarOpportunity[];
+  learning?: RadarLearning;
   opportunityTotal?: number;
   dueCount?: number;
   lastRunAt?: string | null;
@@ -185,6 +169,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(initialDraft);
   const [monitors, setMonitors] = useState<RadarMonitor[]>([]);
   const [opportunities, setOpportunities] = useState<RadarOpportunity[]>([]);
+  const [learning, setLearning] = useState<RadarLearning | null>(null);
   const [dueCount, setDueCount] = useState(0);
   const [opportunityTotal, setOpportunityTotal] = useState(0);
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);
@@ -204,6 +189,11 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [originFilter, setOriginFilter] = useState<"all" | "monitored" | "v-watch" | "imported" | "linkedin-saved">("all");
+  // Newest first is the default the owner asked for: a job board is a queue,
+  // and a role collected an hour ago is worth more than a higher-scoring one
+  // that has been sitting in the inbox for a fortnight. Best match is still one
+  // press away.
+  const [sortOrder, setSortOrder] = useState<"newest" | "score">("newest");
   const [importLinks, setImportLinks] = useState("");
   const [targetFilter, setTargetFilter] = useState("all");
   const [locationRegions, setLocationRegions] = useState<string[]>([]);
@@ -268,7 +258,9 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
     .filter((item) => originFilter === "all" || item.origin === originFilter)
     .filter((item) => targetFilter === "all" || item.targetPosition === targetFilter || item.trackLabel === targetFilter)
     .filter((item) => matchesSelectedRegions(item.location, locationRegions))
-    .sort((left, right) => right.fitScore - left.fitScore || right.discoveredAt.localeCompare(left.discoveredAt)), [alignmentFilter, categoryFilter, companyFilter, filter, locationRegions, opportunities, originFilter, targetFilter, trackFilter]);
+    .sort((left, right) => sortOrder === "newest"
+      ? right.discoveredAt.localeCompare(left.discoveredAt) || right.fitScore - left.fitScore
+      : right.fitScore - left.fitScore || right.discoveredAt.localeCompare(left.discoveredAt)), [alignmentFilter, categoryFilter, companyFilter, filter, locationRegions, opportunities, originFilter, sortOrder, targetFilter, trackFilter]);
   const newCount = opportunities.filter((item) => item.status === "new").length;
   const shortlistedCount = opportunities.filter((item) => item.status === "shortlisted").length;
   const matchingCount = opportunities.filter((item) => item.alignmentPasses).length;
@@ -324,6 +316,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
     }
     if (Array.isArray(data.monitors)) setMonitors(data.monitors);
     if (Array.isArray(data.opportunities)) setOpportunities(data.opportunities);
+    if (data.learning) setLearning(data.learning);
     setOpportunityTotal(data.opportunityTotal || 0);
     setDueCount(data.dueCount || 0);
     setLastRunAt(data.lastRunAt || null);
@@ -554,6 +547,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
     if (data && status === "shortlisted") onNotice("Role approved for preparation. V’s will not submit anything without you.");
     if (data && status === "reviewing" && (opportunity.status === "dismissed" || opportunity.status === "archived")) onNotice("Role restored to the active inbox. Its discovery history was never deleted. It no longer teaches the radar either.");
     if (data && reason === "already_applied") onNotice("Filed as already handled. This one does not change what the radar looks for — you wanted it.");
+    if (data && reason === "listing_closed") onNotice("Filed as no longer available. The role stays on record, and V’s reads it as interest: once a few closed roles share a word, similar ones are ranked higher — the opposite of “Not for me”.");
     if (data && reason === "not_relevant") onNotice("Noted as not relevant. Once a few roles share a pattern, V’s starts ranking similar ones lower. Words from your own target titles and skills are never learned against you.");
   }
 
@@ -596,6 +590,15 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
         </fieldset>
         <div className="radar-two"><label>Markets in full<textarea value={profileDraft.locations} onChange={(event) => setProfileDraft({ ...profileDraft, locations: event.target.value })} /><select aria-label="How strictly to apply your markets" value={profileDraft.locationPolicy} onChange={(event) => setProfileDraft({ ...profileDraft, locationPolicy: event.target.value as RadarProfile["locationPolicy"] })}><option value="required">Only these markets (plus remote, if allowed below)</option><option value="preferred">Prefer these markets, but keep roles elsewhere</option></select></label><label>Exclude<textarea value={profileDraft.exclusions} onChange={(event) => setProfileDraft({ ...profileDraft, exclusions: event.target.value })} placeholder="Commission only, unpaid…" /></label></div>
         <label>Career goals<textarea value={profileDraft.goals} onChange={(event) => setProfileDraft({ ...profileDraft, goals: event.target.value })} /></label>
+        {learning && <div className="radar-learning">
+          <strong>What V’s has learned from your decisions</strong>
+          <p><b>Roles you marked no longer available:</b> {learning.closed.ready
+            ? <>ranking roles about <b>{learning.closed.words.join(", ")}</b> higher{learning.closed.companies.length ? <> · employers that keep posting them: {learning.closed.companies.join(", ")}</> : null}. Add any of those words to Target positions above to make it permanent.</>
+            : learning.closed.reason}</p>
+          <p><b>Roles you marked “Not for me”:</b> {learning.dismissal.ready
+            ? <>ranking roles about <b>{learning.dismissal.words.join(", ")}</b> lower{learning.dismissal.categories.length ? <>, and the company types {learning.dismissal.categories.join(", ")}</> : null}. Words from your own targets and skills are never learned against you.</>
+            : learning.dismissal.reason}</p>
+        </div>}
         <div className="radar-preferences"><fieldset><legend>Work style</legend>{["On-site", "Hybrid", "Remote"].map((mode) => <label key={mode}><input type="checkbox" checked={profileDraft.workModes.includes(mode)} onChange={(event) => setProfileDraft({ ...profileDraft, workModes: event.target.checked ? [...profileDraft.workModes, mode] : profileDraft.workModes.filter((item) => item !== mode) })} />{mode}</label>)}</fieldset><label>Minimum alignment <strong>{profileDraft.minScore}%</strong><input type="range" min="20" max="90" step="5" value={profileDraft.minScore} onChange={(event) => setProfileDraft({ ...profileDraft, minScore: Number(event.target.value) })} /></label><label>Company stage<select value={profileDraft.companyStagePreference} onChange={(event) => setProfileDraft({ ...profileDraft, companyStagePreference: event.target.value as RadarProfile["companyStagePreference"] })}>{STAGE_PREFERENCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div>
       </article>
     </div>}
@@ -692,6 +695,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
       </div>
       <div className="radar-inbox-controls">
         <div className="radar-filters" aria-label="Alignment filter">{([["all",`All alignment (${opportunities.length})`],["matching",`Matching (${matchingCount})`],["below",`Below threshold (${belowThresholdCount})`]] as const).map(([id, label]) => <button key={id} className={alignmentFilter === id ? "selected" : ""} onClick={() => setAlignmentFilter(id)}>{label}</button>)}</div>
+        <div className="radar-filters" aria-label="Sort order">{([["newest", "Newest first"], ["score", "Best match"]] as const).map(([id, label]) => <button key={id} className={sortOrder === id ? "selected" : ""} aria-pressed={sortOrder === id} onClick={() => setSortOrder(id)} title={id === "newest" ? "Most recently collected roles at the top." : "Highest alignment score at the top."}>{label}</button>)}</div>
         <label>Company<select value={companyFilter} onChange={(event) => setCompanyFilter(event.target.value)}><option value="all">All companies</option>{companyOptions.map((companyName) => <option key={companyName} value={companyName}>{companyName}</option>)}</select></label>
         <label>Found by<select value={originFilter} onChange={(event) => setOriginFilter(event.target.value as "all" | "monitored" | "v-watch" | "imported" | "linkedin-saved")}><option value="all">All discovery sources</option><option value="monitored">Companies I monitor</option><option value="v-watch">Suggested by V’s</option><option value="imported">Imported by me</option><option value="linkedin-saved">Saved on LinkedIn</option></select></label>
         <label>Target position<select value={targetFilter} onChange={(event) => setTargetFilter(event.target.value)}><option value="all">All target positions</option>{targetOptions.map((target) => <option key={target} value={target}>{target}</option>)}</select></label>
@@ -703,7 +707,7 @@ export function RadarWorkspace({ savedLinkedInJobs = [], careerEvidence, onOpenJ
         <label>Career trail<select value={trackFilter} onChange={(event) => setTrackFilter(event.target.value)}><option value="all">All trails</option>{RADAR_TRACKS.map((track) => <option key={track.id} value={track.id}>{track.label}</option>)}</select></label>
         <label>Company type<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All company types</option>{RADAR_COMPANY_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
       </div>
-      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <article key={opportunity.id} className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}><div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div><div className="opportunity-copy"><span>{opportunity.company} · {opportunity.location}</span><h3>{opportunity.title}</h3><div className="opportunity-tags"><em>{opportunity.targetPosition}</em><em>{opportunity.trackLabel}</em><em>{opportunity.companyCategory}</em><em className={opportunity.origin === "v-watch" ? "suggested" : opportunity.origin === "monitored" ? "monitored" : "imported"}>{opportunity.origin === "v-watch" ? "Suggested by V’s" : opportunity.origin === "imported" ? "Imported by you" : opportunity.origin === "linkedin-saved" ? "Saved on LinkedIn" : "Company you monitor"}</em>{opportunity.offTargetRole && <em className="below" title="Nothing in this title matches your target positions or a saved multi-word skill. Add the title to Search goals if you want roles like it.">Not one of your target roles</em>}{!opportunity.alignmentPasses && !opportunity.offTargetRole && <em className="below">Below {profileDraft.minScore}% threshold</em>}{opportunity.listingLost && <em className="closed" title="This role came from the company's public board, and the newest complete read of that board no longer includes it. Open the original to confirm before spending time on it.">No longer on the company board</em>}{opportunity.status === "expired" && <em className="closed" title="This suggestion came from a dated V’s Job Watch batch that has since aged out. Check the original before spending time on it.">Expired suggestion</em>}</div><p>{opportunity.fitSummary}</p><small><b className="collected-on">Collected {compactDateTime(opportunity.discoveredAt)}</b>{opportunity.lastSeenAt && opportunity.lastSeenAt.slice(0, 10) !== opportunity.discoveredAt.slice(0, 10) && <> · still listed {compactDate(opportunity.lastSeenAt)}</>} · {opportunity.origin === "v-watch" ? "Suggested by V’s Job Watch" : opportunity.origin === "imported" ? "Imported from a link you provided" : opportunity.origin === "linkedin-saved" ? "From your official LinkedIn saved-jobs export" : "Found from a monitored company"} · {opportunity.sourceType}</small></div><div className="opportunity-actions"><a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">View original ↗</a>{opportunity.status !== "shortlisted" && opportunity.status !== "expired" && <button onClick={() => updateOpportunity(opportunity, "shortlisted")}>Approve for prep</button>}{opportunity.status === "shortlisted" && <button className="primary" onClick={() => prepare(opportunity)}>Prepare application</button>}{opportunity.status !== "dismissed" && <button title="You already applied to this one, or you have seen it before. Hides it without changing what the radar looks for." onClick={() => updateOpportunity(opportunity, "dismissed", "already_applied")}>Saw it / applied</button>}{opportunity.status !== "dismissed" && <button title="This is not the kind of role you want. Hides it, and once a few share a pattern V's ranks similar roles lower." onClick={() => updateOpportunity(opportunity, "dismissed", "not_relevant")}>Not for me</button>}{opportunity.status !== "archived" && <button onClick={() => updateOpportunity(opportunity, "archived")}>Archive</button>}{(opportunity.status === "dismissed" || opportunity.status === "archived") && <button onClick={() => updateOpportunity(opportunity, "reviewing")}>Restore</button>}</div></article>)}</div>}
+      {!visibleOpportunities.length ? <div className="empty-state"><strong>No roles match these filters.</strong><span>Change the status, company, discovery source, target position, location, alignment, trail, or company-type filter. Running the radar now keeps both matching and below-threshold roles.</span></div> : <div className="radar-opportunity-list">{visibleOpportunities.map((opportunity) => <OpportunityCard key={opportunity.id} opportunity={opportunity} minScore={profileDraft.minScore} onStatus={updateOpportunity} onPrepare={prepare} />)}</div>}
     </section>}
 
     {radarTab === "inbox" && <section className="radar-board-handoff">
@@ -782,24 +786,6 @@ function draftToProfile(draft: ProfileDraft): RadarProfile {
 
 function list(value: string) {
   return [...new Set(value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean))];
-}
-
-// SQLite CURRENT_TIMESTAMP values are UTC without a zone marker; pin them to
-// UTC before formatting in the visitor's local zone.
-function parseTimestamp(value: string) {
-  return new Date(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value) ? `${value.replace(" ", "T")}Z` : value);
-}
-
-function compactDate(value: string) {
-  const date = parseTimestamp(value);
-  if (!Number.isFinite(date.getTime())) return "unknown";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: date.getFullYear() === new Date().getFullYear() ? undefined : "numeric" }).format(date);
-}
-
-function compactDateTime(value: string) {
-  const date = parseTimestamp(value);
-  if (!Number.isFinite(date.getTime())) return "unknown";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
 function monitorCoverage(monitor: RadarMonitor) {

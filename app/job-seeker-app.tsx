@@ -1785,7 +1785,7 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
 
         {view === "radar" && <RadarWorkspace savedLinkedInJobs={linkedInSavedJobs} careerEvidence={radarCareerEvidence} onOpenJobSearch={() => setView("search")} onPrepare={prepareRadarOpportunity} onNotice={setNotice} onError={(code, message, context) => logError("radar", code, message, context)} />}
 
-        {view === "search" && <JobSearchWorkspace onNotice={setNotice} onError={(code, message, context) => logError("job-search", code, message, context)} />}
+        {view === "search" && <JobSearchWorkspace onNotice={setNotice} onPrepare={prepareRadarOpportunity} onError={(code, message, context) => logError("job-search", code, message, context)} />}
 
         {view === "ai" && <section className="ai-reliability">
           <div className="ai-status-card">

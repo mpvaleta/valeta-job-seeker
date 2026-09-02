@@ -1,4 +1,4 @@
-import { DISCOVERY_JOB_CAP, classifyRadarOpportunity, deriveDismissalSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity, titleRelevance } from "./radar.mjs";
+import { DISCOVERY_JOB_CAP, classifyRadarOpportunity, deriveClosedListingSignal, deriveDismissalSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity, titleRelevance } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import { DEFAULT_RADAR_MONITORS } from "./default-radar-monitors";
@@ -48,6 +48,7 @@ type OpportunityRow = {
   updated_at: string;
   last_seen_at: string | null;
   last_listing_read_at: string | null;
+  dismissed_reason: string | null;
 };
 
 export type RadarMonitorInput = {
@@ -93,8 +94,9 @@ async function ensureListingColumns(db: D1Database) {
   for (const statement of [
     "ALTER TABLE job_opportunities ADD COLUMN last_seen_at text",
     "ALTER TABLE companies ADD COLUMN last_listing_read_at text",
-    // Why a dismissal happened, not just that it did. Only "not_relevant"
-    // teaches the scorer; "already_applied" is recorded and deliberately inert.
+    // Why a dismissal happened, not just that it did. "not_relevant" teaches
+    // the scorer to rank similar roles lower and "listing_closed" teaches it to
+    // rank them higher; "already_applied" is recorded and deliberately inert.
     "ALTER TABLE job_opportunities ADD COLUMN dismissed_reason text",
   ]) {
     try {
@@ -108,7 +110,7 @@ async function ensureListingColumns(db: D1Database) {
 
 export async function readRadarDashboard(db: D1Database, userId: string) {
   await ensureListingColumns(db);
-  const [profileRow, monitorResult, opportunityResult, opportunityCountRow] = await Promise.all([
+  const [profileRow, monitorResult, opportunityResult, opportunityCountRow, decisionHistory] = await Promise.all([
     db.prepare("SELECT id, headline, target_roles_json, target_markets_json, positioning, constraints_json FROM career_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1").bind(userId).first<ProfileRow>(),
     // CURRENT_TIMESTAMP only resolves to whole seconds, so two runs of the same
     // monitor inside one second tie on created_at. rowid breaks the tie in
@@ -123,10 +125,13 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
     // Newest 600 travel to the browser; the true total rides alongside so the
     // inbox can say "newest 600 of N" instead of silently plateauing at the cap
     // (the old hard 300 made the radar look frozen once the inbox filled up).
-    db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, c.company_type, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at, o.last_seen_at, c.last_listing_read_at
+    db.prepare(`SELECT o.id, o.company_id, c.name AS company_name, c.company_type, o.title, o.location, o.source_url, o.source_type, o.fit_score, o.fit_summary, o.status, o.discovered_at, o.updated_at, o.last_seen_at, o.dismissed_reason, c.last_listing_read_at
       FROM job_opportunities o LEFT JOIN companies c ON c.id = o.company_id
       WHERE o.user_id = ? ORDER BY o.discovered_at DESC, o.fit_score DESC LIMIT 600`).bind(userId).all<OpportunityRow>(),
     db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE user_id = ?").bind(userId).first<{ count: number }>(),
+    // What the scorer has learned so far, so the app can show it instead of
+    // leaving the user to guess whether marking roles changes anything.
+    readDismissalHistory(db, userId),
   ]);
   const profile = profileFromRow(profileRow);
   const monitors = (monitorResult.results || []).map(monitorFromRow);
@@ -199,12 +204,21 @@ export async function readRadarDashboard(db: D1Database, userId: string) {
       updatedAt: row.updated_at,
       lastSeenAt: row.last_seen_at,
       listingLost,
+      // Only meaningful while the row is dismissed; the store clears it on any
+      // other status change.
+      dismissedReason: row.dismissed_reason || null,
     };
   });
+  const dismissalSignal = deriveDismissalSignal(decisionHistory, profile);
+  const closedSignal = deriveClosedListingSignal(decisionHistory, profile);
   return {
     profile,
     monitors,
     opportunities,
+    learning: {
+      dismissal: { ready: dismissalSignal.ready, words: dismissalSignal.words, categories: dismissalSignal.categories, reason: dismissalSignal.reason },
+      closed: { ready: closedSignal.ready, words: closedSignal.words, companies: closedSignal.companies, reason: closedSignal.reason },
+    },
     opportunityTotal: Number(opportunityCountRow?.count || 0),
     excludedNavigationCount: opportunityRows.length - visibleOpportunityRows.length,
     dueCount: monitors.filter((monitor) => monitor.active && isMonitorDue(monitor)).length,
@@ -358,6 +372,7 @@ export async function readDismissalHistory(db: D1Database, userId: string) {
   return (result.results || []).map((row) => ({
     title: row.title,
     reason: row.dismissed_reason,
+    company: row.company_name || "",
     companyCategory: classifyRadarOpportunity({
       company: row.company_name || "",
       title: row.title,
@@ -686,10 +701,13 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
   const expired = await expireStaleWatchBatch(db, userId);
   const dashboard = await readRadarDashboard(db, userId);
-  // What the user keeps rejecting, read once per scan. Applied only to roles
-  // the radar found on its own — a link the user imported by hand is their
-  // explicit choice and is never down-ranked by this.
-  const dismissalSignal = deriveDismissalSignal(await readDismissalHistory(db, userId), dashboard.profile);
+  // What the user keeps rejecting — and what they wanted but lost to a closed
+  // listing — read once per scan. Applied only to roles the radar found on its
+  // own; a link the user imported by hand is their explicit choice and is
+  // never re-ranked by either signal.
+  const decisionHistory = await readDismissalHistory(db, userId);
+  const dismissalSignal = deriveDismissalSignal(decisionHistory, dashboard.profile);
+  const closedSignal = deriveClosedListingSignal(decisionHistory, dashboard.profile);
   const index = await loadOpportunityIndex(db, userId);
   // A Worker request has a hard subrequest budget, and one monitor can spend
   // seven of them when its careers page needs recovery plus a web-search
@@ -875,7 +893,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
         // when adding this target, so it overrides text/source-based signals
         // the same way classifyRadarOpportunity already does for display.
         const classification = classifyRadarOpportunity(job, monitor);
-        return { job, match: scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, profile, dismissalSignal) };
+        return { job, match: scoreRadarOpportunity({ ...job, companyCategory: classification.companyCategory }, profile, dismissalSignal, closedSignal) };
       }).sort((left, right) => right.match.score - left.match.score)
         .slice(0, 150);
       const matches = scored.filter(({ match }) => match.passes);
@@ -1127,7 +1145,7 @@ function normalizeOpportunityStatus(value: string) {
 // An unrecognised reason becomes null rather than a default, so a client that
 // sends nothing never accidentally teaches the scorer.
 function normalizeDismissalReason(value: unknown) {
-  return value === "not_relevant" || value === "already_applied" ? value : null;
+  return value === "not_relevant" || value === "already_applied" || value === "listing_closed" ? value : null;
 }
 
 // Deliberately permissive beyond the shape check: this field holds whatever

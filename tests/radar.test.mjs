@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   DEFAULT_RADAR_PROFILE,
   classifyRadarOpportunity,
+  closedListingBonus,
+  deriveClosedListingSignal,
   deriveDismissalSignal,
   deriveRadarProfileFromCareer,
   dismissalPenalty,
@@ -15,6 +17,7 @@ import {
   normalizeRadarProfile,
   opportunityContentKey,
   opportunityKey,
+  phraseVariants,
   readSingleJobPosting,
   scoreRadarOpportunity,
   titleRelevance,
@@ -190,6 +193,88 @@ test("a saved multi-word skill in the title establishes relevance on its own", (
   // that have nothing to do with the work.
   assert.equal(titleRelevance("Agency Nurse", titles, ["agency"]).tier, "none");
   assert.equal(titleRelevance("Brand Ambassador", titles, ["brand"]).tier, "none");
+});
+
+// The employer's vocabulary is not the owner's. A "Program Manager" and a
+// "Delivery Lead" are the job a saved "Project Manager" describes, and the role
+// gate used to throw both out as off-target.
+test("a role written in a different word for the same work is not off-target", () => {
+  const titles = ["Project Manager", "Creative Operations"];
+  assert.equal(titleRelevance("Program Manager", titles).tier, "adjacent");
+  assert.equal(titleRelevance("Delivery Lead", titles).tier, "adjacent");
+  assert.equal(titleRelevance("Studio Manager", titles).tier, "adjacent");
+  // The reason names both words, so the inbox can say what it was read against.
+  assert.match(titleRelevance("Program Manager", titles).matched[0], /program ≈ project/);
+
+  // ...and the careers it must never merge stay apart. "product" appears in no
+  // relatedness row precisely so this keeps holding.
+  assert.equal(titleRelevance("Product Manager", titles).tier, "none");
+  assert.equal(titleRelevance("Warehouse Associate", titles).tier, "none");
+  assert.equal(titleRelevance("Nurse Practitioner", titles).tier, "none");
+
+  const profile = { ...DEFAULT_RADAR_PROFILE, titles, skills: [], goals: "" };
+  const adjacent = scoreRadarOpportunity({ title: "Program Manager", location: "Oakland, CA" }, profile);
+  const exact = scoreRadarOpportunity({ title: "Senior Project Manager", location: "Oakland, CA" }, profile);
+  assert.equal(adjacent.gated, false, "the same work under another name must reach the inbox");
+  assert.match(adjacent.summary, /same work, different word/);
+  assert.ok(adjacent.score < exact.score, "and must still rank below the words the owner actually saved");
+});
+
+// Skills were matched as one literal phrase, so "creative operations" missed
+// every posting that said "creative ops" — the way most of them say it.
+test("a saved skill is found when the posting words it differently", () => {
+  assert.ok(phraseVariants("creative operations").includes("creative ops"));
+  assert.ok(phraseVariants("project management").includes("program management"));
+  assert.ok(phraseVariants("brand & creative").includes("brand and creative"));
+
+  assert.equal(titleRelevance("Creative Ops Lead", ["Producer"], ["creative operations"]).tier, "family");
+  assert.equal(titleRelevance("Brand & Creative Manager", ["Producer"], ["brand and creative"]).tier, "family");
+  // The phrase still has to be present as a phrase. Two words scattered through
+  // a title never add up to the skill.
+  assert.equal(titleRelevance("Creative Assistant, Retail Operations Desk", ["Producer"], ["creative operations"]).tier, "none");
+});
+
+const closedListing = (title, company) => ({ title, company, reason: "listing_closed" });
+
+// Marking a listing closed is interest, not rejection: the owner opened it and
+// found the employer had taken it down.
+test("closed listings teach the radar upward, and only once there are enough", () => {
+  const profile = { ...DEFAULT_RADAR_PROFILE, titles: ["Project Manager"], skills: [], goals: "" };
+  const thin = deriveClosedListingSignal([closedListing("Experiential Producer", "A")], profile);
+  assert.equal(thin.ready, false);
+  assert.match(thin.reason, /at least 3/);
+
+  const signal = deriveClosedListingSignal([
+    closedListing("Experiential Producer", "Giant Spoon"),
+    closedListing("Senior Experiential Lead", "Giant Spoon"),
+    closedListing("Experiential Marketing Manager", "Jack Morton"),
+  ], profile);
+  assert.equal(signal.ready, true);
+  assert.ok(signal.words.includes("event"), `expected the experiential work to be learned, got ${JSON.stringify(signal.words)}`);
+  // A word the saved goals already contain is scored by the goals themselves.
+  assert.ok(!signal.words.includes("project"), "a saved target word must not be paid for twice");
+  assert.ok(signal.companies.includes("Giant Spoon"), "the employer that keeps posting them is worth surfacing");
+
+  assert.equal(closedListingBonus("event producer", signal).bonus > 0, true);
+  assert.equal(closedListingBonus("staff accountant", signal).bonus, 0);
+
+  const lifted = scoreRadarOpportunity({ title: "Experiential Project Manager", location: "Oakland, CA" }, profile, undefined, signal);
+  const plain = scoreRadarOpportunity({ title: "Experiential Project Manager", location: "Oakland, CA" }, profile);
+  assert.ok(lifted.score > plain.score, "a role like the ones you missed must rank higher");
+});
+
+// The bonus is a nudge, not a bypass. A role the title gate rejects stays
+// capped however many closed listings share a word with it.
+test("learning from closed listings never lifts a role past the role gate", () => {
+  const profile = { ...DEFAULT_RADAR_PROFILE, titles: ["Project Manager"], skills: [], goals: "" };
+  const signal = deriveClosedListingSignal([
+    closedListing("Experiential Producer", "A"),
+    closedListing("Experiential Lead", "B"),
+    closedListing("Experiential Marketing Manager", "C"),
+  ], profile);
+  const gated = scoreRadarOpportunity({ title: "Event Security Guard", location: "Oakland, CA" }, profile, undefined, signal);
+  assert.equal(gated.gated, true);
+  assert.ok(gated.score <= 24, `a gated role must stay capped, got ${gated.score}`);
 });
 
 // A posting that names no location is unknown, not wrong. Company career pages
