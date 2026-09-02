@@ -16,6 +16,7 @@ import { PLAYBOOK_GENERATION_RULE_LIMIT, prioritizeResumePlaybookRules } from "@
 import { preparePlaybookLibrary, prepareResumeEvidence } from "@/lib/career-evidence.mjs";
 import { factCandidates } from "@/lib/fact-candidates.mjs";
 import { playbookRuleCandidates } from "@/lib/playbook-rules.mjs";
+import { buildKnowledgeBase, knowledgeBasePlainText } from "@/lib/knowledge-base.mjs";
 import { buildBookmarklet } from "@/lib/autofill-bookmarklet.mjs";
 import { compressionAvailable, GZIP_ENCODING, gzipText, WORKSPACE_ENCODING_HEADER } from "@/lib/workspace-encoding.mjs";
 import { PasskeyCard } from "./passkey-card";
@@ -1360,10 +1361,14 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
     const candidates = scope === "guidance" ? playbookRuleCandidates(text)
       : scope === "evidence" ? factCandidates(text)
       : [];
-    const document: SourceDocument = { id: createId(), title, type, category: sourceCategory, scope, trackId: sourceTrackId, sourceUrl: originalUrl || undefined, importedAt: dateToday(), text, candidates, approved: scope === "guidance" ? candidates : [], status: "ready", truncated };
+    // A second résumé repeats most of the first. Anything already approved
+    // arrives pre-approved on this source too, so the owner reviews only what
+    // is genuinely new instead of the whole document again.
+    const known = scope === "evidence" ? candidates.filter((candidate) => isOverlappingFact(candidate, facts)) : [];
+    const document: SourceDocument = { id: createId(), title, type, category: sourceCategory, scope, trackId: sourceTrackId, sourceUrl: originalUrl || undefined, importedAt: dateToday(), text, candidates, approved: scope === "guidance" ? candidates : known, status: "ready", truncated };
     setDocuments((current) => [document, ...current]);
     if (scope === "voice") addWritingSample(title, text);
-    return scope;
+    return { scope, known: known.length, fresh: candidates.length - known.length };
   }
 
   function addWritingSample(title: string, text: string) {
@@ -1427,9 +1432,9 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
       const kind = source.sourceType === "youtube-transcript" ? "YouTube transcript"
         : source.sourceType === "youtube-description" ? "YouTube description"
         : "Public article";
-      const scope = storeImportedSource(source.title, kind, source.text, source.finalUrl);
+      const { scope, known, fresh } = storeImportedSource(source.title, kind, source.text, source.finalUrl);
       setSourceUrl("");
-      const stored = scope === "guidance" ? "Public source imported into the résumé playbook. Detected rules are active and outrank built-in guidance." : scope === "voice" ? "Public text added to Writing voice only." : scope === "evidence" ? "Public source imported as candidate evidence. Approve each fact before use." : "Public research source saved separately from your career facts.";
+      const stored = scope === "guidance" ? "Public source imported into the résumé playbook. Detected rules are active and outrank built-in guidance." : scope === "voice" ? "Public text added to Writing voice only." : scope === "evidence" ? `Public source imported as candidate evidence: ${fresh} new ${fresh === 1 ? "fact" : "facts"} to review${known ? `, ${known} already in your profile` : ""}.` : "Public research source saved separately from your career facts.";
       // Saying "imported" without saying *what* was imported would leave a
       // description looking like the video's spoken content.
       if (source.sourceType === "youtube-description") {
@@ -1462,12 +1467,12 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
     if (sourceUrl.trim() && !/^https?:\/\//i.test(sourceUrl.trim())) { setNotice("Source URL must start with http:// or https://"); return; }
     const title = documentTitle.trim() || transcriptFor?.title || `Imported document — ${dateToday()}`;
     const provenance = sourceUrl.trim() || transcriptFor?.url || undefined;
-    const scope = storeImportedSource(title, transcriptFor ? "YouTube transcript" : "Pasted text", documentText, provenance);
+    const { scope, known, fresh } = storeImportedSource(title, transcriptFor ? "YouTube transcript" : "Pasted text", documentText, provenance);
     // Counted from the same extractor the source itself used, so the number
     // reported is the number of rules that actually reached the playbook.
     const rules = scope === "guidance" ? playbookRuleCandidates(documentText).length : 0;
     setDocumentTitle(""); setDocumentText(""); setSourceUrl(""); setTranscriptFor(null);
-    setNotice(scope === "evidence" ? "Career source imported. Review candidates individually or use Approve all."
+    setNotice(scope === "evidence" ? `Career source imported: ${fresh} new ${fresh === 1 ? "fact" : "facts"} to review${known ? `, ${known} already in your profile and marked as such` : ""}.`
       : scope === "voice" ? "Writing sample added to your voice bank. It cannot create career facts."
       : scope === "guidance" ? `${rules} résumé ${rules === 1 ? "rule" : "rules"} detected and activated. They outrank V’s built-in guidance, and anything the speaker said about their own career was left out — a playbook holds instructions, not somebody else’s history.`
       : "Research source saved as context. It cannot create career facts.");
@@ -1530,16 +1535,13 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
         const text = extractedText.slice(0, MAX_SOURCE_TEXT);
         const truncated = extractedText.length > MAX_SOURCE_TEXT;
         const sourceType = /\.json$/i.test(file.name) ? "JSON / GPT export" : /\.pdf$/i.test(file.name) ? "PDF" : /\.docx$/i.test(file.name) ? "Word document" : file.type || "Text document";
-        // Two extractors, because they are looking for opposite things. A playbook
-    // wants the instructions ("start every bullet with a verb"); evidence wants
-    // the career facts ("led a team of twelve"). factCandidates is tuned for
-    // the second and penalises the first, so pointing it at a résumé talk kept
-    // the speaker's own history and dropped every rule — and a pasted
-    // transcript, which arrives as one unbroken block, produced nothing at all.
-    const candidates = scope === "guidance" ? playbookRuleCandidates(text)
-      : scope === "evidence" ? factCandidates(text)
-      : [];
-        setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, type: sourceType, text, candidates, approved: scope === "guidance" ? candidates : item.approved, status: "ready", truncated } : item));
+        // Same two extractors as storeImportedSource, for the same reason; and
+        // the same pre-approval of facts the profile already holds.
+        const candidates = scope === "guidance" ? playbookRuleCandidates(text)
+          : scope === "evidence" ? factCandidates(text)
+          : [];
+        const known = scope === "evidence" ? candidates.filter((candidate) => isOverlappingFact(candidate, facts)) : [];
+        setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, type: sourceType, text, candidates, approved: scope === "guidance" ? candidates : [...new Set([...item.approved, ...known])], status: "ready", truncated } : item));
         if (scope === "voice") addWritingSample(document.title, text);
       } catch (cause) {
         logError("documents", "document_read_failed", cause, { extension: file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() || "unknown" : "none", mime: file.type || "unknown", size: file.size });
@@ -1679,6 +1681,33 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
       logError("connection", "linkedin_disconnect_failed", cause);
       setNotice(cause instanceof Error ? cause.message : "LinkedIn sign-in could not be disconnected.");
     }
+  }
+
+  /*
+   * One document with everything V's knows, rebuilt from the live workspace.
+   *
+   * Markdown is the file to feed a notebook tool or a chat model; the Word
+   * copy is the same words for reading. Neither is ever the source of truth:
+   * change the workspace and download again.
+   */
+  function exportKnowledgeBase(as: "markdown" | "word") {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const markdown = buildKnowledgeBase({
+      profile: { name: profile.name, headline: profile.headline, location: profile.location, email: profile.email, phone: profile.phone, linkedin: profile.linkedin, portfolio: profile.portfolio, summary: profile.summary },
+      facts: preparedResumeEvidence.facts,
+      collapsed: preparedResumeEvidence.duplicatesCollapsed,
+      setAside: preparedResumeEvidence.omitted.filter((item) => item.reason !== "overlap").length,
+      conflicts: evidenceAudit.conflicts.map((conflict) => ({ kind: conflict.kind, detail: conflict.detail, a: { text: conflict.factA.text, source: conflict.factA.sourceTitle }, b: { text: conflict.factB.text, source: conflict.factB.sourceTitle } })),
+      playbookRules: userPlaybookRules,
+      voice: { ready: learnedVoice.ready, tone: writingStyle.tone, prefer: writingStyle.prefer, avoid: writingStyle.avoid, words: learnedVoice.ready ? learnedVoice.stats?.sourceWords : undefined },
+      tracks: normalizedTracks.map((track) => ({ name: track.name, headline: track.headline, focus: track.focus })),
+      research: documents.filter((document) => sourceScope(document) === "research" && document.status === "ready").map((document) => ({ title: document.title, sourceUrl: document.sourceUrl, importedAt: document.importedAt, excerpt: document.text.slice(0, 300) })),
+      sources: documents.map((document) => ({ title: document.title, type: document.type, scope: sourceScopeLabel(sourceScope(document)), importedAt: document.importedAt, candidates: document.candidates.length, approved: document.approved.length })),
+      generatedAt: stamp,
+    });
+    if (as === "markdown") download(`v-jobs-knowledge-base-${stamp}.md`, markdown, "text/markdown");
+    else downloadWordDocument(`v-jobs-knowledge-base-${stamp}.doc`, `${profile.name || "Candidate"} — everything V’s knows`, knowledgeBasePlainText(markdown), "prose");
+    setNotice(`Knowledge base exported: ${preparedResumeEvidence.facts.length} deduplicated facts, ${userPlaybookRules.length} playbook rules, ${evidenceAudit.conflicts.length} ${evidenceAudit.conflicts.length === 1 ? "conflict" : "conflicts"} to resolve. Rebuilt from the workspace each time — nothing to keep in sync.`);
   }
 
   function exportWorkspace() {
@@ -1943,7 +1972,7 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
             <label className="track-default">Role workspace selection<select value={activeTrackId} onChange={(event) => setActiveTrackId(event.target.value)}><option value="auto">Auto-select from each role</option>{normalizedTracks.map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>
             <div className="resume-track-list">{normalizedTracks.map((track) => <article key={track.id} className={selectedTrack.id === track.id ? "selected" : ""}><div className="track-card-head"><span>{selectedTrack.id === track.id ? trackSelection.automatic ? "CURRENT AUTO MATCH" : "CURRENT TRACK" : "RÉSUMÉ TRACK"}</span><small>Preserved with its linked sources and versions</small></div><label>Name<input value={track.name} onChange={(event) => updateResumeTrack(track.id, { name: event.target.value })} /></label><label>Headline<input value={track.headline} onChange={(event) => updateResumeTrack(track.id, { headline: event.target.value })} /></label><label>Track summary<textarea value={track.summary} onChange={(event) => updateResumeTrack(track.id, { summary: event.target.value })} placeholder="Use a truthful summary tailored to this career direction." /></label><label>Matching role terms<textarea value={track.focus.join(", ")} onChange={(event) => updateResumeTrack(track.id, { focus: event.target.value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) })} placeholder="brand, campaign, creative, agency" /></label></article>)}</div>
           </div>
-          <div className="profile-footer"><span>{facts.length} approved facts · {normalizedTracks.length} résumé tracks · {workspaceSync.message}</span><div><button onClick={() => download("v-jobs-career-profile.json", JSON.stringify({ profile, resumeTracks: normalizedTracks },null,2), "application/json")}>Export profile</button><button onClick={exportWorkspace}>Download backup</button><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving" || !workspaceLoaded}>Save durable revision</button></div></div>
+          <div className="profile-footer"><span>{facts.length} approved facts · {normalizedTracks.length} résumé tracks · {workspaceSync.message}</span><div><button onClick={() => exportKnowledgeBase("markdown")} title="One Markdown file with everything V’s knows — deduplicated facts, playbook rules, voice, research, sources. Rebuilt from the workspace every time; the file to feed a notebook or a chat model.">Everything V’s knows (.md)</button><button onClick={() => exportKnowledgeBase("word")} title="The same document as a Word file, for reading.">Word</button><button onClick={() => download("v-jobs-career-profile.json", JSON.stringify({ profile, resumeTracks: normalizedTracks },null,2), "application/json")}>Export profile</button><button onClick={exportWorkspace}>Download backup</button><button className="primary" onClick={() => void saveWorkspaceBackup(workspaceSnapshot, true)} disabled={workspaceSync.state === "saving" || !workspaceLoaded}>Save durable revision</button></div></div>
         </section>}
 
         {view === "voice" && <section className="profile-workspace voice-workspace">
