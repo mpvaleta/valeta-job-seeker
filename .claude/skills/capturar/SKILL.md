@@ -112,14 +112,25 @@ Extraction that is known to work (verified 2026-09-02):
   Lines are `id | title | company | location (On-site/Remote/Hybrid) | extras (posted, Promoted…)`.
   Job URL = `https://www.linkedin.com/jobs/view/<id>/`. Never return hrefs from JS on LinkedIn.
   A remote-US search is the same URL with `&f_WT=2&location=United States`.
-- **Google Jobs** (new `udm=8` jobs UI, verified 2026-09-02) — `get_page_text` gives title / company /
-  "location • via Board" / "N days ago" per card, but the list holds **no job links**: each card is a
-  button, and the apply links only render in the detail panel after the card is clicked. Google has
-  no account of his at stake, so clicking cards there is allowed: for each card you intend to keep,
-  `find` "card <title>" → `computer left_click` → `read_page` (interactive) → take the `href` of the
-  "Apply on <employer / ATS>" link (prefer the employer or Greenhouse/Lever/Ashby one over LinkedIn /
-  Indeed mirrors, because the server can then read the full description itself). Skip cards older than
-  the freshness window by their "N days ago" text — Google ignored the `htichips=date_posted` filter.
+- **Google Jobs** (new `udm=8` jobs UI, verified end-to-end 2026-09-02) — `get_page_text` gives title /
+  company / "location • via Board" / "N days ago" per card, but the list holds **no job links**: each
+  card is a button, and the apply links only render in the detail panel after the card is clicked.
+  Google has no account of his at stake, so clicking cards there is allowed. Take a `screenshot`,
+  then for each card you intend to keep: `computer left_click` on the card title (coordinates from
+  the screenshot) → `wait 2` → this short JS, which returns host + path only (a full URL with a
+  query string would be blocked):
+  ```js
+  (() => [...document.querySelectorAll('a[href]')].filter(a => /apply/i.test(a.innerText)).slice(0, 4)
+    .map(a => { const u = new URL(a.href); return a.innerText.replace(/\s+/g,' ').trim().slice(0,30) + ' -> ' + u.hostname + u.pathname.slice(0,100); }).join('\n'))()
+  ```
+  Prefer the employer / ATS link (e.g. `pra.isolvedhire.com/jobs/…`) or Mediabistro over LinkedIn /
+  Indeed mirrors, because the server can then read the full description itself; a LinkedIn mirror
+  gives `…/jobs/view/<slug>-<id>` → use `https://www.linkedin.com/jobs/view/<id>/`. Scroll the list
+  (`computer scroll` at the list's coordinates) and re-screenshot to reach the cards below the fold.
+  Google ignored `htichips=date_posted`: results were 2–4 weeks old, so read the "N days ago" text
+  and tell him the age; file with `source: "google"` (lands as "Imported by you").
+- **Page 2.** A run less than a day after the previous one will re-find page 1. Reading page 2 of a
+  LinkedIn search (`&start=25`) is still a results page and is fine; page 3+ only if he asks.
 - If a page shows a login wall, a captcha, or "no results", record that and move on — never retry in a loop.
 
 ## Step 4 — judge, dedupe, summarise
