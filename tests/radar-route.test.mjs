@@ -1259,6 +1259,86 @@ test("a not-relevant dismissal is stored, teaches the next scan, and stops teach
   }
 });
 
+// Marking a listing closed is the opposite of rejecting it: the owner wanted
+// that role and the employer took it down. The whole path has to carry that —
+// the button's reason through the route, into the column, back out as a badge,
+// and into the next scan as a lift rather than a penalty.
+test("a closed listing is stored, shown back, and teaches the next scan upward", async () => {
+  const { mf, db } = await createDatabase();
+  const originalFetch = globalThis.fetch;
+  try {
+    const worker = await loadWorker();
+    const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+    // All four share "brand" with the saved target, so they pass the role gate
+    // and reach the inbox. "experiential" is the word that recurs and appears
+    // in no saved title, so it is the one thing available to learn.
+    let boardTitles = ["Brand Experiential Producer", "Brand Experiential Lead", "Brand Experiential Marketing Manager", "Brand Project Manager"];
+    globalThis.fetch = async () => Response.json({ jobs: boardTitles.map((title, index) => ({
+      title,
+      location: { name: "Oakland, CA" },
+      content: "<p>Run brand programs end to end with cross-functional partners.</p>",
+      absolute_url: `https://boards.greenhouse.io/example/jobs/${700 + index}`,
+      updated_at: "2026-08-01T00:00:00Z",
+    })) });
+
+    const post = async (body) => {
+      const response = await worker.fetch(new Request("http://localhost/api/radar", { method: "POST", headers, body: JSON.stringify(body) }), env, context);
+      const data = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(data));
+      return data;
+    };
+
+    await post({ action: "save_profile", profile: {
+      titles: ["Brand Project Manager"],
+      skills: ["brand programs"],
+      locations: ["San Francisco Bay Area"],
+      workModes: ["Hybrid"],
+      goals: "Lead brand delivery.",
+      exclusions: [],
+      minScore: 20,
+    } });
+    await post({ action: "add_monitor", monitor: {
+      company: "Example Studio",
+      kind: "Technology",
+      careersUrl: "https://boards.greenhouse.io/example",
+      cadence: "daily",
+    } });
+
+    const first = await post({ action: "scan" });
+    const board = (payload) => payload.opportunities.filter((item) => item.sourceUrl.startsWith("https://boards.greenhouse.io/example/"));
+    const experiential = board(first).filter((item) => /Experiential/.test(item.title));
+    assert.equal(experiential.length, 3, "three experiential roles to lose");
+    const scoreBefore = experiential.find((item) => item.title === "Brand Experiential Producer").fitScore;
+    assert.equal(first.learning.closed.ready, false, "nothing marked closed yet");
+
+    let closed;
+    for (const role of experiential) {
+      closed = await post({ action: "set_opportunity_status", opportunityId: role.id, status: "dismissed", reason: "listing_closed" });
+    }
+
+    const stored = await db.prepare("SELECT COUNT(*) AS count FROM job_opportunities WHERE dismissed_reason = 'listing_closed'").first();
+    assert.equal(Number(stored.count), 3, "each closed listing must persist its reason");
+    // The reason comes back out, so the inbox can badge the row instead of
+    // leaving the owner to remember which ones they marked.
+    assert.ok(board(closed).filter((item) => item.dismissedReason === "listing_closed").length === 3);
+    assert.equal(closed.learning.closed.ready, true, JSON.stringify(closed.learning.closed));
+    assert.ok(closed.learning.closed.words.includes("event"), JSON.stringify(closed.learning.closed.words));
+    assert.ok(closed.learning.closed.companies.includes("Example Studio"));
+
+    // A new role of the same kind now ranks above where an identical one sat
+    // before the radar learned anything.
+    boardTitles = [...boardTitles, "Brand Experiential Strategist"];
+    const second = await post({ action: "scan" });
+    const lifted = board(second).find((item) => item.title === "Brand Experiential Strategist");
+    assert.ok(lifted, "the new role should have been discovered");
+    assert.ok(lifted.fitScore > scoreBefore, `learned score ${lifted.fitScore} should beat the pre-learning ${scoreBefore}`);
+    assert.match(lifted.fitSummary, /roles you missed/, "the summary must say why it rose");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await mf.dispose();
+  }
+});
+
 // Rows collected before the role gate existed keep the inflated score the old
 // scorer gave them, and there can be thousands of them. Clearing them is a
 // delete, so it has to be provably narrow: untouched rows only, never a role

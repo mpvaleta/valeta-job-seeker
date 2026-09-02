@@ -234,6 +234,8 @@ input,textarea,select{border-radius:12px}
 @media(max-width:720px){.job-search-list article{grid-template-columns:1fr}.radar-board-handoff{flex-direction:column;align-items:flex-start}}
 .application-actions button.danger-armed{border-color:#c0392b;background:#c0392b;color:#fff}
 .opportunity-tags em.closed{background:#fdecec;color:#a03030}
+.opportunity-actions button.closed-listing.highlight{border-color:#e6bcbc;background:#fdecec;color:#a03030}
+.radar-learning{display:grid;gap:6px;margin-top:14px;border-radius:12px;background:#f5f4fb;padding:12px 13px}.radar-learning strong{font-size:11px}.radar-learning p{margin:0;color:#5a5570;font-size:10px;line-height:1.45}.radar-learning b{color:#3b3550}
 .followup-alert{margin:6px 0 0;color:#9d5d00;font-size:11px;font-weight:800}
 .application-list article.followup-overdue{background:#fffaf3;box-shadow:inset 4px 0 #f0a121}
 .application-list label.followup-due input{border-color:#f0a121;background:#fff7ea}

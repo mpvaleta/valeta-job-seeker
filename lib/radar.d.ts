@@ -42,8 +42,8 @@ export function deriveRadarProfileFromCareer(input?: { headline?: string; summar
   locations: string[];
   evidence: { factsRead: number; titlesFromHeadline: number; recurringPhrases: number; recurringWords: number };
 };
-export type DismissalReason = "not_relevant" | "already_applied";
-export type DismissalRecord = { title: string; reason: string; companyCategory?: string };
+export type DismissalReason = "not_relevant" | "already_applied" | "listing_closed";
+export type DismissalRecord = { title: string; reason: string; companyCategory?: string; company?: string };
 export type DismissalSignal = {
   ready: boolean;
   words: string[];
@@ -51,10 +51,20 @@ export type DismissalSignal = {
   reason: string;
   stats: { dismissalsRead: number; teachingDismissals: number; protectedWords: number };
 };
+export type ClosedListingSignal = {
+  ready: boolean;
+  words: string[];
+  companies: string[];
+  reason: string;
+  stats: { closedRead: number; wordsTracked: number };
+};
 export function deriveDismissalSignal(dismissals: DismissalRecord[], profile?: Partial<RadarProfile>): DismissalSignal;
 export function dismissalPenalty(titleLower: string, companyCategory: string, signal?: DismissalSignal): { penalty: number; matched: string[]; categoryHit?: boolean };
-export function scoreRadarOpportunity(opportunity: RadarOpportunityInput, profile: Partial<RadarProfile>, dismissalSignal?: DismissalSignal): { score: number; reasons: string[]; summary: string; gated: boolean; passes: boolean };
-export function titleRelevance(title: string, targetTitles: string[], targetSkills?: string[]): { tier: "exact" | "family" | "none"; matched: string[] };
+export function deriveClosedListingSignal(closedRows: DismissalRecord[], profile?: Partial<RadarProfile>): ClosedListingSignal;
+export function closedListingBonus(titleLower: string, signal?: ClosedListingSignal): { bonus: number; matched: string[] };
+export function phraseVariants(phrase: string): string[];
+export function scoreRadarOpportunity(opportunity: RadarOpportunityInput, profile: Partial<RadarProfile>, dismissalSignal?: DismissalSignal, closedSignal?: ClosedListingSignal): { score: number; reasons: string[]; summary: string; gated: boolean; passes: boolean };
+export function titleRelevance(title: string, targetTitles: string[], targetSkills?: string[]): { tier: "exact" | "family" | "adjacent" | "none"; matched: string[] };
 export function detectCareerSource(value: string): { type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday" | "apple" | "google-careers" | "meta-search" | "meta-job" | "public-page"; token: string; url: URL };
 export function classifyCompanyCategory(value?: string, context?: string): string;
 export function classifyRadarOpportunity(opportunity?: RadarOpportunityInput, target?: { company?: string; name?: string; kind?: string; companyType?: string; focus?: string }): { trackId: string; trackLabel: string; companyCategory: string };
