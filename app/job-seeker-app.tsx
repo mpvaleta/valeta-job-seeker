@@ -15,6 +15,7 @@ import { DEFAULT_RESUME_TRACKS, normalizeResumeTracks, selectResumeTrack } from 
 import { PLAYBOOK_GENERATION_RULE_LIMIT, prioritizeResumePlaybookRules } from "@/lib/playbook-priority.mjs";
 import { preparePlaybookLibrary, prepareResumeEvidence } from "@/lib/career-evidence.mjs";
 import { factCandidates } from "@/lib/fact-candidates.mjs";
+import { playbookRuleCandidates } from "@/lib/playbook-rules.mjs";
 import { buildBookmarklet } from "@/lib/autofill-bookmarklet.mjs";
 import { compressionAvailable, GZIP_ENCODING, gzipText, WORKSPACE_ENCODING_HEADER } from "@/lib/workspace-encoding.mjs";
 import { PasskeyCard } from "./passkey-card";
@@ -433,6 +434,10 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
   const [roleUrl, setRoleUrl] = useState("");
   const [notice, setNotice] = useState("");
   const [documentTitle, setDocumentTitle] = useState("");
+  // A video whose transcript YouTube refuses to serve. Holding its name and
+  // link means the transcript the owner pastes by hand is filed as that video,
+  // rather than as "Imported document — 2 Sep".
+  const [transcriptFor, setTranscriptFor] = useState<{ title: string; url: string } | null>(null);
   const [documentText, setDocumentText] = useState("");
   const [sourceCategory, setSourceCategory] = useState<SourceCategory>("Résumé");
   const [sourceTrackId, setSourceTrackId] = useState("all");
@@ -1346,7 +1351,15 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
     const trimmedText = rawText.trim();
     const text = trimmedText.slice(0, MAX_SOURCE_TEXT);
     const truncated = trimmedText.length > MAX_SOURCE_TEXT;
-    const candidates = scope === "evidence" || scope === "guidance" ? factCandidates(text) : [];
+    // Two extractors, because they are looking for opposite things. A playbook
+    // wants the instructions ("start every bullet with a verb"); evidence wants
+    // the career facts ("led a team of twelve"). factCandidates is tuned for
+    // the second and penalises the first, so pointing it at a résumé talk kept
+    // the speaker's own history and dropped every rule — and a pasted
+    // transcript, which arrives as one unbroken block, produced nothing at all.
+    const candidates = scope === "guidance" ? playbookRuleCandidates(text)
+      : scope === "evidence" ? factCandidates(text)
+      : [];
     const document: SourceDocument = { id: createId(), title, type, category: sourceCategory, scope, trackId: sourceTrackId, sourceUrl: originalUrl || undefined, importedAt: dateToday(), text, candidates, approved: scope === "guidance" ? candidates : [], status: "ready", truncated };
     setDocuments((current) => [document, ...current]);
     if (scope === "voice") addWritingSample(title, text);
@@ -1419,8 +1432,13 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
       const stored = scope === "guidance" ? "Public source imported into the résumé playbook. Detected rules are active and outrank built-in guidance." : scope === "voice" ? "Public text added to Writing voice only." : scope === "evidence" ? "Public source imported as candidate evidence. Approve each fact before use." : "Public research source saved separately from your career facts.";
       // Saying "imported" without saying *what* was imported would leave a
       // description looking like the video's spoken content.
+      if (source.sourceType === "youtube-description") {
+        // The paste box below is now waiting for this video by name.
+        setTranscriptFor({ title: source.title, url: source.finalUrl });
+        setDocumentTitle(`${source.title} — transcript`);
+      }
       setNotice(source.sourceType === "youtube-description"
-        ? `Imported the video’s description only. YouTube no longer hands transcripts to apps, however the video is captioned. For the spoken content: open the video, “…more”, “Show transcript”, copy it, and paste it in as text. ${stored}`
+        ? `Imported the video’s description only. YouTube no longer hands transcripts to apps, however the video is captioned. Open the video, press “…more” then “Show transcript”, copy it, and paste it into “Paste text instead” below — the name is already filled in. ${stored}`
         : stored);
     } catch (cause) {
       logError("links", "knowledge_link_read_failed", cause, { category: sourceCategory });
@@ -1442,10 +1460,17 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
   function importDocument() {
     if (!documentText.trim()) { setNotice("Paste document text before importing"); return; }
     if (sourceUrl.trim() && !/^https?:\/\//i.test(sourceUrl.trim())) { setNotice("Source URL must start with http:// or https://"); return; }
-    const title = documentTitle.trim() || `Imported document — ${dateToday()}`;
-    const scope = storeImportedSource(title, "Pasted text", documentText, sourceUrl.trim() || undefined);
-    setDocumentTitle(""); setDocumentText(""); setSourceUrl("");
-    setNotice(scope === "evidence" ? "Career source imported. Review candidates individually or use Approve all." : scope === "voice" ? "Writing sample added to your voice bank. It cannot create career facts." : scope === "guidance" ? "Résumé playbook imported and activated automatically. Uploaded rules outrank built-in guidance." : "Research source saved as context. It cannot create career facts.");
+    const title = documentTitle.trim() || transcriptFor?.title || `Imported document — ${dateToday()}`;
+    const provenance = sourceUrl.trim() || transcriptFor?.url || undefined;
+    const scope = storeImportedSource(title, transcriptFor ? "YouTube transcript" : "Pasted text", documentText, provenance);
+    // Counted from the same extractor the source itself used, so the number
+    // reported is the number of rules that actually reached the playbook.
+    const rules = scope === "guidance" ? playbookRuleCandidates(documentText).length : 0;
+    setDocumentTitle(""); setDocumentText(""); setSourceUrl(""); setTranscriptFor(null);
+    setNotice(scope === "evidence" ? "Career source imported. Review candidates individually or use Approve all."
+      : scope === "voice" ? "Writing sample added to your voice bank. It cannot create career facts."
+      : scope === "guidance" ? `${rules} résumé ${rules === 1 ? "rule" : "rules"} detected and activated. They outrank V’s built-in guidance, and anything the speaker said about their own career was left out — a playbook holds instructions, not somebody else’s history.`
+      : "Research source saved as context. It cannot create career facts.");
   }
 
   async function uploadDocuments(files: File[]) {
@@ -1505,7 +1530,15 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
         const text = extractedText.slice(0, MAX_SOURCE_TEXT);
         const truncated = extractedText.length > MAX_SOURCE_TEXT;
         const sourceType = /\.json$/i.test(file.name) ? "JSON / GPT export" : /\.pdf$/i.test(file.name) ? "PDF" : /\.docx$/i.test(file.name) ? "Word document" : file.type || "Text document";
-        const candidates = scope === "evidence" || scope === "guidance" ? factCandidates(text) : [];
+        // Two extractors, because they are looking for opposite things. A playbook
+    // wants the instructions ("start every bullet with a verb"); evidence wants
+    // the career facts ("led a team of twelve"). factCandidates is tuned for
+    // the second and penalises the first, so pointing it at a résumé talk kept
+    // the speaker's own history and dropped every rule — and a pasted
+    // transcript, which arrives as one unbroken block, produced nothing at all.
+    const candidates = scope === "guidance" ? playbookRuleCandidates(text)
+      : scope === "evidence" ? factCandidates(text)
+      : [];
         setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, type: sourceType, text, candidates, approved: scope === "guidance" ? candidates : item.approved, status: "ready", truncated } : item));
         if (scope === "voice") addWritingSample(document.title, text);
       } catch (cause) {
@@ -1937,7 +1970,7 @@ export function JobSeekerApp({ onAccessRevoked }: JobSeekerAppProps = {}) {
               <span className="upload-icon">↑</span><strong>Drop files here</strong><span>or click to browse your Mac</span><small>PDF · Word · TXT · Markdown · CSV · JSON / GPT export · LinkedIn ZIP (50 MB) · other files 10 MB</small>
             </label>
             <div className="privacy-strip"><strong>Private by default</strong><span>Files are processed and saved in this browser. They are not uploaded to GitHub or sent to an AI provider.</span></div>
-            <details className="paste-fallback"><summary>Paste text instead</summary><div><label>Source name<input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="e.g. Résumé do’s and don’ts — 2026" /></label><label>Source text<textarea value={documentText} onChange={(event) => setDocumentText(event.target.value)} placeholder="Paste career evidence, Custom GPT content, résumé tips and rules, writing samples, or company research." /></label><button className="primary" onClick={importDocument}>Import pasted text</button></div></details>
+            <details className="paste-fallback" open={Boolean(transcriptFor)}><summary>Paste text instead</summary><div>{transcriptFor && <div className="transcript-prompt"><div><strong>Waiting for the transcript of “{transcriptFor.title}”</strong><span>On the video: “…more” → “Show transcript” → select and copy. Paste it below. It is filed under that name with the video as its source, and the résumé rules in it are detected automatically.</span></div><button onClick={() => { setTranscriptFor(null); setDocumentTitle(""); }}>Not now</button></div>}<label>Source name<input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="e.g. Résumé do’s and don’ts — 2026" /></label><label>Source text<textarea value={documentText} onChange={(event) => setDocumentText(event.target.value)} placeholder="Paste career evidence, Custom GPT content, résumé tips and rules, writing samples, or company research." /></label><button className="primary" onClick={importDocument}>Import pasted text</button></div></details>
             <p className="gpt-note"><strong>Links and private sources:</strong> public articles import in full. A YouTube link imports the video’s description — YouTube stopped serving transcripts to apps, answering with an empty file however the video is captioned, so for the spoken content use “…more” then “Show transcript” on the video, copy it, and paste it here. Custom GPT knowledge, private LinkedIn pages and login-only sites are the same: export or copy the content and upload it here.</p>
           </div>
 
