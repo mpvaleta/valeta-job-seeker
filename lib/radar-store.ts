@@ -1,4 +1,4 @@
-import { classifyRadarOpportunity, deriveDismissalSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity, titleRelevance } from "./radar.mjs";
+import { DISCOVERY_JOB_CAP, classifyRadarOpportunity, deriveDismissalSignal, detectCareerSource, discoverTargetJobsDetailed, isPlausibleRadarJob, normalizeRadarProfile, opportunityContentKey, opportunityKey, readSingleJobPosting, scoreRadarOpportunity, titleRelevance } from "./radar.mjs";
 import { searchCompanyJobSources } from "./radar-web-search.mjs";
 import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "./job-watch-batch";
 import { DEFAULT_RADAR_MONITORS } from "./default-radar-monitors";
@@ -684,7 +684,7 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
   const watchBatch = await importJobWatchBatch(db, userId);
   // Self-heal rows an earlier build duplicated before reading the current state.
   const mergedDuplicates = await mergeDuplicateOpportunities(db, userId);
-  let expired = await expireStaleWatchBatch(db, userId);
+  const expired = await expireStaleWatchBatch(db, userId);
   const dashboard = await readRadarDashboard(db, userId);
   // What the user keeps rejecting, read once per scan. Applied only to roles
   // the radar found on its own — a link the user imported by hand is their
@@ -716,9 +716,23 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
     .filter((monitor) => monitor.active)
     .filter((monitor) => !options.monitorId || monitor.id === options.monitorId)
     .filter((monitor) => !options.dueOnly || isMonitorDue(monitor));
+  // A saved board is one fetch and reliably answers; a website-only target
+  // can burn the page read plus every common careers path and still find
+  // nothing. Mixing both in one least-recently-checked rotation let the
+  // cheap, productive boards wait behind dozens of fruitless site crawls --
+  // each real board was being read about every five days. A board that is
+  // due goes first; a board read recently is not worth re-reading ahead of
+  // the rotation, and leaving it there is what keeps a manual run (which is
+  // not due-only) from cycling through the same boards forever. Self-repair
+  // below writes a discovered board back as careers_url, so a website target
+  // promotes itself into this lane.
+  const boardDue = (monitor: { careersUrl: string; due: boolean; lastCheckedAt: string | null }) =>
+    Boolean(monitor.careersUrl) && (monitor.due || !monitor.lastCheckedAt);
   const queue = options.monitorId
     ? eligible.slice(0, 1)
-    : [...eligible].sort((left, right) => (left.lastCheckedAt || "").localeCompare(right.lastCheckedAt || ""));
+    : [...eligible].sort((left, right) =>
+      Number(!boardDue(left)) - Number(!boardDue(right))
+      || (left.lastCheckedAt || "").localeCompare(right.lastCheckedAt || ""));
   // A single-target scan always runs, however expensive it turns out to be.
   const throttled = !options.monitorId;
   let attemptsUsed = 0;
@@ -787,9 +801,10 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
           // the employer's own source produced nothing, and for an employer
           // whose robots policy blocks collection it is the only way the role
           // surfaces at all. It does create a second row when a later run does
-          // reach the employer's board directly -- that copy is retired by
-          // expireMissingOpportunities on the run that supersedes it, which is
-          // safer than dropping the lead outright.
+          // reach the employer's board directly -- that copy is then caught by
+          // the read-time "no longer listed" inference in readRadarDashboard
+          // (last_seen_at against last_listing_read_at), which is safer than
+          // dropping the lead outright.
           const citedDirectJobs = webSearch.sources.map((source) => ({
             title: source.title,
             company: monitor.company,
@@ -875,8 +890,9 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       // "confirmed by the newest read" from "absent from it".
       const listingReadStamp = new Date().toISOString().slice(0, 19).replace("T", " ");
       // One batch per monitor instead of one awaited round trip per job: a
-      // large board is up to 150 rows, and this loop now covers up to twelve
-      // companies per run, so per-row awaits multiplied into the thousands.
+      // large board is hundreds of rows (scoring keeps up to 150 of them), and
+      // this loop covers up to twelve companies per run, so per-row awaits
+      // multiplied into the thousands.
       // The in-memory index keeps deduplication correct even though the
       // inserts have not landed yet.
       const jobStatements: D1PreparedStatement[] = [];
@@ -953,8 +969,10 @@ export async function scanRadar(db: D1Database, userId: string, options: { monit
       // Only a read that produced at least one complete-board posting counts
       // as a listing read: a failed fetch or a web-search-only run says
       // nothing about which postings are still up, and must never make older
-      // postings look withdrawn.
-      if (jobs.some((job) => COMPLETE_LISTING_SOURCES.has(job.sourceType || ""))) {
+      // postings look withdrawn. A read that filled the discovery cap is not
+      // complete either: whatever sat past the cap was never seen, and
+      // stamping it would flag those live postings as withdrawn.
+      if (jobs.length < DISCOVERY_JOB_CAP && jobs.some((job) => COMPLETE_LISTING_SOURCES.has(job.sourceType || ""))) {
         statements.push(db.prepare("UPDATE companies SET last_listing_read_at = ? WHERE id = ?").bind(listingReadStamp, monitor.companyId));
       }
       await db.batch(statements);

@@ -36,7 +36,11 @@ function automationState() {
   };
 }
 
-const MAX_BODY_BYTES = 30_000;
+// A captured page of search results is the largest body this route sees: the
+// browser companion sends up to 100 rows with 600-character snippets, which
+// measures ~92 KB. The old 30 KB cap rejected anything past ~34 rows, and the
+// whole capture was lost rather than trimmed.
+const MAX_BODY_BYTES = 120_000;
 const SCAN_WINDOW_MS = 30 * 60 * 1_000;
 const SCAN_LIMIT = 8;
 const scanRequests = new Map<string, number[]>();

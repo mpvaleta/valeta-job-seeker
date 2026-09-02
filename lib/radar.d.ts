@@ -29,6 +29,7 @@ export const RADAR_TRACKS: Array<{ id: string; label: string }>;
 export const RADAR_COMPANY_CATEGORIES: string[];
 export const DEFAULT_RADAR_PROFILE: RadarProfile;
 export const RADAR_HOME_MARKET: string;
+export const DISCOVERY_JOB_CAP: number;
 export const RADAR_MARKETS: { id: string; label: string; value: string; home?: boolean }[];
 export function withHomeMarket(locations: string[]): string[];
 export function isBayAreaLocation(value: unknown): boolean;

@@ -56,7 +56,9 @@ export const DEFAULT_RADAR_MONITORS = [
   {
     company: "Inizio Evoke",
     kind: "Creative / Advertising Agency",
-    careersUrl: "",
+    // Their careers page does not link the board, so discovery from the
+    // website alone never found it. Verified live: 72 roles on this board.
+    careersUrl: "https://job-boards.greenhouse.io/inizioevoke",
     websiteUrl: "https://www.inizioevoke.com/",
     focus: "Project Manager, agency creative delivery",
   },
@@ -98,8 +100,11 @@ export const DEFAULT_RADAR_MONITORS = [
   {
     company: "Whatnot",
     kind: "Technology",
-    careersUrl: "https://jobs.ashbyhq.com/whatnot",
-    websiteUrl: "",
+    // The Ashby board this used to point at answers 404 now, and no public
+    // board was found under any ATS. Left as a website target so a board that
+    // appears later is picked up by discovery rather than by hand.
+    careersUrl: "",
+    websiteUrl: "https://www.whatnot.com/careers",
     focus: "Program Manager, In-house Performance Creative",
   },
   {

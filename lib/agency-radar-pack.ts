@@ -41,13 +41,16 @@ export const ADVERTISING_AGENCY_PACK: readonly AgencyPackEntry[] = [
   { company: "Mekanism", kind: "Creative / Advertising Agency", careersUrl: "", websiteUrl: "https://mekanism.com/careers", focus: "SF creative agency — branded entertainment, campaign production" },
   { company: "Venables Bell + Partners", kind: "Creative / Advertising Agency", careersUrl: "", websiteUrl: "https://venablesbell.com/careers/", focus: "SF independent agency — brand campaigns, integrated project management" },
   { company: "Droga5", kind: "Creative / Advertising Agency", careersUrl: "", websiteUrl: "https://droga5.com/careers/", focus: "Creative campaigns, integrated production" },
-  { company: "Giant Spoon", kind: "Creative / Advertising Agency", careersUrl: "https://job-boards.greenhouse.io/giantspoon", websiteUrl: "", focus: "Experiential, brand strategy, integrated production" },
+  // Giant Spoon's Greenhouse board answers 404 now and no replacement was
+  // found under any ATS; kept as a website target so a new board is discovered.
+  { company: "Giant Spoon", kind: "Creative / Advertising Agency", careersUrl: "", websiteUrl: "https://giantspoon.com/careers", focus: "Experiential, brand strategy, integrated production" },
 ];
 
 // Digital product, experience, and interactive shops: web and app builds,
 // design systems, digital campaign delivery.
 export const DIGITAL_AGENCY_PACK: readonly AgencyPackEntry[] = [
-  { company: "Instrument", kind: "Marketing Agency", careersUrl: "https://job-boards.greenhouse.io/instrument", websiteUrl: "", focus: "Digital product and brand experience, program and project management" },
+  // Instrument moved from Greenhouse to Lever; the old board answers 404.
+  { company: "Instrument", kind: "Marketing Agency", careersUrl: "https://jobs.lever.co/instrument", websiteUrl: "", focus: "Digital product and brand experience, program and project management" },
   { company: "R/GA", kind: "Marketing Agency", careersUrl: "", websiteUrl: "https://www.rga.com/careers", focus: "Digital product and campaign delivery, program management" },
   { company: "AKQA", kind: "Marketing Agency", careersUrl: "", websiteUrl: "https://www.akqa.com/careers/", focus: "Digital experience design and build, delivery management" },
   { company: "Huge", kind: "Marketing Agency", careersUrl: "", websiteUrl: "https://www.hugeinc.com/careers", focus: "Digital product and experience, program management" },
@@ -66,12 +69,13 @@ export const MARKETING_AGENCY_PACK: readonly AgencyPackEntry[] = [
   { company: "Highwire", kind: "Marketing Agency", careersUrl: "https://job-boards.greenhouse.io/highwire", websiteUrl: "", focus: "Communications and creative production leadership" },
   { company: "Ogilvy", kind: "Marketing Agency", careersUrl: "", websiteUrl: "https://www.ogilvy.com/careers", focus: "Brand and communications campaigns, account and project management" },
   { company: "Razorfish", kind: "Marketing Agency", careersUrl: "", websiteUrl: "https://www.razorfish.com/careers/", focus: "Brand and media campaigns, delivery and project management" },
-  { company: "Inizio Evoke", kind: "Marketing Agency", careersUrl: "", websiteUrl: "https://www.inizioevoke.com/careers/", focus: "Health and brand marketing, agency creative delivery" },
+  { company: "Inizio Evoke", kind: "Marketing Agency", careersUrl: "https://job-boards.greenhouse.io/inizioevoke", websiteUrl: "https://www.inizioevoke.com/careers/", focus: "Health and brand marketing, agency creative delivery" },
 ];
 
 // Content, experiential, and film production companies.
 export const PRODUCTION_AGENCY_PACK: readonly AgencyPackEntry[] = [
-  { company: "Buck", kind: "Production Company", careersUrl: "https://job-boards.greenhouse.io/buck", websiteUrl: "", focus: "Design and animation production, executive producing" },
+  // Buck's Greenhouse board answers 404 now; kept as a website target.
+  { company: "Buck", kind: "Production Company", careersUrl: "", websiteUrl: "https://buck.co/careers", focus: "Design and animation production, executive producing" },
   { company: "Jack Morton Worldwide", kind: "Production Company", careersUrl: "https://job-boards.greenhouse.io/jackmortonworldwide", websiteUrl: "", focus: "Experiential and conference production, executive producing" },
   { company: "George P. Johnson", kind: "Production Company", careersUrl: "", websiteUrl: "https://www.gpj.com/who-we-are/careers/", focus: "Live and experiential event production, senior producing" },
   { company: "Legs Media", kind: "Production Company", careersUrl: "", websiteUrl: "https://www.legsmedia.com/careers", focus: "Branded content and campaign production" },

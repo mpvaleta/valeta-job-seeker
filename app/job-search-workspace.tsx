@@ -24,6 +24,8 @@ type RadarPayload = {
   result?: {
     imported?: Array<{ url: string; title: string; company: string; score: number; status: "added" | "updated" }>;
     failures?: Array<{ url?: string; message: string }>;
+    added?: number;
+    updated?: number;
   };
 };
 
@@ -83,6 +85,7 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
   const [keywordDraft, setKeywordDraft] = useState("");
   const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([]);
   const [importLinks, setImportLinks] = useState("");
+  const [captureText, setCaptureText] = useState("");
   const [busy, setBusy] = useState("");
 
   // Hydrate after the first paint, not during it: the server has no
@@ -226,6 +229,49 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
     } catch (cause) {
       onError("job_search_import_failed", cause);
       onNotice(cause instanceof Error ? cause.message : "Those job links could not be read.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  // A captured results list is the JSON the browser companion (and the
+  // /capturar routine) produce from a page of search results the owner was
+  // already looking at. The rows are filed as given -- the server never fetches
+  // a LinkedIn or Indeed page -- through the same action the companion uses,
+  // but from inside the app, so no access token has to live anywhere else.
+  async function importCapturedList() {
+    let capture: { source?: string; rows?: unknown } | null = null;
+    try {
+      const parsed = JSON.parse(captureText) as { source?: string; rows?: unknown } | unknown[];
+      capture = Array.isArray(parsed) ? { rows: parsed } : parsed;
+    } catch {
+      onNotice("That is not a captured list. Use the browser companion’s “Capture results list” or the /capturar routine, then paste exactly what it copied.");
+      return;
+    }
+    // Same bounds the browser companion applies before it uploads, so a list
+    // assembled by hand or by the routine cannot exceed the route's body cap.
+    const rows = (Array.isArray(capture?.rows) ? capture.rows : []).slice(0, 100).map((row) => {
+      const entry = (row && typeof row === "object" ? row : {}) as Record<string, unknown>;
+      const text = (value: unknown, max: number) => String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max);
+      return { title: text(entry.title, 240), company: text(entry.company, 180), location: text(entry.location, 240), url: text(entry.url, 4_000), description: text(entry.description, 600) };
+    }).filter((row) => row.title && /^https?:\/\//i.test(row.url));
+    if (!rows.length) { onNotice("The captured list has no roles in it — each row needs a title and a link."); return; }
+    setBusy("capture");
+    try {
+      const response = await fetch("/api/radar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "import_linkedin_saved_jobs", source: capture?.source === "linkedin" ? "linkedin" : "captured", rows }),
+      });
+      const data = await readJsonResponse<RadarPayload>(response, "The captured list could not be filed.");
+      if (!response.ok || !data.ok) throw new Error(data.message || "The captured list could not be filed.");
+      const added = data.result?.added || 0;
+      const updated = data.result?.updated || 0;
+      setCaptureText("");
+      onNotice(`${added} new ${added === 1 ? "role" : "roles"} filed in the Job radar inbox${updated ? ` · ${updated} refreshed` : ""}.`);
+    } catch (cause) {
+      onError("job_search_capture_failed", cause);
+      onNotice(cause instanceof Error ? cause.message : "The captured list could not be filed.");
     } finally {
       setBusy("");
     }
@@ -391,6 +437,20 @@ export function JobSearchWorkspace({ onNotice, onError }: Props) {
             {busy === "import" ? "Reading job pages…" : "Import these roles"}
           </button>
           <small>Anything with a public job-details page works, including iCIMS career sites, Built In, Wellfound, and Work at a Startup. Links that fail stay in the box so you can retry just those.</small>
+        </div>
+        <label>Captured results list <small>paste what the companion or the /capturar routine copied</small>
+          <textarea
+            id="job-search-capture"
+            value={captureText}
+            onChange={(event) => setCaptureText(event.target.value)}
+            placeholder={'{"schema":"v-jobs-list-capture-v1","source":"linkedin","rows":[{"title":"…","company":"…","location":"…","url":"https://…"}]}'}
+          />
+        </label>
+        <div className="radar-import-actions">
+          <button id="job-search-capture-file" className="primary" onClick={importCapturedList} disabled={Boolean(busy) || !captureText.trim()}>
+            {busy === "capture" ? "Filing roles…" : "File this list"}
+          </button>
+          <small>A whole page of LinkedIn, Indeed or Google Jobs results at once — title, company, location and link per row. Nothing is fetched from those boards; the rows are filed exactly as captured and scored against your radar goals.</small>
         </div>
         <div className="radar-linkedin-bridge">
           <div>
