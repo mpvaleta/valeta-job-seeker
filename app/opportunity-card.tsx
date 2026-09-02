@@ -39,6 +39,10 @@ type Props = {
   minScore: number;
   onStatus: (opportunity: RadarOpportunity, status: RadarOpportunity["status"], reason?: DismissalReason) => void | Promise<void>;
   onPrepare?: (opportunity: RadarOpportunity) => void | Promise<void>;
+  // Present when the list offers bulk decisions. Without it the row renders
+  // exactly as it did before, with no checkbox.
+  selected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
 };
 
 /*
@@ -51,7 +55,7 @@ type Props = {
  * the radar workspace, so the search tab listed nothing — a captured role
  * disappeared into another tab, score and all.
  */
-export function OpportunityCard({ opportunity, minScore, onStatus, onPrepare }: Props) {
+export function OpportunityCard({ opportunity, minScore, onStatus, onPrepare, selected = false, onSelect }: Props) {
   const originLabel = opportunity.origin === "v-watch" ? "Suggested by V’s"
     : opportunity.origin === "imported" ? "Imported by you"
     : opportunity.origin === "captured" ? "Captured from a search"
@@ -62,8 +66,17 @@ export function OpportunityCard({ opportunity, minScore, onStatus, onPrepare }: 
     : opportunity.origin === "captured" ? "Captured from a results page you were reading"
     : opportunity.origin === "linkedin-saved" ? "From your official LinkedIn saved-jobs export"
     : "Found from a monitored company";
-  return <article className={opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}>
-    <div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div>
+  return <article className={`${opportunity.alignmentPasses ? "alignment-match" : "alignment-below"}${selected ? " selected" : ""}`}>
+    <div className="opportunity-lead">
+      {onSelect && <input
+        type="checkbox"
+        className="opportunity-select"
+        checked={selected}
+        aria-label={`Select ${opportunity.title} at ${opportunity.company}`}
+        onChange={(event) => onSelect(opportunity.id, event.target.checked)}
+      />}
+      <div className="opportunity-score"><strong>{opportunity.fitScore}</strong><span>{opportunity.alignmentPasses ? "match" : "below"}</span></div>
+    </div>
     <div className="opportunity-copy">
       <span>{opportunity.company} · {opportunity.location}</span>
       <h3>{opportunity.title}</h3>

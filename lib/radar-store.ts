@@ -365,6 +365,33 @@ export async function setRadarOpportunityStatus(db: D1Database, userId: string, 
 }
 
 /*
+ * The same decision on many rows at once.
+ *
+ * Working an inbox of two hundred roles one button at a time is the reason
+ * most of them never got a decision at all. This is the same write as the
+ * single-row version, batched: one request instead of two hundred, and the
+ * reason is recorded on every row so bulk decisions teach the scorer exactly
+ * as individual ones do.
+ */
+export async function setRadarOpportunityStatusBulk(db: D1Database, userId: string, opportunityIds: string[], status: string, reason?: string) {
+  await ensureListingColumns(db);
+  const normalized = normalizeOpportunityStatus(status);
+  const normalizedReason = normalized === "dismissed" ? normalizeDismissalReason(reason) : null;
+  const ids = [...new Set(opportunityIds.map((id) => clean(id, 100)).filter(Boolean))].slice(0, 200);
+  let updated = 0;
+  // D1 caps how many parameters one statement takes, so this goes out in
+  // batches rather than as a single enormous IN list.
+  for (let cursor = 0; cursor < ids.length; cursor += 80) {
+    const chunk = ids.slice(cursor, cursor + 80);
+    const result = await db.prepare(`UPDATE job_opportunities SET status = ?, dismissed_reason = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = ? AND id IN (${chunk.map(() => "?").join(", ")})`)
+      .bind(normalized, normalizedReason, userId, ...chunk).run();
+    updated += Number(result.meta?.changes ?? chunk.length);
+  }
+  return { status: normalized, reason: normalizedReason, updated };
+}
+
+/*
  * Reading back what the user has rejected.
  *
  * Capped well above the sample the learner needs, and ordered newest first, so
