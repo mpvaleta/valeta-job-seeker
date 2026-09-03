@@ -252,7 +252,15 @@ input,textarea,select{border-radius:12px}
 .radar-pagination select{min-height:30px;padding:4px 24px 4px 8px;font-size:10px}
 .radar-inbox-controls .control-label{align-self:center;margin-right:2px;color:#626268;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.06em}
 .transcript-prompt{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;border:1px solid #e0d6f5;border-radius:12px;background:#faf7ff;padding:11px 12px}.transcript-prompt strong{display:block;font-size:11px}.transcript-prompt span{display:block;margin-top:3px;color:#5d5470;font-size:10px;line-height:1.45}.transcript-prompt button{flex:none;border:1px solid #d8d9de;border-radius:999px;background:#fff;padding:6px 11px;font-size:10px;font-weight:850;cursor:pointer}
-.radar-learning{display:grid;gap:6px;margin-top:14px;border-radius:12px;background:#f5f4fb;padding:12px 13px}.radar-learning strong{font-size:11px}.radar-learning p{margin:0;color:#5a5570;font-size:10px;line-height:1.45}.radar-learning b{color:#3b3550}
+.radar-learning{display:grid;gap:6px;margin-top:14px;border-radius:12px;background:#f5f4fb;padding:12px 13px}
+.reply-panel{display:flex;align-items:flex-start;justify-content:space-between;gap:22px;flex-wrap:wrap;margin-bottom:18px;border:1px solid #dfdfe3;border-radius:18px;background:#fff;padding:18px 22px}
+.reply-panel.ready{border-color:#bcd9c6;background:linear-gradient(135deg,#f2faf5,#fff)}
+.reply-panel>div{display:grid;gap:5px;min-width:0}
+.reply-panel span{color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.reply-panel h3{margin:0;font-size:20px;letter-spacing:-.03em}
+.reply-panel p{margin:0;max-width:560px;color:#55555c;font-size:11px;line-height:1.5}
+.reply-signals{display:grid;gap:7px;justify-items:start;max-width:420px}
+.reply-signals button{border:1px solid #d8d9de;border-radius:999px;background:#fff;padding:7px 12px;font-size:10px;font-weight:850;cursor:pointer}.radar-learning strong{font-size:11px}.radar-learning p{margin:0;color:#5a5570;font-size:10px;line-height:1.45}.radar-learning b{color:#3b3550}
 .followup-alert{margin:6px 0 0;color:#9d5d00;font-size:11px;font-weight:800}
 .application-list article.followup-overdue{background:#fffaf3;box-shadow:inset 4px 0 #f0a121}
 .application-list label.followup-due input{border-color:#f0a121;background:#fff7ea}
