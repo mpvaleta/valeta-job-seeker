@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-09-02T17:12:46Z",
-  "lastRunAt": "2026-09-02 17:12:42",
+  "fetchedAt": "2026-09-03T01:07:37Z",
+  "lastRunAt": "2026-09-03 01:07:35",
   "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
@@ -12,10 +12,10 @@
     {
       "company": "72andSunny",
       "active": true,
-      "lastRunStatus": "completed",
+      "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 08:01:13",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-02 23:21:28",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "AKQA",
@@ -29,33 +29,33 @@
       "company": "Anthropic",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 33,
-      "lastCheckedAt": "2026-09-02 14:01:15",
-      "lastRunSummary": "Background scheduled scan · 573 verified roles read · 33 met the 45% minimum · 33 near misses kept · 84 filtered out by the role/market gates · 40 new (20 matching) · 1 source tried · 4 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 48,
+      "lastCheckedAt": "2026-09-03 01:07:12",
+      "lastRunSummary": "Manual scan · 578 verified roles read · 48 met the 45% minimum · 23 near misses kept · 79 filtered out by the role/market gates · 6 new (0 matching) · 1 source tried · 5 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Argonaut",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 14:01:21",
-      "lastRunSummary": "Background scheduled scan · 2 verified roles read · 0 met the 45% minimum · 0 near misses kept · 2 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-09-03 01:07:29",
+      "lastRunSummary": "Manual scan · 2 verified roles read · 0 met the 45% minimum · 0 near misses kept · 2 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Attentive",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 14:01:16",
-      "lastRunSummary": "Background scheduled scan · 36 verified roles read · 0 met the 45% minimum · 3 near misses kept · 33 filtered out by the role/market gates · 1 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-09-03 01:07:13",
+      "lastRunSummary": "Manual scan · 37 verified roles read · 0 met the 45% minimum · 3 near misses kept · 34 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Aventon",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-09-02 14:01:16",
-      "lastRunSummary": "Background scheduled scan · 9 verified roles read · 1 met the 45% minimum · 1 near misses kept · 7 filtered out by the role/market gates · 1 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-09-03 01:07:13",
+      "lastRunSummary": "Manual scan · 9 verified roles read · 1 met the 45% minimum · 1 near misses kept · 7 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "BSSP",
@@ -70,8 +70,8 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 14:01:25",
-      "lastRunSummary": "Background scheduled scan · 1 verified roles read · 0 met the 45% minimum · 0 near misses kept · 1 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
+      "lastCheckedAt": "2026-09-03 01:07:31",
+      "lastRunSummary": "Manual scan · 2 verified roles read · 0 met the 45% minimum · 0 near misses kept · 2 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
     },
     {
       "company": "Buck",
@@ -85,41 +85,41 @@
       "company": "Code and Theory",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 7,
-      "lastCheckedAt": "2026-09-02 16:01:15",
-      "lastRunSummary": "Background scheduled scan · 57 verified roles read · 7 met the 45% minimum · 0 near misses kept · 50 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
+      "lastRunFoundCount": 6,
+      "lastCheckedAt": "2026-09-03 01:07:35",
+      "lastRunSummary": "Manual scan · 58 verified roles read · 6 met the 45% minimum · 1 near misses kept · 51 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
     },
     {
       "company": "Droga5",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 06:01:10",
+      "lastCheckedAt": "2026-09-02 20:01:11",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Duncan Channon",
       "active": true,
-      "lastRunStatus": "completed",
+      "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 06:01:11",
+      "lastCheckedAt": "2026-09-02 20:01:15",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Edelman",
       "active": true,
-      "lastRunStatus": "completed",
+      "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 06:06:08",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-02 20:01:16",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Gantri",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-09-02 14:01:17",
-      "lastRunSummary": "Background scheduled scan · 9 verified roles read · 1 met the 45% minimum · 2 near misses kept · 6 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-09-03 01:07:14",
+      "lastRunSummary": "Manual scan · 9 verified roles read · 1 met the 45% minimum · 2 near misses kept · 6 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "George P. Johnson",
@@ -140,10 +140,10 @@
     {
       "company": "Goodby Silverstein & Partners",
       "active": true,
-      "lastRunStatus": "completed",
+      "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 06:06:10",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-02 20:01:27",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Google",
@@ -156,18 +156,18 @@
     {
       "company": "Highwire",
       "active": true,
-      "lastRunStatus": "completed",
-      "lastRunFoundCount": 23,
-      "lastCheckedAt": "2026-09-02 14:01:18",
-      "lastRunSummary": "Background scheduled scan · 84 verified roles read · 23 met the 45% minimum · 0 near misses kept · 61 filtered out by the role/market gates · 7 new (7 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastRunStatus": "failed",
+      "lastRunFoundCount": 0,
+      "lastCheckedAt": "2026-09-03 01:07:29",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Hinge Health",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-09-02 10:01:13",
-      "lastRunSummary": "Background scheduled scan · 66 verified roles read · 1 met the 45% minimum · 11 near misses kept · 54 filtered out by the role/market gates · 4 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
+      "lastCheckedAt": "2026-09-02 23:21:21",
+      "lastRunSummary": "App-open catch-up scan · 64 verified roles read · 1 met the 45% minimum · 11 near misses kept · 52 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "Huge",
@@ -182,15 +182,15 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 12:01:20",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-03 00:02:46",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Instrument",
       "active": true,
-      "lastRunStatus": "completed",
+      "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 06:01:08",
+      "lastCheckedAt": "2026-09-02 18:01:10",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -198,63 +198,63 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 13,
-      "lastCheckedAt": "2026-09-02 10:01:17",
-      "lastRunSummary": "Background scheduled scan · 77 verified roles read · 13 met the 45% minimum · 1 near misses kept · 63 filtered out by the role/market gates · 4 new (3 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-09-02 23:21:25",
+      "lastRunSummary": "App-open catch-up scan · 76 verified roles read · 13 met the 45% minimum · 1 near misses kept · 62 filtered out by the role/market gates · 3 new (3 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Legs Media",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 06:06:11",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 4 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-02 20:01:31",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Media.Monks",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 06:06:16",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-02 22:01:10",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 1 source fallback failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Mekanism",
       "active": true,
-      "lastRunStatus": "completed",
+      "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 07:12:07",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-02 22:01:14",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Ogilvy",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 07:12:13",
-      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 4 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-02 22:01:22",
+      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working sources: public-page. 4 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "OpenAI",
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 10:01:17",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-02 23:21:26",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Perplexity",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 5,
-      "lastCheckedAt": "2026-09-02 12:01:17",
-      "lastRunSummary": "Background scheduled scan · 100 verified roles read · 5 met the 45% minimum · 4 near misses kept · 91 filtered out by the role/market gates · 3 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
+      "lastRunFoundCount": 6,
+      "lastCheckedAt": "2026-09-03 00:02:28",
+      "lastRunSummary": "App-open catch-up scan · 112 verified roles read · 6 met the 45% minimum · 5 near misses kept · 101 filtered out by the role/market gates · 2 new (1 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
       "company": "R/GA",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 07:12:14",
+      "lastCheckedAt": "2026-09-02 23:21:27",
       "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -262,7 +262,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 10:01:20",
+      "lastCheckedAt": "2026-09-03 00:01:11",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -278,31 +278,31 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-09-02 14:01:11",
-      "lastRunSummary": "Background scheduled scan · 10 verified roles read · 1 met the 45% minimum · 0 near misses kept · 9 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-09-03 01:07:10",
+      "lastRunSummary": "Manual scan · 10 verified roles read · 1 met the 45% minimum · 0 near misses kept · 9 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "Tubi",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 5,
-      "lastCheckedAt": "2026-09-02 14:01:11",
-      "lastRunSummary": "Background scheduled scan · 33 verified roles read · 5 met the 45% minimum · 9 near misses kept · 19 filtered out by the role/market gates · 9 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 4,
+      "lastCheckedAt": "2026-09-03 01:07:11",
+      "lastRunSummary": "Manual scan · 33 verified roles read · 4 met the 45% minimum · 10 near misses kept · 19 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "VaynerMedia",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 7,
-      "lastCheckedAt": "2026-09-02 14:01:21",
-      "lastRunSummary": "Background scheduled scan · 76 verified roles read · 7 met the 45% minimum · 4 near misses kept · 65 filtered out by the role/market gates · 4 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-09-03 01:07:29",
+      "lastRunSummary": "Manual scan · 77 verified roles read · 7 met the 45% minimum · 4 near misses kept · 66 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Venables Bell + Partners",
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 10:01:23",
+      "lastCheckedAt": "2026-09-03 00:01:16",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -318,46 +318,163 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 12:01:18",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-03 00:02:29",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Work & Co",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-02 10:01:16",
-      "lastRunSummary": "Background scheduled scan · 1 verified roles read · 0 met the 45% minimum · 0 near misses kept · 1 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
+      "lastCheckedAt": "2026-09-02 23:21:24",
+      "lastRunSummary": "App-open catch-up scan · 1 verified roles read · 0 met the 45% minimum · 0 near misses kept · 1 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
     },
     {
       "company": "Wpromote",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 5,
-      "lastCheckedAt": "2026-09-02 10:01:16",
-      "lastRunSummary": "Background scheduled scan · 45 verified roles read · 5 met the 45% minimum · 2 near misses kept · 38 filtered out by the role/market gates · 3 new (1 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastRunFoundCount": 4,
+      "lastCheckedAt": "2026-09-02 23:21:25",
+      "lastRunSummary": "App-open catch-up scan · 44 verified roles read · 4 met the 45% minimum · 2 near misses kept · 38 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
       "company": "e.l.f. Cosmetics",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 13,
-      "lastCheckedAt": "2026-09-02 14:01:22",
-      "lastRunSummary": "Background scheduled scan · 73 verified roles read · 13 met the 45% minimum · 10 near misses kept · 50 filtered out by the role/market gates · 5 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-09-03 01:07:31",
+      "lastRunSummary": "Manual scan · 71 verified roles read · 13 met the 45% minimum · 7 near misses kept · 51 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     }
   ],
   "opportunities": [
     {
-      "id": "7ea397c6-d010-447a-91e4-432396804879",
-      "title": "Sr. Manager, Innovation Product Marketing, e.l.f. SKIN",
-      "company": "e.l.f. Cosmetics",
-      "location": "Oakland, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/a747713f-92cf-4c0f-9001-13b710120ccb",
-      "sourceType": "lever",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand, Senior Manager · goal overlap: brand, marketing · location: San Francisco Bay Area, United States",
+      "id": "f025a6ae-5c81-424a-9480-e390a36ff7bc",
+      "title": "Global Power Delivery Equipment Lead",
+      "company": "Anthropic",
+      "location": "Remote-Friendly, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5405748008",
+      "sourceType": "greenhouse",
+      "fitScore": 37,
+      "fitSummary": "37% target alignment · same work, different word: delivery ≈ project · goal overlap: agency, roles · location: United States",
       "status": "new",
       "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "f7a06627-7466-4006-8546-316f3086bf6d",
+      "title": "Technical Documentation and Content Engineer, Claude Docs",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5370615008",
+      "sourceType": "greenhouse",
+      "fitScore": 34,
+      "fitSummary": "34% target alignment · same work, different word: content ≈ production · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States · similar to roles you dismissed: engineer",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "98fe96fc-391d-4843-968d-47b440f2356a",
+      "title": "Front End Engineer, Marketing",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5386971008",
+      "sourceType": "greenhouse",
+      "fitScore": 33,
+      "fitSummary": "33% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand, agency · goal overlap: brand, marketing, agency, roles · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing, engineer",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "84149d72-2f85-4e64-8b87-41f1cdf1d442",
+      "title": "Data Scientist, Marketing",
+      "company": "Anthropic",
+      "location": "New York City, NY | Seattle, WA; San Francisco, CA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5161402008",
+      "sourceType": "greenhouse",
+      "fitScore": 31,
+      "fitSummary": "31% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency · goal overlap: marketing, agency, roles · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing, data",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "86881b03-deda-43ec-b369-67280441a9f3",
+      "title": "Reporting and Controls Lead, Data Center Capacity Delivery",
+      "company": "Anthropic",
+      "location": "Remote-Friendly, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5399379008",
+      "sourceType": "greenhouse",
+      "fitScore": 31,
+      "fitSummary": "31% target alignment · same work, different word: delivery ≈ project · skill in posting: project management, agency, cross-functional · goal overlap: agency, roles, cross-functional · location: United States · similar to roles you dismissed: center, data",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "7d583d66-5946-45d8-b55d-f111b4edc739",
+      "title": "US Regional Manager, Data Center Capacity Delivery",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5405913008",
+      "sourceType": "greenhouse",
+      "fitScore": 31,
+      "fitSummary": "31% target alignment · same work, different word: delivery ≈ project · skill in posting: project management, agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: center, data",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "18285019-d913-4cb2-8c4a-d48b3aa4a0c9",
+      "title": "Brand Designer, Growth",
+      "company": "Perplexity",
+      "location": "San Francisco · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/04d73be4-8a69-4e62-9b0d-e9b7968cf860",
+      "sourceType": "ashby",
+      "fitScore": 45,
+      "fitSummary": "45% target alignment · same line of work: brand · skill in title: brand · goal overlap: brand, marketing · location: San Francisco Bay Area · company type you usually dismiss",
+      "status": "dismissed",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "e29cf2bc-30dd-4f36-befc-d6ae4d593fc7",
+      "title": "Field Marketing Manager",
+      "company": "Perplexity",
+      "location": "San Francisco · Remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/d7e05546-4d42-4f1a-8ccd-c95d2519f5f6",
+      "sourceType": "ashby",
+      "fitScore": 35,
+      "fitSummary": "35% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area · company type you usually dismiss",
+      "status": "dismissed",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "6a015acd-60b4-400b-bb7f-b2c57eaf407e",
+      "title": "Copy of Executive Producer",
+      "company": "Jack Morton Worldwide",
+      "location": "Detroit, Michigan, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4392519009",
+      "sourceType": "greenhouse",
+      "fitScore": 83,
+      "fitSummary": "83% target alignment · target title: Producer · skill in title: Executive Producer · skill in posting: brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "fc475ea6-1545-4a2f-9def-ada5a146fc93",
+      "title": "Project/Production Coordinator (Trade Shows & Events)",
+      "company": "Jack Morton Worldwide",
+      "location": "Dayton, New Jersey, United States",
+      "sourceUrl": "https://job-boards.greenhouse.io/jackmortonworldwide/jobs/4393511009",
+      "sourceType": "greenhouse",
+      "fitScore": 62,
+      "fitSummary": "62% target alignment · same line of work: project, production · skill in posting: project management, brand, agency, cross-functional · goal overlap: brand, marketing, agency, meaningful · location: United States",
+      "status": "dismissed",
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -367,8 +484,8 @@
       "location": "Beverly Hills, CA",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/2781eaae-758c-478c-9058-2ac1f11e8062",
       "sourceType": "lever",
-      "fitScore": 39,
-      "fitSummary": "39% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand · goal overlap: brand, marketing · location: United States",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand · goal overlap: brand, marketing · like roles you missed: marketing, digital · location: United States · similar to roles you dismissed: marketing",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -395,7 +512,7 @@
       "sourceType": "lever",
       "fitScore": 39,
       "fitSummary": "39% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand · goal overlap: brand, marketing · location: San Francisco Bay Area, United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": false,
       "origin": "monitored"
     },
@@ -409,6 +526,19 @@
       "fitScore": 39,
       "fitSummary": "39% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand · goal overlap: brand, marketing · location: United States",
       "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "7ea397c6-d010-447a-91e4-432396804879",
+      "title": "Sr. Manager, Innovation Product Marketing, e.l.f. SKIN",
+      "company": "e.l.f. Cosmetics",
+      "location": "Oakland, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/a747713f-92cf-4c0f-9001-13b710120ccb",
+      "sourceType": "lever",
+      "fitScore": 31,
+      "fitSummary": "31% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand, Senior Manager · goal overlap: brand, marketing · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing, product",
+      "status": "dismissed",
       "alignmentPasses": false,
       "origin": "monitored"
     },
@@ -512,7 +642,7 @@
       "sourceType": "greenhouse",
       "fitScore": 47,
       "fitSummary": "47% target alignment · same work, different word: marketing ≈ brand · skill in posting: project management, brand, agency, cross-functional · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
-      "status": "new",
+      "status": "archived",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -556,27 +686,27 @@
       "origin": "monitored"
     },
     {
-      "id": "ab05f893-7ba1-48ed-88cc-451412640720",
-      "title": "Product Marketing Manager",
-      "company": "Aventon",
-      "location": "Brea, California",
-      "sourceUrl": "https://jobs.lever.co/aventon/2b1a34cc-51ef-4047-98c7-944eedbd4686",
-      "sourceType": "lever",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand · goal overlap: brand, marketing, roles · location: California, United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
       "id": "aff216ab-8ab3-45b9-b786-6966653f9581",
       "title": "Senior Partner Marketing Manager",
       "company": "Attentive",
       "location": "United States",
       "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4298392009",
       "sourceType": "greenhouse",
-      "fitScore": 33,
-      "fitSummary": "33% target alignment · same work, different word: marketing ≈ brand · skill in posting: cross-functional · goal overlap: marketing, meaningful, cross-functional · location: United States · company type you usually dismiss",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · same work, different word: marketing ≈ brand · skill in posting: cross-functional · goal overlap: marketing, meaningful, cross-functional · like roles you missed: marketing · location: United States · similar to roles you dismissed: marketing",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "ab05f893-7ba1-48ed-88cc-451412640720",
+      "title": "Product Marketing Manager",
+      "company": "Aventon",
+      "location": "Brea, California",
+      "sourceUrl": "https://jobs.lever.co/aventon/2b1a34cc-51ef-4047-98c7-944eedbd4686",
+      "sourceType": "lever",
+      "fitScore": 31,
+      "fitSummary": "31% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand · goal overlap: brand, marketing, roles · like roles you missed: marketing · location: California, United States · similar to roles you dismissed: marketing, product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -588,9 +718,9 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5389945008",
       "sourceType": "greenhouse",
-      "fitScore": 66,
-      "fitSummary": "66% target alignment · target title: Operations Lead · skill in posting: project management, agency · goal overlap: marketing, agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
+      "fitScore": 71,
+      "fitSummary": "71% target alignment · target title: Operations Lead · skill in posting: project management, agency · goal overlap: marketing, agency, roles · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
+      "status": "reviewing",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -601,8 +731,8 @@
       "location": "Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390964008",
       "sourceType": "greenhouse",
-      "fitScore": 59,
-      "fitSummary": "59% target alignment · same line of work: program, operations · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 67,
+      "fitSummary": "67% target alignment · same line of work: program, operations · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -614,8 +744,8 @@
       "location": "San Francisco, CA | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5256303008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -627,8 +757,8 @@
       "location": "San Francisco, CA | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5251609008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -640,8 +770,8 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5406817008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -653,8 +783,8 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5201264008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -666,8 +796,8 @@
       "location": "San Francisco, CA | New York City, NY | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5138044008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -679,8 +809,8 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5301958008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -692,8 +822,8 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5413314008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -705,8 +835,8 @@
       "location": "San Francisco, CA | New York City, NY | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5111783008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -718,8 +848,8 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5208193008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -731,8 +861,8 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5298359008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -744,73 +874,8 @@
       "location": "San Francisco, CA | New York City, NY | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/4989788008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "8bddae98-ae68-4b01-bc44-fdb6757be778",
-      "title": "Technical Program Manager, Hardware Systems",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5380379008",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "39aada64-65f1-414d-9076-003866a4a458",
-      "title": "Technical Program Manager, Research",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5203545008",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: marketing, agency, roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "fbe31211-6ff1-4dbb-9132-0ac43d0232f7",
-      "title": "Technical Program Manager, Safeguards (Infrastructure & Evals)",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5108695008",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "d97db1a1-95fd-40c5-bd11-138e83645ee4",
-      "title": "Technical Program Manager, Silicon",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5380377008",
-      "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "545005e0-5d5d-4534-b99d-28241949730f",
-      "title": "Repairs Program Lead - Data Center Operations",
-      "company": "Anthropic",
-      "location": "Remote-Friendly (Travel Required) | San Francisco, CA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5399160008",
-      "sourceType": "greenhouse",
-      "fitScore": 48,
-      "fitSummary": "48% target alignment · target title: Operations Lead · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: center, data",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -822,8 +887,73 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5368023008",
       "sourceType": "greenhouse",
-      "fitScore": 47,
-      "fitSummary": "47% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles · like roles you missed: gtm · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "8bddae98-ae68-4b01-bc44-fdb6757be778",
+      "title": "Technical Program Manager, Hardware Systems",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5380379008",
+      "sourceType": "greenhouse",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "39aada64-65f1-414d-9076-003866a4a458",
+      "title": "Technical Program Manager, Research",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5203545008",
+      "sourceType": "greenhouse",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: marketing, agency, roles, ownership · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "fbe31211-6ff1-4dbb-9132-0ac43d0232f7",
+      "title": "Technical Program Manager, Safeguards (Infrastructure & Evals)",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5108695008",
+      "sourceType": "greenhouse",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "d97db1a1-95fd-40c5-bd11-138e83645ee4",
+      "title": "Technical Program Manager, Silicon",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5380377008",
+      "sourceType": "greenhouse",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "545005e0-5d5d-4534-b99d-28241949730f",
+      "title": "Repairs Program Lead - Data Center Operations",
+      "company": "Anthropic",
+      "location": "Remote-Friendly (Travel Required) | San Francisco, CA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5399160008",
+      "sourceType": "greenhouse",
+      "fitScore": 56,
+      "fitSummary": "56% target alignment · target title: Operations Lead · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: center, data",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -835,8 +965,8 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5380327008",
       "sourceType": "greenhouse",
-      "fitScore": 47,
-      "fitSummary": "47% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 55,
+      "fitSummary": "55% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -848,10 +978,10 @@
       "location": "San Francisco, CA | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5251612008",
       "sourceType": "greenhouse",
-      "fitScore": 44,
-      "fitSummary": "44% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: data",
+      "fitScore": 52,
+      "fitSummary": "52% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: data",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -861,166 +991,10 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5284500008",
       "sourceType": "greenhouse",
-      "fitScore": 42,
-      "fitSummary": "42% target alignment · same line of work: operations · skill in posting: agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · same line of work: operations · skill in posting: agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "53df587f-3512-4ebb-af7a-5518930fe37e",
-      "title": "Strategic Sourcing Business Partner, R&D Operations",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | Seattle, WA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5394993008",
-      "sourceType": "greenhouse",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · same line of work: operations · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "fe00859f-cb4d-42c6-97f8-5fe0ec77b557",
-      "title": "Threat Intel Manager, Influence Operations & Surveillance",
-      "company": "Anthropic",
-      "location": "San Francisco, CA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5302779008",
-      "sourceType": "greenhouse",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · same line of work: operations · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "b12104f6-7882-4234-9ba0-0169c88c41d6",
-      "title": "Communications Lead, Enterprise",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5164551008",
-      "sourceType": "greenhouse",
-      "fitScore": 37,
-      "fitSummary": "37% target alignment · same work, different word: communications ≈ brand · skill in posting: project management, agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "8b9fd45b-f74e-40ea-867f-9fdf3e67baf8",
-      "title": "Customer Marketing Manager, Industries",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390155008",
-      "sourceType": "greenhouse",
-      "fitScore": 37,
-      "fitSummary": "37% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand, agency, cross-functional · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "05694d23-467b-4ff9-8bcb-5bf989299897",
-      "title": "Enterprise Integrated Campaign Manager",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391995008",
-      "sourceType": "greenhouse",
-      "fitScore": 37,
-      "fitSummary": "37% target alignment · same work, different word: campaign ≈ brand · skill in posting: project management, agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "a5f7a350-6519-478e-93e5-928d9d61f880",
-      "title": "Head of Community, Enterprise Marketing",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5388719008",
-      "sourceType": "greenhouse",
-      "fitScore": 37,
-      "fitSummary": "37% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand, agency, cross-functional · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "a7b3baec-dd71-4575-9ada-c5da49d07843",
-      "title": "Technical Program Manager, Data Center Infrastructure",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5013743008",
-      "sourceType": "greenhouse",
-      "fitScore": 37,
-      "fitSummary": "37% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: center, data",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "7201f7e1-6270-43d1-9e41-829386220234",
-      "title": "Field Marketing Lead, Public Sector",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | Washington, DC",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5344577008",
-      "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "be7622f3-5835-4505-af89-971d26ae36c9",
-      "title": "Internal Communications Manager, Tech",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | Seattle, WA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5383388008",
-      "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · same work, different word: communications ≈ brand · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "e2b99273-643a-41c5-a506-4ffeddd6d25f",
-      "title": "Partner Marketing Lead, Cloud",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | Seattle, WA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5406113008",
-      "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "135fc19c-38e1-48e7-bea7-a76415ca5dc5",
-      "title": "Partner Marketing Manager, Launches",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | Seattle, WA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5388667008",
-      "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "4fb28099-168c-4348-aaaa-03487bb6ba8b",
-      "title": "Solutions Marketing Lead, Public Sector",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5385586008",
-      "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -1030,34 +1004,86 @@
       "location": "New York City, NY; San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5041290008",
       "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 47,
+      "fitSummary": "47% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · like roles you missed: marketing · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
-      "id": "8687ea49-779b-4f8a-b807-18299dd43929",
-      "title": "Communications Lead, Platform",
+      "id": "53df587f-3512-4ebb-af7a-5518930fe37e",
+      "title": "Strategic Sourcing Business Partner, R&D Operations",
       "company": "Anthropic",
-      "location": "New York City, NY; San Francisco, CA; Seattle, WA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5240487008",
+      "location": "San Francisco, CA | Seattle, WA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5394993008",
       "sourceType": "greenhouse",
-      "fitScore": 33,
-      "fitSummary": "33% target alignment · same work, different word: communications ≈ brand · skill in posting: agency · goal overlap: marketing, agency, roles, meaningful · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 46,
+      "fitSummary": "46% target alignment · same line of work: operations · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
-      "id": "a4604c70-7f8b-4b2d-9390-86d68955bbd4",
-      "title": "Product Manager, New Markets and Monetization",
+      "id": "fe00859f-cb4d-42c6-97f8-5fe0ec77b557",
+      "title": "Threat Intel Manager, Influence Operations & Surveillance",
       "company": "Anthropic",
       "location": "San Francisco, CA",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5386182008",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5302779008",
       "sourceType": "greenhouse",
-      "fitScore": 33,
-      "fitSummary": "33% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 46,
+      "fitSummary": "46% target alignment · same line of work: operations · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "b12104f6-7882-4234-9ba0-0169c88c41d6",
+      "title": "Enterprise Communications",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5164551008",
+      "sourceType": "greenhouse",
+      "fitScore": 45,
+      "fitSummary": "45% target alignment · same work, different word: communications ≈ brand · skill in posting: project management, agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "05694d23-467b-4ff9-8bcb-5bf989299897",
+      "title": "Enterprise Integrated Campaign Manager",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391995008",
+      "sourceType": "greenhouse",
+      "fitScore": 45,
+      "fitSummary": "45% target alignment · same work, different word: campaign ≈ brand · skill in posting: project management, agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "a7b3baec-dd71-4575-9ada-c5da49d07843",
+      "title": "Technical Program Manager, Data Center Infrastructure",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY | Seattle, WA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5013743008",
+      "sourceType": "greenhouse",
+      "fitScore": 45,
+      "fitSummary": "45% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: center, data",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "be7622f3-5835-4505-af89-971d26ae36c9",
+      "title": "Internal Communications Manager, Tech",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5383388008",
+      "sourceType": "greenhouse",
+      "fitScore": 43,
+      "fitSummary": "43% target alignment · same work, different word: communications ≈ brand · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -1069,21 +1095,125 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5364336008",
       "sourceType": "greenhouse",
-      "fitScore": 31,
-      "fitSummary": "31% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 43,
+      "fitSummary": "43% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency · goal overlap: agency, roles · like roles you missed: marketing · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "8b9fd45b-f74e-40ea-867f-9fdf3e67baf8",
+      "title": "Customer Marketing Manager, Industries",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390155008",
+      "sourceType": "greenhouse",
+      "fitScore": 42,
+      "fitSummary": "42% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand, agency, cross-functional · goal overlap: brand, marketing, agency, roles · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "a5f7a350-6519-478e-93e5-928d9d61f880",
+      "title": "Head of Community, Enterprise Marketing",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5388719008",
+      "sourceType": "greenhouse",
+      "fitScore": 42,
+      "fitSummary": "42% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand, agency, cross-functional · goal overlap: brand, marketing, agency, roles · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "8687ea49-779b-4f8a-b807-18299dd43929",
+      "title": "Platform Communications",
+      "company": "Anthropic",
+      "location": "New York City, NY; San Francisco, CA; Seattle, WA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5240487008",
+      "sourceType": "greenhouse",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · same work, different word: communications ≈ brand · skill in posting: agency · goal overlap: marketing, agency, roles, meaningful · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "7201f7e1-6270-43d1-9e41-829386220234",
+      "title": "Field Marketing Lead, Public Sector",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Washington, DC",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5344577008",
+      "sourceType": "greenhouse",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand, agency · goal overlap: brand, marketing, agency, roles · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "e2b99273-643a-41c5-a506-4ffeddd6d25f",
+      "title": "Partner Marketing Lead, Cloud",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5406113008",
+      "sourceType": "greenhouse",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "135fc19c-38e1-48e7-bea7-a76415ca5dc5",
+      "title": "Partner Marketing Manager, Launches",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | Seattle, WA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5388667008",
+      "sourceType": "greenhouse",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "4fb28099-168c-4348-aaaa-03487bb6ba8b",
+      "title": "Solutions Marketing Lead, Public Sector",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5385586008",
+      "sourceType": "greenhouse",
+      "fitScore": 40,
+      "fitSummary": "40% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
     },
     {
       "id": "b30a09a7-e9f2-459f-9459-d30e07f1357b",
-      "title": "Policy Communications Manager",
+      "title": "Policy Communications",
       "company": "Anthropic",
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5254582008",
       "sourceType": "greenhouse",
-      "fitScore": 31,
-      "fitSummary": "31% target alignment · same work, different word: communications ≈ brand · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 39,
+      "fitSummary": "39% target alignment · same work, different word: communications ≈ brand · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "a4604c70-7f8b-4b2d-9390-86d68955bbd4",
+      "title": "Product Manager, New Markets and Monetization",
+      "company": "Anthropic",
+      "location": "San Francisco, CA",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5386182008",
+      "sourceType": "greenhouse",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · same work, different word: marketing ≈ brand · skill in posting: agency · goal overlap: agency, roles, ownership · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -1095,8 +1225,8 @@
       "location": "San Francisco, CA | New York City, NY | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/4613592008",
       "sourceType": "greenhouse",
-      "fitScore": 31,
-      "fitSummary": "31% target alignment · same line of work: production · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: engineer",
+      "fitScore": 32,
+      "fitSummary": "32% target alignment · same line of work: production · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: engineer, product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -1128,32 +1258,6 @@
       "origin": "monitored"
     },
     {
-      "id": "fda90843-afb6-4dfc-ada6-303a2ba75f9f",
-      "title": "Senior Manager, Creator Marketing",
-      "company": "Tubi",
-      "location": "Los Angeles, CA (Hybrid)",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8145044",
-      "sourceType": "greenhouse",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · same work, different word: marketing ≈ brand · skill in posting: cross-functional · goal overlap: marketing, roles, cross-functional · location: United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "bcb1e95d-05b1-4e0c-9d8a-fb222ce66939",
-      "title": "Vice President, Associate General Counsel, Marketing Legal",
-      "company": "Tubi",
-      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid)",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8069234",
-      "sourceType": "greenhouse",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · same work, different word: marketing ≈ brand · skill in posting: cross-functional · goal overlap: advertising, marketing, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
       "id": "1a542389-a8ba-439d-95b5-b27a0e3f7646",
       "title": "Associate, Content Valuation",
       "company": "Tubi",
@@ -1167,14 +1271,53 @@
       "origin": "monitored"
     },
     {
-      "id": "5b451963-1fcf-49e7-af52-744aef096e9f",
-      "title": "Coordinator, Original Content",
+      "id": "4aecd6df-34f3-4025-a747-4870cbc51fc3",
+      "title": "Director, Associate General Counsel, Sales & Growth (Advertising Technology)",
       "company": "Tubi",
-      "location": "Los Angeles, CA (On-Site)",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8073257",
+      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid); USA - Remote",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/7982554",
       "sourceType": "greenhouse",
-      "fitScore": 37,
-      "fitSummary": "37% target alignment · same work, different word: content ≈ production · skill in posting: agency · goal overlap: agency · location: United States",
+      "fitScore": 39,
+      "fitSummary": "39% target alignment · same work, different word: advertising ≈ brand · goal overlap: advertising · like roles you missed: growth · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "5d2b1359-061a-4498-b00c-3e96ba8555a1",
+      "title": "Senior Counsel, Sales & Growth (Advertising Technology)",
+      "company": "Tubi",
+      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid); USA - Remote",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/7230804",
+      "sourceType": "greenhouse",
+      "fitScore": 39,
+      "fitSummary": "39% target alignment · same work, different word: advertising ≈ brand · goal overlap: advertising · like roles you missed: growth · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "fda90843-afb6-4dfc-ada6-303a2ba75f9f",
+      "title": "Senior Manager, Creator Marketing",
+      "company": "Tubi",
+      "location": "Los Angeles, CA (Hybrid)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8145044",
+      "sourceType": "greenhouse",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · same work, different word: marketing ≈ brand · skill in posting: cross-functional · goal overlap: marketing, roles, cross-functional · like roles you missed: marketing · location: United States · similar to roles you dismissed: marketing",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "bcb1e95d-05b1-4e0c-9d8a-fb222ce66939",
+      "title": "Vice President, Associate General Counsel, Marketing Legal",
+      "company": "Tubi",
+      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8069234",
+      "sourceType": "greenhouse",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · same work, different word: marketing ≈ brand · skill in posting: cross-functional · goal overlap: advertising, marketing, cross-functional · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -1193,27 +1336,14 @@
       "origin": "monitored"
     },
     {
-      "id": "4aecd6df-34f3-4025-a747-4870cbc51fc3",
-      "title": "Director, Associate General Counsel, Sales & Growth (Advertising Technology)",
+      "id": "5b451963-1fcf-49e7-af52-744aef096e9f",
+      "title": "Coordinator, Original Content",
       "company": "Tubi",
-      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid); USA - Remote",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/7982554",
+      "location": "Los Angeles, CA (On-Site)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8073257",
       "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · same work, different word: advertising ≈ brand · goal overlap: advertising · location: San Francisco Bay Area, United States",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
-      "id": "5d2b1359-061a-4498-b00c-3e96ba8555a1",
-      "title": "Senior Counsel, Sales & Growth (Advertising Technology)",
-      "company": "Tubi",
-      "location": "San Francisco, CA; Los Angeles, CA; New York, NY (Hybrid); USA - Remote",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/7230804",
-      "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · same work, different word: advertising ≈ brand · goal overlap: advertising · location: San Francisco Bay Area, United States",
+      "fitScore": 30,
+      "fitSummary": "30% target alignment · same work, different word: content ≈ production · skill in posting: agency · goal overlap: agency · location: United States · similar to roles you dismissed: coordinator",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -1656,7 +1786,7 @@
       "sourceType": "linkedin-saved",
       "fitScore": 77,
       "fitSummary": "77% target alignment · target title: Producer, Creative Producer · skill in title: brand · goal overlap: brand, creative-production · location: San Francisco Bay Area, United States · Scored from the job page you captured in your own browser.",
-      "status": "new",
+      "status": "reviewing",
       "alignmentPasses": true,
       "origin": "linkedin-saved"
     },
@@ -1825,7 +1955,7 @@
       "sourceType": "v-watch",
       "fitScore": 82,
       "fitSummary": "Verified July 23, 2026. Strong but ambitious fit combining brand strategy, creative execution, launches, agencies, partnerships, and marketing operating systems. Direct consumer-brand positioning and commercial-growth ownership need strong evidence.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -1838,7 +1968,7 @@
       "sourceType": "v-watch",
       "fitScore": 86,
       "fitSummary": "Verified July 21, 2026. Good fit across complex events, budgets, vendors, agency management, process design, stakeholder communications, and post-event analysis. Enterprise pipeline and ABM ownership are the main evidence gaps; travel is substantial.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -1851,7 +1981,7 @@
       "sourceType": "v-watch",
       "fitScore": 72,
       "fitSummary": "Verified July 21, 2026. Stretch opportunity with relevant agency liaison, production governance, budgeting, risk mitigation, and creative/legal coordination. Business-affairs contracting and production-rights experience require direct evidence.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": false,
       "origin": "v-watch"
     },
@@ -1901,8 +2031,8 @@
       "location": "Oakland, CA",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/a750ff48-953c-4618-b39f-433431e5468d",
       "sourceType": "lever",
-      "fitScore": 44,
-      "fitSummary": "44% target alignment · same line of work: operations · skill in posting: brand · goal overlap: brand · location: San Francisco Bay Area, United States",
+      "fitScore": 37,
+      "fitSummary": "37% target alignment · same line of work: operations · skill in posting: brand · goal overlap: brand · location: San Francisco Bay Area, United States · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -1927,8 +2057,8 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5379593008",
       "sourceType": "greenhouse",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · same line of work: production · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 39,
+      "fitSummary": "39% target alignment · same line of work: production · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -1966,21 +2096,8 @@
       "location": "Location not listed",
       "sourceUrl": "https://www.codeandtheory.com/careers/8578668002",
       "sourceType": "public-careers-page",
-      "fitScore": 59,
-      "fitSummary": "59% target alignment · target title: Project Manager · skill in title: project management · location not listed — market unconfirmed",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "f097ffef-64a9-4b84-a6c0-38360ef699de",
-      "title": "Associate Director, Production, Marcom (US)",
-      "company": "Code and Theory",
-      "location": "New York City, NY, US",
-      "sourceUrl": "https://www.codeandtheory.com/careers/8351902002",
-      "sourceType": "structured-job-page",
       "fitScore": 52,
-      "fitSummary": "52% target alignment · same line of work: production · skill in posting: project management, agency, cross-functional · goal overlap: agency, cross-functional, delivery. · location: United States",
+      "fitSummary": "52% target alignment · target title: Project Manager · skill in title: project management · location not listed — market unconfirmed · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -2012,16 +2129,29 @@
       "origin": "monitored"
     },
     {
+      "id": "f097ffef-64a9-4b84-a6c0-38360ef699de",
+      "title": "Associate Director, Production, Marcom (US)",
+      "company": "Code and Theory",
+      "location": "New York City, NY, US",
+      "sourceUrl": "https://www.codeandtheory.com/careers/8351902002",
+      "sourceType": "structured-job-page",
+      "fitScore": 45,
+      "fitSummary": "45% target alignment · same line of work: production · skill in posting: project management, agency, cross-functional · goal overlap: agency, cross-functional, delivery. · location: United States · similar to roles you dismissed: product",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
       "id": "109a8a39-4d7a-472f-875a-cc5f3a571d2c",
       "title": "Program Director, Product (US)",
       "company": "Code and Theory",
       "location": "New York City, NY, US",
       "sourceUrl": "https://www.codeandtheory.com/careers/8199909002",
       "sourceType": "structured-job-page",
-      "fitScore": 48,
-      "fitSummary": "48% target alignment · same line of work: program · skill in posting: project management, agency · goal overlap: agency, ownership · location: United States",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · same line of work: program · skill in posting: project management, agency · goal overlap: agency, ownership · location: United States · similar to roles you dismissed: product",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -2096,8 +2226,8 @@
       "location": "Oakland, CA",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/116efa37-dcd6-4923-9629-a3c320b584e2",
       "sourceType": "lever",
-      "fitScore": 41,
-      "fitSummary": "41% target alignment · same line of work: operations · skill in posting: brand, cross-functional · goal overlap: brand, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: data",
+      "fitScore": 34,
+      "fitSummary": "34% target alignment · same line of work: operations · skill in posting: brand, cross-functional · goal overlap: brand, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: data, product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -2564,10 +2694,10 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390980008",
       "sourceType": "greenhouse",
-      "fitScore": 44,
-      "fitSummary": "44% target alignment · same line of work: program · skill in posting: project management, agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 56,
+      "fitSummary": "56% target alignment · same line of work: program · skill in posting: project management, agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · like roles you missed: gtm · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -2577,10 +2707,10 @@
       "location": "Remote-Friendly (Travel Required) | San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390976008",
       "sourceType": "greenhouse",
-      "fitScore": 42,
-      "fitSummary": "42% target alignment · same line of work: program · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 54,
+      "fitSummary": "54% target alignment · same line of work: program · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, ownership · like roles you missed: gtm · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -2590,10 +2720,10 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5238460008",
       "sourceType": "greenhouse",
-      "fitScore": 37,
-      "fitSummary": "37% target alignment · same line of work: operations · skill in posting: project management, agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: data",
+      "fitScore": 45,
+      "fitSummary": "45% target alignment · same line of work: operations · skill in posting: project management, agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · similar to roles you dismissed: data",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -2616,8 +2746,8 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5400362008",
       "sourceType": "greenhouse",
-      "fitScore": 68,
-      "fitSummary": "68% target alignment · target title: Operations Lead · skill in posting: project management, agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 76,
+      "fitSummary": "76% target alignment · target title: Operations Lead · skill in posting: project management, agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -2642,8 +2772,8 @@
       "location": "San Leandro, CA",
       "sourceUrl": "https://jobs.lever.co/Gantri/d5010591-b862-422e-a9a0-e758f9602c90",
       "sourceType": "lever",
-      "fitScore": 40,
-      "fitSummary": "40% target alignment · same line of work: production · location: San Francisco Bay Area, United States",
+      "fitScore": 33,
+      "fitSummary": "33% target alignment · same line of work: production · location: San Francisco Bay Area, United States · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -2655,8 +2785,8 @@
       "location": "Remote-Friendly, United States",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5399162008",
       "sourceType": "greenhouse",
-      "fitScore": 35,
-      "fitSummary": "35% target alignment · same line of work: operations · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: United States · similar to roles you dismissed: engineer",
+      "fitScore": 36,
+      "fitSummary": "36% target alignment · same line of work: operations · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: United States · similar to roles you dismissed: engineer, product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -2759,8 +2889,8 @@
       "location": "Remote-Friendly (Travel Required) | San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5398280008",
       "sourceType": "greenhouse",
-      "fitScore": 50,
-      "fitSummary": "50% target alignment · target title: Operations Lead · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States · similar to roles you dismissed: center, data",
+      "fitScore": 58,
+      "fitSummary": "58% target alignment · target title: Operations Lead · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States · similar to roles you dismissed: center, data",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -2785,10 +2915,10 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5390952008",
       "sourceType": "greenhouse",
-      "fitScore": 42,
-      "fitSummary": "42% target alignment · same line of work: operations · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 54,
+      "fitSummary": "54% target alignment · same line of work: operations · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, ownership · like roles you missed: gtm · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -2798,8 +2928,8 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391012008",
       "sourceType": "greenhouse",
-      "fitScore": 31,
-      "fitSummary": "31% target alignment · same line of work: program · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: engineer",
+      "fitScore": 39,
+      "fitSummary": "39% target alignment · same line of work: program · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: engineer",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -2811,8 +2941,8 @@
       "location": "New York, NY",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/3b5afee0-8d10-41b9-bb95-99cf1b95e1a9",
       "sourceType": "lever",
-      "fitScore": 44,
-      "fitSummary": "44% target alignment · same line of work: production · skill in posting: brand · goal overlap: brand · location: United States",
+      "fitScore": 37,
+      "fitSummary": "37% target alignment · same line of work: production · skill in posting: brand · goal overlap: brand · location: United States · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -2824,8 +2954,8 @@
       "location": "Beverly Hills, CA",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/b2942c92-e6a1-49a8-a66f-b91c8266402a",
       "sourceType": "lever",
-      "fitScore": 44,
-      "fitSummary": "44% target alignment · same line of work: production · skill in posting: brand · goal overlap: brand · location: United States",
+      "fitScore": 37,
+      "fitSummary": "37% target alignment · same line of work: production · skill in posting: brand · goal overlap: brand · location: United States · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -2834,7 +2964,7 @@
       "id": "8b790635-3acd-460e-9877-045fd5299e31",
       "title": "Program Manager, Visual Merchandising, Finance",
       "company": "e.l.f. Cosmetics",
-      "location": "New York, NY",
+      "location": "United States - Remote",
       "sourceUrl": "https://jobs.lever.co/elfbeauty/bbb903ab-1916-428a-9f01-3c0125ce158f",
       "sourceType": "lever",
       "fitScore": 57,
@@ -2857,19 +2987,6 @@
       "origin": "monitored"
     },
     {
-      "id": "b71b6bd6-b3ad-4927-a0d4-536ca3008a2e",
-      "title": "Associate Director, Brand Marketing, Body Category, Naturium",
-      "company": "e.l.f. Cosmetics",
-      "location": "Los Angeles, CA",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/d2750fa0-e6e2-4308-89b1-12a71739f16a",
-      "sourceType": "lever",
-      "fitScore": 62,
-      "fitSummary": "62% target alignment · same line of work: brand · skill in title: brand, Brand Marketing · goal overlap: brand, marketing · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "21276439-7b77-484f-83a4-03d4b62fbd0c",
       "title": "Senior Manager, Finance, e.l.f. Brands",
       "company": "e.l.f. Cosmetics",
@@ -2879,6 +2996,19 @@
       "fitScore": 59,
       "fitSummary": "59% target alignment · same line of work: brand · skill in title: Senior Manager · skill in posting: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: San Francisco Bay Area, United States",
       "status": "dismissed",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "b71b6bd6-b3ad-4927-a0d4-536ca3008a2e",
+      "title": "Associate Director, Brand Marketing, Body Category, Naturium",
+      "company": "e.l.f. Cosmetics",
+      "location": "Los Angeles, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/d2750fa0-e6e2-4308-89b1-12a71739f16a",
+      "sourceType": "lever",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: brand · skill in title: brand, Brand Marketing · goal overlap: brand, marketing · like roles you missed: marketing · location: United States · similar to roles you dismissed: marketing",
+      "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -2896,6 +3026,19 @@
       "origin": "monitored"
     },
     {
+      "id": "428d71fc-54d2-41fd-82af-3f339ccad4db",
+      "title": "Associate Manager, Digital Commerce & TikTok Shop Operations",
+      "company": "e.l.f. Cosmetics",
+      "location": "New York, NY",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/fcd522c3-7cfd-4130-9dba-1464a17c7c2a",
+      "sourceType": "lever",
+      "fitScore": 54,
+      "fitSummary": "54% target alignment · same line of work: operations · skill in posting: brand, cross-functional · goal overlap: brand, marketing, cross-functional · like roles you missed: digital · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
       "id": "00314342-eced-4b47-aef5-7be39760b5dc",
       "title": "Manager, Brand Partnerships & Campaigns",
       "company": "e.l.f. Cosmetics",
@@ -2904,19 +3047,6 @@
       "sourceType": "lever",
       "fitScore": 53,
       "fitSummary": "53% target alignment · same line of work: brand · skill in title: brand · goal overlap: brand, marketing · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "428d71fc-54d2-41fd-82af-3f339ccad4db",
-      "title": "Associate Manager, Digital Commerce & TikTok Shop Operations",
-      "company": "e.l.f. Cosmetics",
-      "location": "New York, NY",
-      "sourceUrl": "https://jobs.lever.co/elfbeauty/fcd522c3-7cfd-4130-9dba-1464a17c7c2a",
-      "sourceType": "lever",
-      "fitScore": 50,
-      "fitSummary": "50% target alignment · same line of work: operations · skill in posting: brand, cross-functional · goal overlap: brand, marketing, cross-functional · location: United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -3006,10 +3136,10 @@
       "location": "Los Angeles, CA (Hybrid)",
       "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8109778",
       "sourceType": "greenhouse",
-      "fitScore": 50,
-      "fitSummary": "50% target alignment · same line of work: production · skill in posting: brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional · location: United States",
+      "fitScore": 43,
+      "fitSummary": "43% target alignment · same line of work: production · skill in posting: brand, cross-functional · goal overlap: brand, marketing, ownership, cross-functional · location: United States · similar to roles you dismissed: product",
       "status": "new",
-      "alignmentPasses": true,
+      "alignmentPasses": false,
       "origin": "monitored"
     },
     {
@@ -3021,7 +3151,7 @@
       "sourceType": "lever",
       "fitScore": 23,
       "fitSummary": "23% target alignment · target title: Producer · goal overlap: sports · outside the target market (Manchester) — location filter",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": false,
       "origin": "monitored"
     },
@@ -3058,8 +3188,8 @@
       "location": "San Leandro, CA",
       "sourceUrl": "https://jobs.lever.co/Gantri/2f250e06-053c-4e64-b875-732dae2d8af0",
       "sourceType": "lever",
-      "fitScore": 42,
-      "fitSummary": "42% target alignment · same line of work: production · goal overlap: ownership · location: San Francisco Bay Area, United States",
+      "fitScore": 35,
+      "fitSummary": "35% target alignment · same line of work: production · goal overlap: ownership · location: San Francisco Bay Area, United States · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -3071,8 +3201,8 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391151008",
       "sourceType": "greenhouse",
-      "fitScore": 31,
-      "fitSummary": "31% target alignment · same line of work: operations · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: engineer",
+      "fitScore": 39,
+      "fitSummary": "39% target alignment · same line of work: operations · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: engineer",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -3084,8 +3214,8 @@
       "location": "Boston, MA; Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY; Washington, DC",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391787008",
       "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 57,
+      "fitSummary": "57% target alignment · same line of work: program · skill in title: project management · skill in posting: agency · goal overlap: agency, roles, ownership · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -3097,10 +3227,10 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5391211008",
       "sourceType": "greenhouse",
-      "fitScore": 44,
-      "fitSummary": "44% target alignment · same line of work: operations · skill in posting: project management, agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 52,
+      "fitSummary": "52% target alignment · same line of work: operations · skill in posting: project management, agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -3112,7 +3242,7 @@
       "sourceType": "greenhouse",
       "fitScore": 100,
       "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, project management, brand, cross-functional · goal overlap: brand, marketing, meaningful, ownership · location: United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3136,8 +3266,8 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5388726008",
       "sourceType": "greenhouse",
-      "fitScore": 46,
-      "fitSummary": "46% target alignment · same line of work: program · skill in posting: project management, brand, agency, cross-functional · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 47,
+      "fitSummary": "47% target alignment · same line of work: program · skill in posting: project management, brand, agency, cross-functional · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -3164,7 +3294,7 @@
       "sourceType": "ashby",
       "fitScore": 62,
       "fitSummary": "62% target alignment · title overlap: operations · skill overlap: project management, cross-functional · goal overlap: cross-functional · location: San Francisco Bay Area",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3281,7 +3411,7 @@
       "sourceType": "greenhouse",
       "fitScore": 50,
       "fitSummary": "50% target alignment · same line of work: production · skill in posting: brand, agency · goal overlap: brand, marketing, agency, meaningful · location: San Francisco Bay Area, California",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3320,7 +3450,7 @@
       "sourceType": "greenhouse",
       "fitScore": 50,
       "fitSummary": "50% target alignment · same line of work: creative · skill in posting: brand, agency · goal overlap: brand, marketing, agency, meaningful · location: San Francisco Bay Area, California",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3450,7 +3580,7 @@
       "sourceType": "greenhouse",
       "fitScore": 100,
       "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, meaningful · location: United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3463,7 +3593,7 @@
       "sourceType": "greenhouse",
       "fitScore": 100,
       "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, project management, brand, cross-functional · goal overlap: brand, marketing, meaningful, ownership · location: United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3567,7 +3697,7 @@
       "sourceType": "ashby",
       "fitScore": 78,
       "fitSummary": "78% target alignment · title overlap: operations · skill overlap: creative operations, cross-functional, Lead Creative Program Manager, Sr. Lead Creative Ops · goal overlap: marketing, roles, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3580,7 +3710,7 @@
       "sourceType": "ashby",
       "fitScore": 73,
       "fitSummary": "73% target alignment · target title: Project Manager · skill in title: project management · skill in posting: cross-functional · goal overlap: marketing, roles, ownership, cross-functional · location: San Francisco Bay Area · company type you usually dismiss",
-      "status": "new",
+      "status": "archived",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3658,7 +3788,7 @@
       "sourceType": "greenhouse",
       "fitScore": 81,
       "fitSummary": "81% target alignment · title overlap: creative · skill overlap: creative operations, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3762,7 +3892,7 @@
       "sourceType": "greenhouse",
       "fitScore": 59,
       "fitSummary": "59% target alignment · same line of work: brand · skill in title: brand · skill in posting: project management, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3788,7 +3918,7 @@
       "sourceType": "greenhouse",
       "fitScore": 59,
       "fitSummary": "59% target alignment · same line of work: brand · skill in title: brand · skill in posting: project management, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3801,7 +3931,7 @@
       "sourceType": "greenhouse",
       "fitScore": 100,
       "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency, roles · location: United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3814,7 +3944,7 @@
       "sourceType": "greenhouse",
       "fitScore": 100,
       "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency, roles · location: United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3827,7 +3957,7 @@
       "sourceType": "greenhouse",
       "fitScore": 100,
       "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency, roles · location: United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3840,7 +3970,7 @@
       "sourceType": "greenhouse",
       "fitScore": 100,
       "fitSummary": "100% target alignment · target title: Project Manager · skill overlap: creative operations, integrated production, project management, brand · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3879,7 +4009,7 @@
       "sourceType": "greenhouse",
       "fitScore": 83,
       "fitSummary": "83% target alignment · title overlap: creative · skill overlap: integrated production, project management, brand, agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, California",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3903,8 +4033,8 @@
       "location": "United States",
       "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4274197009",
       "sourceType": "greenhouse",
-      "fitScore": 42,
-      "fitSummary": "42% target alignment · same line of work: program · skill in posting: agency, cross-functional · goal overlap: marketing, agency, cross-functional · location: United States · company type you usually dismiss",
+      "fitScore": 43,
+      "fitSummary": "43% target alignment · same line of work: program · skill in posting: agency, cross-functional · goal overlap: marketing, agency, cross-functional · location: United States · similar to roles you dismissed: coordinator",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -3916,8 +4046,8 @@
       "location": "United States",
       "sourceUrl": "https://job-boards.greenhouse.io/attentive/jobs/4118958009",
       "sourceType": "greenhouse",
-      "fitScore": 34,
-      "fitSummary": "34% target alignment · same line of work: operations · goal overlap: marketing · location: United States · company type you usually dismiss",
+      "fitScore": 35,
+      "fitSummary": "35% target alignment · same line of work: operations · goal overlap: marketing · location: United States · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -3929,10 +4059,23 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5382033008",
       "sourceType": "greenhouse",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · same line of work: program · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 46,
+      "fitSummary": "46% target alignment · same line of work: program · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "a1cb818a-1fdf-4796-980e-3289efd0991d",
+      "title": "AI Infrastructure Operations, Demand Planning",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5382750008",
+      "sourceType": "greenhouse",
+      "fitScore": 46,
+      "fitSummary": "46% target alignment · same line of work: operations · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -3949,19 +4092,6 @@
       "origin": "monitored"
     },
     {
-      "id": "a1cb818a-1fdf-4796-980e-3289efd0991d",
-      "title": "AI Infrastructure Operations, Demand Planning",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5382750008",
-      "sourceType": "greenhouse",
-      "fitScore": 38,
-      "fitSummary": "38% target alignment · same line of work: operations · skill in posting: agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": false,
-      "origin": "monitored"
-    },
-    {
       "id": "0b10dd60-4b02-4ea2-a080-94faf2c42f78",
       "title": "Program Manager, GTM Systems",
       "company": "Anthropic",
@@ -3970,7 +4100,7 @@
       "sourceType": "greenhouse",
       "fitScore": 60,
       "fitSummary": "60% target alignment · title overlap: program · skill overlap: cross-functional · goal overlap: roles, cross-functional · location: San Francisco Bay Area, United States",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "monitored"
     },
@@ -3983,6 +4113,19 @@
       "sourceType": "greenhouse",
       "fitScore": 47,
       "fitSummary": "47% target alignment · title overlap: operations · goal overlap: roles, ownership · location: San Francisco Bay Area, United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "e7e3770b-4405-4b01-b25f-238c8b1272f7",
+      "title": "Director, Compute Infrastructure Procurement Operations",
+      "company": "Anthropic",
+      "location": "San Francisco, CA | New York City, NY",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5234538008",
+      "sourceType": "greenhouse",
+      "fitScore": 74,
+      "fitSummary": "74% target alignment · target title: Director of Operations · skill in posting: project management, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4053,14 +4196,14 @@
       "origin": "monitored"
     },
     {
-      "id": "e7e3770b-4405-4b01-b25f-238c8b1272f7",
-      "title": "Director, Compute Infrastructure Procurement Operations",
+      "id": "02c20ad6-d97c-4289-8cd2-1e74df9d2250",
+      "title": "Community & Executive Escalations Program Manager",
       "company": "Anthropic",
       "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5234538008",
+      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5207565008",
       "sourceType": "greenhouse",
-      "fitScore": 66,
-      "fitSummary": "66% target alignment · target title: Director of Operations · skill in posting: project management, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 61,
+      "fitSummary": "61% target alignment · same line of work: program · skill in title: project management · skill in posting: brand, agency, cross-functional · goal overlap: brand, agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4092,27 +4235,14 @@
       "origin": "monitored"
     },
     {
-      "id": "02c20ad6-d97c-4289-8cd2-1e74df9d2250",
-      "title": "Community & Executive Escalations Program Manager",
-      "company": "Anthropic",
-      "location": "San Francisco, CA | New York City, NY",
-      "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5207565008",
-      "sourceType": "greenhouse",
-      "fitScore": 53,
-      "fitSummary": "53% target alignment · same line of work: program · skill in title: project management · skill in posting: brand, agency, cross-functional · goal overlap: brand, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "b0e897e2-476c-4436-9e27-e9bf700c0f66",
       "title": "Program Manager, Communications",
       "company": "Anthropic",
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5252781008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: marketing, agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4124,8 +4254,8 @@
       "location": "Boston, MA; Remote-Friendly (Travel-Required) | San Francisco, CA | Seattle, WA | New York City, NY; Washington, DC",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5385626008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4137,8 +4267,8 @@
       "location": "San Francisco, CA | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5162711008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4150,8 +4280,8 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5274119008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4163,8 +4293,8 @@
       "location": "San Francisco, CA | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5274117008",
       "sourceType": "greenhouse",
-      "fitScore": 51,
-      "fitSummary": "51% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · same line of work: program · skill in title: project management · skill in posting: agency, cross-functional · goal overlap: agency, roles, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4176,8 +4306,8 @@
       "location": "San Francisco, CA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5176201008",
       "sourceType": "greenhouse",
-      "fitScore": 49,
-      "fitSummary": "49% target alignment · same line of work: brand · skill in title: brand · skill in posting: agency · goal overlap: brand, marketing, agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 54,
+      "fitSummary": "54% target alignment · same line of work: brand · skill in title: brand · skill in posting: agency · goal overlap: brand, marketing, agency, roles · like roles you missed: marketing · location: San Francisco Bay Area, United States · similar to roles you dismissed: marketing",
       "status": "new",
       "alignmentPasses": true,
       "origin": "monitored"
@@ -4189,10 +4319,10 @@
       "location": "San Francisco, CA | New York City, NY",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5383710008",
       "sourceType": "greenhouse",
-      "fitScore": 42,
-      "fitSummary": "42% target alignment · same line of work: operations · skill in posting: agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 50,
+      "fitSummary": "50% target alignment · same line of work: operations · skill in posting: agency, cross-functional · goal overlap: agency, roles, ownership, cross-functional · location: San Francisco Bay Area, United States",
       "status": "new",
-      "alignmentPasses": false,
+      "alignmentPasses": true,
       "origin": "monitored"
     },
     {
@@ -4202,8 +4332,8 @@
       "location": "San Francisco, CA | New York City, NY | Seattle, WA",
       "sourceUrl": "https://job-boards.greenhouse.io/anthropic/jobs/5179891008",
       "sourceType": "greenhouse",
-      "fitScore": 40,
-      "fitSummary": "40% target alignment · same line of work: operations · skill in posting: project management, agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · company type you usually dismiss",
+      "fitScore": 41,
+      "fitSummary": "41% target alignment · same line of work: operations · skill in posting: project management, agency · goal overlap: agency, roles · location: San Francisco Bay Area, United States · similar to roles you dismissed: product",
       "status": "new",
       "alignmentPasses": false,
       "origin": "monitored"
@@ -4222,6 +4352,19 @@
       "origin": "monitored"
     },
     {
+      "id": "86bbda23-d5d8-40eb-9a28-aff28c455737",
+      "title": "Live Event Program & Integrated Project Manager (Temporary)",
+      "company": "Tubi",
+      "location": "Los Angeles, CA (Hybrid)",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8065667",
+      "sourceType": "greenhouse",
+      "fitScore": 98,
+      "fitSummary": "98% target alignment · target title: Project Manager · skill in title: project management, Live Event Program and Integrated Project Manager · skill in posting: creative operations, brand, cross-functional · goal overlap: brand, marketing, sports, cross-functional · like roles you missed: event · location: United States",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
       "id": "c91eb7d6-7761-4d77-b17b-b4f59b067cba",
       "title": "Lead Creative Program Manager",
       "company": "Hinge Health",
@@ -4230,7 +4373,7 @@
       "sourceType": "v-watch",
       "fitScore": 96,
       "fitSummary": "Verified July 23, 2026. Excellent fit across creative operations, scalable workflows, AI-enabled processes, agency and vendor management, budgets, change management, and complex cross-functional programs.",
-      "status": "reviewing",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4243,7 +4386,7 @@
       "sourceType": "v-watch",
       "fitScore": 95,
       "fitSummary": "Verified July 23, 2026. Excellent senior-level alignment across resourcing, capacity planning, project systems, operational metrics, risk management, and AI-powered creative efficiency. Growth-performance creative evidence should be explicit.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4269,7 +4412,7 @@
       "sourceType": "v-watch",
       "fitScore": 93,
       "fitSummary": "Verified July 23, 2026; listing dated July 2, 2026. Strong direct fit across integrated creative projects, B2B, events, digital, video, social, forecasting, resourcing, process improvement, and stakeholder management.",
-      "status": "reviewing",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4282,7 +4425,7 @@
       "sourceType": "v-watch",
       "fitScore": 89,
       "fitSummary": "Verified July 23, 2026. Strong experiential-production fit across complex global programs, staffing, budgets, forecasting, vendors, creative feasibility, risk, and senior client relationships. Major B2B technology conference leadership must be proven.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4295,33 +4438,7 @@
       "sourceType": "v-watch",
       "fitScore": 88,
       "fitSummary": "Verified July 23, 2026. Strong creative-operations match for building a high-volume creative-testing operating system. Performance-marketing experimentation and paid-growth measurement need clear evidence.",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "v-watch"
-    },
-    {
-      "id": "5bf83f37-b51f-4c9e-a5e3-4aa977d8eb3f",
-      "title": "Senior Manager, Video Production Operations",
-      "company": "The Athletic",
-      "location": "United States · remote",
-      "sourceUrl": "https://jobs.lever.co/theathletic/b193f00d-359f-416a-9a02-af9876aaa2ca",
-      "sourceType": "v-watch",
-      "fitScore": 84,
-      "fitSummary": "Verified July 23, 2026. Strong Sports-track alignment across global production operations, sponsorship integrations, budgets, team leadership, and major events. Compensation is low for the scope and hands-on editing-tool depth is required.",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "v-watch"
-    },
-    {
-      "id": "86bbda23-d5d8-40eb-9a28-aff28c455737",
-      "title": "Live Event Program & Integrated Project Manager",
-      "company": "Tubi",
-      "location": "Los Angeles hybrid · temporary, approximately six months",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8065667",
-      "sourceType": "v-watch",
-      "fitScore": 78,
-      "fitSummary": "Verified July 22, 2026. Strong sports-marketing alternative across live sports, integrated creative assets, sponsorship deliverables, events, budgets, schedules, and contingency planning. Location, temporary status, and broadcast-production requirements reduce the fit.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4329,14 +4446,27 @@
       "id": "7807b90d-4714-4dca-94ef-1718535813f8",
       "title": "Creative Producer",
       "company": "Aventon",
-      "location": "Brea, California · on-site",
+      "location": "Brea, California",
       "sourceUrl": "https://jobs.lever.co/aventon/0027abdd-ae5b-4ff8-aa6d-39744a056db2",
-      "sourceType": "v-watch",
-      "fitScore": 76,
-      "fitSummary": "Verified July 22, 2026. Strong creative-production match involving campaigns, branded content, photo and video production, vendors, budgets, workflow improvement, and athlete storytelling. Southern California on-site requirements are the main constraint.",
+      "sourceType": "lever",
+      "fitScore": 83,
+      "fitSummary": "83% target alignment · target title: Producer, Creative Producer · skill in title: Creative Producer · skill in posting: brand, cross-functional · goal overlap: brand, cross-functional, delivery. · location: California, United States",
       "status": "new",
       "alignmentPasses": true,
-      "origin": "v-watch"
+      "origin": "monitored"
+    },
+    {
+      "id": "5bf83f37-b51f-4c9e-a5e3-4aa977d8eb3f",
+      "title": "Senior Manager, Video Productions Operations (Remote)",
+      "company": "The Athletic",
+      "location": "United States",
+      "sourceUrl": "https://jobs.lever.co/theathletic/b193f00d-359f-416a-9a02-af9876aaa2ca",
+      "sourceType": "lever",
+      "fitScore": 54,
+      "fitSummary": "54% target alignment · same line of work: production, operations · skill in title: Senior Manager · goal overlap: sports, roles · location: United States · similar to roles you dismissed: product",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
     },
     {
       "id": "ccd7fd97-e896-4af2-9a2a-e2e2331e01d1",
@@ -4360,7 +4490,7 @@
       "sourceType": "v-watch",
       "fitScore": 91,
       "fitSummary": "Verified July 22, 2026. Strong fit across live events, launches, client and vendor management, RFPs, schedules, budgets, risk management, and experiential production. Technical live-staging depth should be highlighted. Listed compensation: $120K–$130K.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4373,7 +4503,7 @@
       "sourceType": "v-watch",
       "fitScore": 87,
       "fitSummary": "Verified July 22, 2026. Strong-to-moderate fit across global launches, creative campaigns, cross-functional execution, scalable playbooks, budgets, and stakeholder alignment. Beauty and CPG brand ownership is the principal gap. Listed compensation: $105K–$140K.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4386,7 +4516,7 @@
       "sourceType": "v-watch",
       "fitScore": 86,
       "fitSummary": "Verified July 22, 2026. Very close functional match across creative operations, briefs, resource capacity, integrated campaigns, launches, agency coordination, and PMO documentation, though likely below Marcos’s experience level. Listed compensation: $90K–$100K plus equity.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4399,7 +4529,7 @@
       "sourceType": "v-watch",
       "fitScore": 81,
       "fitSummary": "Verified July 22, 2026. Strong responsibility match across agency project management, creative delivery, schedules, budgets, vendors, and risk management. Compensation and seniority appear below Marcos’s background. Listed compensation: $60K–$80K.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4425,7 +4555,7 @@
       "sourceType": "v-watch",
       "fitScore": 92,
       "fitSummary": "Verified July 21, 2026. Strong alignment across end-to-end experiential production, budgets, vendors, agencies, creative direction, scalable processes, and post-event measurement. The listing requires extensive seniority and 30–40% travel.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4438,7 +4568,7 @@
       "sourceType": "v-watch",
       "fitScore": 91,
       "fitSummary": "Verified July 21, 2026. Strong fit across advertising, creative solutions, operational leadership, cross-functional programs, stakeholder influence, and Marcos’s previous Google and agency experience. Ad-product commercialization and people leadership need clear evidence.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     },
@@ -4451,7 +4581,7 @@
       "sourceType": "v-watch",
       "fitScore": 88,
       "fitSummary": "Verified July 21, 2026. Strong-to-moderate fit across creative systems, operational optimization, marketing communications delivery, and scaled production. Performance and growth-marketing experimentation need stronger evidence.",
-      "status": "new",
+      "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
     }
