@@ -38,6 +38,17 @@ test("the deadline is a boundary, not a range", () => {
   assert.equal(daysSince("nonsense", "2026-09-03"), null);
 });
 
+test("reopening resets the clock, so the same silence must be waited out again", () => {
+  // Applied 2026-06-01, already past the deadline by 2026-09-03 (94 days) —
+  // but reopened on 2026-08-20, so the clock restarts there.
+  const reopened = applied({ silenceResetAt: "2026-08-20" });
+  const stillWaiting = expireSilentApplications([reopened], { today: "2026-09-03" });
+  assert.equal(stillWaiting.closed.length, 0, "14 days since the reopen is still within the deadline");
+  const pastAgain = expireSilentApplications([reopened], { today: "2026-10-19" });
+  assert.equal(pastAgain.closed.length, 1, "the reset deadline can still be reached");
+  assert.equal(pastAgain.closed[0].waited, 60);
+});
+
 test("the array is returned untouched when nothing expires", () => {
   const rows = [applied({ date: "2026-09-01" })];
   assert.equal(expireSilentApplications(rows, { today: "2026-09-03" }).applications, rows, "no needless re-render");
@@ -54,6 +65,7 @@ test("what is working stays quiet until there is enough to mean anything", () =>
   assert.equal(two.ready, false);
   assert.equal(two.answered, 2);
   assert.deepEqual(two.words, [], "no pattern is offered from two replies");
+  assert.equal(two.medianReplyDays, null, "a speed claim from two replies would be as misleading as the word list");
   assert.match(two.reason, new RegExp(`once ${REPLY_MIN_SAMPLE} applications have been answered`));
 });
 
