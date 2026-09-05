@@ -1,7 +1,7 @@
 {
-  "fetchedAt": "2026-09-04T16:53:35Z",
-  "lastRunAt": "2026-09-04 16:53:33",
-  "dueCount": 8,
+  "fetchedAt": "2026-09-05T00:57:47Z",
+  "lastRunAt": "2026-09-05 00:57:46",
+  "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
     "prefer": "Specific examples, short sentences, concrete outcomes, and plain language.",
@@ -14,7 +14,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-03 18:01:31",
+      "lastCheckedAt": "2026-09-04 18:01:38",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -22,8 +22,8 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 12:01:18",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-05 00:57:42",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Anthropic",
@@ -62,15 +62,15 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-03 22:01:18",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-04 19:35:18",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Barbarian",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 06:01:04",
+      "lastCheckedAt": "2026-09-04 18:01:14",
       "lastRunSummary": "Background scheduled scan · 2 verified roles read · 0 met the 45% minimum · 0 near misses kept · 2 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
     },
     {
@@ -78,16 +78,16 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 10:01:12",
+      "lastCheckedAt": "2026-09-05 00:01:05",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Code and Theory",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 6,
-      "lastCheckedAt": "2026-09-04 06:01:15",
-      "lastRunSummary": "Background scheduled scan · 60 verified roles read · 6 met the 45% minimum · 1 near misses kept · 53 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
+      "lastRunFoundCount": 7,
+      "lastCheckedAt": "2026-09-04 19:35:17",
+      "lastRunSummary": "App-open catch-up scan · 62 verified roles read · 7 met the 45% minimum · 1 near misses kept · 54 filtered out by the role/market gates · 1 new (1 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
     },
     {
       "company": "Droga5",
@@ -102,15 +102,15 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 00:01:18",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-04 19:35:21",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Edelman",
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-03 18:01:17",
+      "lastCheckedAt": "2026-09-04 18:01:18",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -134,7 +134,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 10:01:13",
+      "lastCheckedAt": "2026-09-05 00:01:06",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -142,7 +142,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-03 18:01:23",
+      "lastCheckedAt": "2026-09-04 18:01:30",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -150,15 +150,15 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-03 22:01:17",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-04 19:35:17",
+      "lastRunSummary": "App-open catch-up scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Highwire",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 18,
-      "lastCheckedAt": "2026-09-04 08:01:01",
+      "lastCheckedAt": "2026-09-04 20:01:03",
       "lastRunSummary": "Background scheduled scan · 89 verified roles read · 18 met the 45% minimum · 5 near misses kept · 66 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -174,23 +174,23 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 9,
-      "lastCheckedAt": "2026-09-04 10:01:11",
-      "lastRunSummary": "Background scheduled scan · 64 verified roles read · 9 met the 45% minimum · 1 near misses kept · 54 filtered out by the role/market gates · 2 new (2 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
+      "lastCheckedAt": "2026-09-05 00:00:57",
+      "lastRunSummary": "Background scheduled scan · 64 verified roles read · 9 met the 45% minimum · 1 near misses kept · 54 filtered out by the role/market gates · 1 new (1 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
     },
     {
       "company": "Inizio Evoke",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 12:01:13",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-05 00:57:38",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Instrument",
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 10:01:13",
+      "lastCheckedAt": "2026-09-05 00:01:07",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -222,7 +222,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-03 18:01:28",
+      "lastCheckedAt": "2026-09-04 18:01:35",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -254,7 +254,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 08:01:05",
+      "lastCheckedAt": "2026-09-04 22:00:43",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -262,7 +262,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 08:01:09",
+      "lastCheckedAt": "2026-09-04 22:00:47",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -270,8 +270,8 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 12:01:22",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-05 00:57:46",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "The Athletic",
@@ -293,16 +293,16 @@
       "company": "VaynerMedia",
       "active": true,
       "lastRunStatus": "completed",
-      "lastRunFoundCount": 7,
-      "lastCheckedAt": "2026-09-04 06:01:03",
-      "lastRunSummary": "Background scheduled scan · 75 verified roles read · 7 met the 45% minimum · 4 near misses kept · 64 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
+      "lastRunFoundCount": 10,
+      "lastCheckedAt": "2026-09-04 18:01:13",
+      "lastRunSummary": "Background scheduled scan · 84 verified roles read · 10 met the 45% minimum · 4 near misses kept · 70 filtered out by the role/market gates · 3 new (3 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Venables Bell + Partners",
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-03 22:01:16",
+      "lastCheckedAt": "2026-09-04 18:01:44",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -310,7 +310,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 08:01:01",
+      "lastCheckedAt": "2026-09-04 20:01:04",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -318,7 +318,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-04 10:01:15",
+      "lastCheckedAt": "2026-09-05 00:01:09",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -342,11 +342,76 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 13,
-      "lastCheckedAt": "2026-09-04 06:01:07",
-      "lastRunSummary": "Background scheduled scan · 71 verified roles read · 13 met the 45% minimum · 7 near misses kept · 51 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
+      "lastCheckedAt": "2026-09-04 18:01:17",
+      "lastRunSummary": "Background scheduled scan · 72 verified roles read · 13 met the 45% minimum · 8 near misses kept · 51 filtered out by the role/market gates · 1 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     }
   ],
   "opportunities": [
+    {
+      "id": "960adc02-805b-4480-a328-b62b53dad827",
+      "title": "Apply for Project Manager, Delivery (Manila) Apply",
+      "company": "Code and Theory",
+      "location": "Location not listed",
+      "sourceUrl": "https://www.codeandtheory.com/careers/8783454002",
+      "sourceType": "public-careers-page",
+      "fitScore": 59,
+      "fitSummary": "59% target alignment · target title: Project Manager · skill in title: project management · location not listed — market unconfirmed",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "9e158cb7-21d2-483d-96e8-a8bcb074dd2a",
+      "title": "Associate Director, Influencer Marketing, Naturium",
+      "company": "e.l.f. Cosmetics",
+      "location": "Los Angeles, CA",
+      "sourceUrl": "https://jobs.lever.co/elfbeauty/3dd391ef-54fa-486b-8b78-b7c081e788f1",
+      "sourceType": "lever",
+      "fitScore": 38,
+      "fitSummary": "38% target alignment · same work, different word: marketing ≈ brand · skill in posting: brand · goal overlap: brand, marketing, meaningful · like roles you missed: marketing · location: United States · similar to roles you dismissed: marketing",
+      "status": "new",
+      "alignmentPasses": false,
+      "origin": "monitored"
+    },
+    {
+      "id": "a3d9ddbd-5a96-431b-afc2-9f16353c776e",
+      "title": "Senior Producer / Project Manager",
+      "company": "VaynerMedia",
+      "location": "EU- Remote",
+      "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8179495",
+      "sourceType": "greenhouse",
+      "fitScore": 81,
+      "fitSummary": "81% target alignment · target title: Project Manager, Producer · skill in title: project management · skill in posting: integrated production, agency · goal overlap: advertising, agency, ownership · remote option",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "35f82b4c-b439-4d84-9152-b7a27dd06bd8",
+      "title": "Sr Social Producer - EBAY",
+      "company": "VaynerMedia",
+      "location": "EU- Remote",
+      "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8153607",
+      "sourceType": "greenhouse",
+      "fitScore": 62,
+      "fitSummary": "62% target alignment · target title: Producer · remote option",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
+    {
+      "id": "3d15ae56-e736-467b-94b2-e088b0eb29d5",
+      "title": "Post Creative Strategist",
+      "company": "VaynerMedia",
+      "location": "EU- Remote",
+      "sourceUrl": "https://vaynermedia.com/careers?gh_jid=8141345",
+      "sourceType": "greenhouse",
+      "fitScore": 48,
+      "fitSummary": "48% target alignment · same line of work: creative · skill in posting: brand, agency · goal overlap: brand, advertising, marketing, agency · remote option",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "monitored"
+    },
     {
       "id": "b875fa2f-11ec-4ac3-95c2-9cc363767d94",
       "title": "Project Manager Program Delivery Canada",
@@ -4456,19 +4521,6 @@
       "origin": "monitored"
     },
     {
-      "id": "86bbda23-d5d8-40eb-9a28-aff28c455737",
-      "title": "Live Event Program & Integrated Project Manager (Temporary)",
-      "company": "Tubi",
-      "location": "Los Angeles, CA (Hybrid)",
-      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8065667",
-      "sourceType": "greenhouse",
-      "fitScore": 98,
-      "fitSummary": "98% target alignment · target title: Project Manager · skill in title: project management, Live Event Program and Integrated Project Manager · skill in posting: creative operations, brand, cross-functional · goal overlap: brand, marketing, sports, cross-functional · like roles you missed: event · location: United States",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
       "id": "c91eb7d6-7761-4d77-b17b-b4f59b067cba",
       "title": "Lead Creative Program Manager",
       "company": "Hinge Health",
@@ -4495,6 +4547,19 @@
       "origin": "v-watch"
     },
     {
+      "id": "6b10da81-c912-4480-8f83-27415865ba8b",
+      "title": "Member of Creative Studio, Producer, Brand & Creative",
+      "company": "Perplexity",
+      "location": "San Francisco, New York, or U.S. remote",
+      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/678d1162-e650-4d6d-9532-b287255c00fb",
+      "sourceType": "v-watch",
+      "fitScore": 95,
+      "fitSummary": "Verified July 23, 2026. Excellent fit as the operational backbone for brand campaigns, launches, shoots, and partnerships, with ownership of scopes, timelines, budgets, vendors, agencies, and cross-functional intake.",
+      "status": "dismissed",
+      "alignmentPasses": true,
+      "origin": "v-watch"
+    },
+    {
       "id": "bcacdb69-7077-4c0e-98db-58031e196e54",
       "title": "Senior Project Manager, Creative & Marketing",
       "company": "Snap",
@@ -4506,19 +4571,6 @@
       "status": "dismissed",
       "alignmentPasses": true,
       "origin": "v-watch"
-    },
-    {
-      "id": "6b10da81-c912-4480-8f83-27415865ba8b",
-      "title": "Creative Operations Manager",
-      "company": "Perplexity",
-      "location": "New York City",
-      "sourceUrl": "https://jobs.ashbyhq.com/perplexity/678d1162-e650-4d6d-9532-b287255c00fb",
-      "sourceType": "ashby",
-      "fitScore": 89,
-      "fitSummary": "89% target alignment · target title: Creative Operations · skill in title: creative operations · skill in posting: project management, brand, agency, cross-functional · goal overlap: brand, marketing, agency, cross-functional · location: United States",
-      "status": "dismissed",
-      "alignmentPasses": true,
-      "origin": "monitored"
     },
     {
       "id": "8447eefe-456b-4524-b71f-3cba7ca43ac4",
@@ -4547,30 +4599,43 @@
       "origin": "v-watch"
     },
     {
+      "id": "5bf83f37-b51f-4c9e-a5e3-4aa977d8eb3f",
+      "title": "Senior Manager, Video Production Operations",
+      "company": "The Athletic",
+      "location": "United States · remote",
+      "sourceUrl": "https://jobs.lever.co/theathletic/b193f00d-359f-416a-9a02-af9876aaa2ca",
+      "sourceType": "v-watch",
+      "fitScore": 84,
+      "fitSummary": "Verified July 23, 2026. Strong Sports-track alignment across global production operations, sponsorship integrations, budgets, team leadership, and major events. Compensation is low for the scope and hands-on editing-tool depth is required.",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "v-watch"
+    },
+    {
+      "id": "86bbda23-d5d8-40eb-9a28-aff28c455737",
+      "title": "Live Event Program & Integrated Project Manager",
+      "company": "Tubi",
+      "location": "Los Angeles hybrid · temporary, approximately six months",
+      "sourceUrl": "https://job-boards.greenhouse.io/tubitv/jobs/8065667",
+      "sourceType": "v-watch",
+      "fitScore": 78,
+      "fitSummary": "Verified July 22, 2026. Strong sports-marketing alternative across live sports, integrated creative assets, sponsorship deliverables, events, budgets, schedules, and contingency planning. Location, temporary status, and broadcast-production requirements reduce the fit.",
+      "status": "new",
+      "alignmentPasses": true,
+      "origin": "v-watch"
+    },
+    {
       "id": "7807b90d-4714-4dca-94ef-1718535813f8",
       "title": "Creative Producer",
       "company": "Aventon",
-      "location": "Brea, California",
+      "location": "Brea, California · on-site",
       "sourceUrl": "https://jobs.lever.co/aventon/0027abdd-ae5b-4ff8-aa6d-39744a056db2",
-      "sourceType": "lever",
-      "fitScore": 83,
-      "fitSummary": "83% target alignment · target title: Producer, Creative Producer · skill in title: Creative Producer · skill in posting: brand, cross-functional · goal overlap: brand, cross-functional, delivery. · location: California, United States",
+      "sourceType": "v-watch",
+      "fitScore": 76,
+      "fitSummary": "Verified July 22, 2026. Strong creative-production match involving campaigns, branded content, photo and video production, vendors, budgets, workflow improvement, and athlete storytelling. Southern California on-site requirements are the main constraint.",
       "status": "new",
       "alignmentPasses": true,
-      "origin": "monitored"
-    },
-    {
-      "id": "5bf83f37-b51f-4c9e-a5e3-4aa977d8eb3f",
-      "title": "Senior Manager, Video Productions Operations (Remote)",
-      "company": "The Athletic",
-      "location": "United States",
-      "sourceUrl": "https://jobs.lever.co/theathletic/b193f00d-359f-416a-9a02-af9876aaa2ca",
-      "sourceType": "lever",
-      "fitScore": 54,
-      "fitSummary": "54% target alignment · same line of work: production, operations · skill in title: Senior Manager · goal overlap: sports, roles · location: United States · similar to roles you dismissed: product",
-      "status": "new",
-      "alignmentPasses": true,
-      "origin": "monitored"
+      "origin": "v-watch"
     },
     {
       "id": "ccd7fd97-e896-4af2-9a2a-e2e2331e01d1",
