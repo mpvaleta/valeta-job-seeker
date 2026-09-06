@@ -1,9 +1,13 @@
 type DraftLike = { id?: string; type?: "resume" | "cover"; company?: string; role?: string; url?: string; jobSnapshotId?: string; applicationId?: string; createdAt?: string; updatedAt?: string; versionNumber?: number };
 type ApplicationLike = { id?: string; company?: string; role?: string; url?: string; jobSnapshotId?: string; resumeVersionId?: string; coverVersionId?: string };
+export type ResolvedDrafts<D> = { resume: { draft: D | null; linked: boolean }; cover: { draft: D | null; linked: boolean } };
 export function normalizeJobUrl(value?: string): string;
 export function normalizeName(value?: string): string;
 export function companyFromJobUrl(value?: string): string;
 export function draftMatchesApplication(draft: DraftLike, application: ApplicationLike): boolean;
-export function resolveApplicationDrafts<D extends DraftLike>(application: ApplicationLike, drafts: D[]): { resume: { draft: D | null; linked: boolean }; cover: { draft: D | null; linked: boolean } };
+export function resolveApplicationDrafts<D extends DraftLike>(application: ApplicationLike, drafts: D[]): ResolvedDrafts<D>;
 export function draftLinksFor(application: ApplicationLike, drafts: DraftLike[]): { resumeVersionId?: string; coverVersionId?: string };
 export function applicationForDraft<A extends ApplicationLike>(draft: DraftLike, applications: A[]): A | null;
+export function linkableDrafts<D extends DraftLike>(application: ApplicationLike, drafts: D[], resolved?: ResolvedDrafts<D>): D[];
+export function linkDraftToApplication<A extends ApplicationLike, D extends DraftLike>(applications: A[], drafts: D[], applicationId: string, draft: DraftLike): { applications: A[]; drafts: D[] };
+export function unpinDrafts<D extends DraftLike>(drafts: D[], applicationId: string): D[];
