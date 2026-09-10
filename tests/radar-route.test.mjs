@@ -4,6 +4,7 @@ import test from "node:test";
 import { Miniflare } from "miniflare";
 import { accessHeaders, installAccessEnv } from "./helpers/access-token.mjs";
 import { DEFAULT_RADAR_MONITORS } from "../lib/default-radar-monitors.ts";
+import { JOB_WATCH_BATCH_ID, JOB_WATCH_ROLES } from "../lib/job-watch-batch.ts";
 
 await installAccessEnv();
 
@@ -487,7 +488,17 @@ test("saved LinkedIn jobs enter the inbox from the official export without fetch
   }
 });
 
-test("V’s Job Watch import is idempotent and preserves the user’s opportunity decision", async () => {
+// The batch is a hand-verified snapshot with a fixed date and a 45-day shelf
+// life (WATCH_BATCH_SHELF_LIFE_DAYS in lib/radar-store.ts), and the route
+// reads the real clock. So the test follows the same calendar: while the batch
+// is fresh it must seed the inbox; once it has aged out it must seed nothing,
+// retire what is still untouched, and leave the owner's decisions alone.
+// Without this the suite turned red by itself on the 46th day.
+const WATCH_BATCH_SHELF_LIFE_DAYS = 45;
+const watchBatchVerifiedAt = Date.parse(`${JOB_WATCH_BATCH_ID.slice(-10)}T00:00:00Z`);
+const watchBatchIsStale = Date.now() - watchBatchVerifiedAt >= WATCH_BATCH_SHELF_LIFE_DAYS * 24 * 60 * 60 * 1_000;
+
+test("V’s Job Watch import is idempotent and preserves the user’s opportunity decision", { skip: watchBatchIsStale && "the batch has aged out; the stale path is covered below" }, async () => {
   const { mf, db } = await createDatabase();
   const worker = await loadWorker();
   const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
@@ -498,6 +509,7 @@ test("V’s Job Watch import is idempotent and preserves the user’s opportunit
     }), env, context);
     const firstData = await first.json();
     assert.equal(first.status, 200);
+    assert.equal(firstData.result.stale, undefined);
     assert.equal(firstData.result.added, 21);
     assert.equal(firstData.opportunities.length, 21);
     assert.ok(firstData.opportunities.every((role) => role.sourceType === "v-watch"));
@@ -518,6 +530,47 @@ test("V’s Job Watch import is idempotent and preserves the user’s opportunit
     assert.equal(secondData.result.updated, 21);
     assert.equal(secondData.opportunities.length, 21);
     assert.equal(secondData.opportunities.find((role) => role.id === chosen.id).status, "shortlisted");
+  } finally {
+    await mf.dispose();
+  }
+});
+
+test("an aged-out V’s Job Watch batch seeds nothing, retires what was never looked at, and keeps the owner’s decision", { skip: !watchBatchIsStale && "the batch is still fresh; the fresh path is covered above" }, async () => {
+  const { mf, db } = await createDatabase();
+  const worker = await loadWorker();
+  const env = { DB: db, ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  try {
+    // A dashboard read creates the owner; then two rows from an earlier,
+    // fresher import: one never opened, one the owner shortlisted.
+    await worker.fetch(new Request("http://localhost/api/radar", { headers }), env, context);
+    const owner = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind("owner@example.com").first();
+    const [untouched, kept] = JOB_WATCH_ROLES;
+    for (const [role, status] of [[untouched, "new"], [kept, "shortlisted"]]) {
+      await db.prepare("INSERT INTO job_opportunities (id, user_id, title, location, source_url, source_type, fit_score, fit_summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(crypto.randomUUID(), owner.id, role.title, role.location, role.sourceUrl, "v-watch", role.fitScore, role.fitSummary, status).run();
+    }
+
+    const response = await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_watch_batch" }),
+    }), env, context);
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.result.stale, true);
+    assert.equal(data.result.added, 0, "month-old listings are not filed as fresh discoveries");
+    assert.equal(data.result.expired, 1, "only the row nobody looked at is retired");
+    const rows = data.opportunities.filter((role) => role.sourceType === "v-watch");
+    assert.equal(rows.length, 2, "nothing is deleted");
+    assert.equal(rows.find((role) => role.sourceUrl === untouched.sourceUrl).status, "expired");
+    assert.equal(rows.find((role) => role.sourceUrl === kept.sourceUrl).status, "shortlisted", "a decision the owner made outlives the batch");
+
+    // Running it again changes nothing more.
+    const again = await (await worker.fetch(new Request("http://localhost/api/radar", {
+      method: "POST", headers,
+      body: JSON.stringify({ action: "import_watch_batch" }),
+    }), env, context)).json();
+    assert.equal(again.result.added, 0);
+    assert.equal(again.result.expired, 0);
   } finally {
     await mf.dispose();
   }
