@@ -1,7 +1,7 @@
 {
-  "fetchedAt": "2026-09-13T16:58:54Z",
-  "lastRunAt": "2026-09-13 16:58:52",
-  "dueCount": 9,
+  "fetchedAt": "2026-09-14T01:05:06Z",
+  "lastRunAt": "2026-09-14 01:05:00",
+  "dueCount": 0,
   "drafting": {
     "tone": "Clear, direct, confident, and practical.",
     "prefer": "Specific examples, short sentences, concrete outcomes, and plain language.",
@@ -14,7 +14,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-12 22:00:36",
+      "lastCheckedAt": "2026-09-13 18:00:30",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -22,7 +22,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 10:00:31",
+      "lastCheckedAt": "2026-09-14 00:00:36",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 6 sources tried. Working source: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -30,15 +30,15 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 52,
-      "lastCheckedAt": "2026-09-13 08:00:46",
-      "lastRunSummary": "Background scheduled scan · 594 verified roles read · 52 met the 45% minimum · 24 near misses kept · 74 filtered out by the role/market gates · 1 new (1 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
+      "lastCheckedAt": "2026-09-13 22:00:20",
+      "lastRunSummary": "Background scheduled scan · 594 verified roles read · 52 met the 45% minimum · 24 near misses kept · 74 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
       "company": "Argonaut",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 08:00:47",
+      "lastCheckedAt": "2026-09-13 22:00:21",
       "lastRunSummary": "Background scheduled scan · 2 verified roles read · 0 met the 45% minimum · 0 near misses kept · 2 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -46,7 +46,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-09-13 08:00:48",
+      "lastCheckedAt": "2026-09-13 22:00:22",
       "lastRunSummary": "Background scheduled scan · 34 verified roles read · 1 met the 45% minimum · 2 near misses kept · 31 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -54,7 +54,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-09-13 08:00:50",
+      "lastCheckedAt": "2026-09-13 22:00:23",
       "lastRunSummary": "Background scheduled scan · 9 verified roles read · 1 met the 45% minimum · 1 near misses kept · 7 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -62,7 +62,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 00:01:46",
+      "lastCheckedAt": "2026-09-13 18:01:52",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -70,7 +70,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 10:00:22",
+      "lastCheckedAt": "2026-09-14 00:00:25",
       "lastRunSummary": "Background scheduled scan · 2 verified roles read · 0 met the 45% minimum · 0 near misses kept · 2 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: greenhouse, public-page. All attempted sources responded."
     },
     {
@@ -78,8 +78,8 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 12:00:36",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-14 01:04:53",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Code and Theory",
@@ -102,7 +102,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 00:01:51",
+      "lastCheckedAt": "2026-09-13 20:00:46",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -110,7 +110,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-12 22:00:19",
+      "lastCheckedAt": "2026-09-13 18:00:14",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -118,7 +118,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-09-13 08:00:51",
+      "lastCheckedAt": "2026-09-13 22:00:25",
       "lastRunSummary": "Background scheduled scan · 9 verified roles read · 1 met the 45% minimum · 2 near misses kept · 6 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -126,23 +126,23 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 12:00:47",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-14 01:05:00",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "Giant Spoon",
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 12:00:37",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-14 01:04:53",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Goodby Silverstein & Partners",
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-12 22:00:29",
+      "lastCheckedAt": "2026-09-13 18:00:23",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -150,7 +150,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 00:00:24",
+      "lastCheckedAt": "2026-09-13 18:00:31",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. No working public source was identified. 1 source fallback failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -182,7 +182,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 10:00:26",
+      "lastCheckedAt": "2026-09-14 00:00:31",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
@@ -190,15 +190,15 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 12:00:38",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
+      "lastCheckedAt": "2026-09-14 01:04:53",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
       "company": "Jack Morton Worldwide",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 8,
-      "lastCheckedAt": "2026-09-13 06:00:33",
+      "lastCheckedAt": "2026-09-13 20:00:28",
       "lastRunSummary": "Background scheduled scan · 71 verified roles read · 8 met the 45% minimum · 5 near misses kept · 58 filtered out by the role/market gates · 1 new (1 matching) · 1 source tried · 2 navigation/non-job links excluded. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -206,7 +206,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 00:01:39",
+      "lastCheckedAt": "2026-09-13 18:01:46",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -222,7 +222,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-12 22:00:33",
+      "lastCheckedAt": "2026-09-13 18:00:27",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -246,7 +246,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 8,
-      "lastCheckedAt": "2026-09-13 06:00:34",
+      "lastCheckedAt": "2026-09-13 20:00:29",
       "lastRunSummary": "Background scheduled scan · 115 verified roles read · 8 met the 45% minimum · 9 near misses kept · 98 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: ashby. All attempted sources responded."
     },
     {
@@ -270,15 +270,15 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 12:00:41",
-      "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
+      "lastCheckedAt": "2026-09-14 01:04:57",
+      "lastRunSummary": "Manual scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 7 sources tried. Working sources: public-page. 5 source fallbacks failed; another source still completed. Zero-result reason: the sources responded but contained no direct job-detail links matching the radar's role filters."
     },
     {
       "company": "The Athletic",
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 1,
-      "lastCheckedAt": "2026-09-13 06:00:36",
+      "lastCheckedAt": "2026-09-13 20:00:31",
       "lastRunSummary": "Background scheduled scan · 11 verified roles read · 1 met the 45% minimum · 0 near misses kept · 10 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
@@ -286,7 +286,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 3,
-      "lastCheckedAt": "2026-09-13 06:00:37",
+      "lastCheckedAt": "2026-09-13 20:00:31",
       "lastRunSummary": "Background scheduled scan · 24 verified roles read · 3 met the 45% minimum · 5 near misses kept · 16 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -294,7 +294,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 12,
-      "lastCheckedAt": "2026-09-13 08:00:52",
+      "lastCheckedAt": "2026-09-13 22:00:26",
       "lastRunSummary": "Background scheduled scan · 98 verified roles read · 12 met the 45% minimum · 4 near misses kept · 82 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: greenhouse. All attempted sources responded."
     },
     {
@@ -302,7 +302,7 @@
       "active": true,
       "lastRunStatus": "failed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 00:01:44",
+      "lastCheckedAt": "2026-09-13 18:01:51",
       "lastRunSummary": "Background scheduled scan · 0 verified roles read · 0 met the 45% minimum · 0 near misses kept · 0 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. No working public source was identified. 2 source fallbacks failed; another source still completed. Zero-result reason: no public source responded on this run."
     },
     {
@@ -326,7 +326,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 0,
-      "lastCheckedAt": "2026-09-13 06:00:41",
+      "lastCheckedAt": "2026-09-13 20:00:36",
       "lastRunSummary": "Background scheduled scan · 1 verified roles read · 0 met the 45% minimum · 0 near misses kept · 1 filtered out by the role/market gates · 0 new (0 matching) · 2 sources tried. Working sources: public-page. All attempted sources responded."
     },
     {
@@ -334,7 +334,7 @@
       "active": true,
       "lastRunStatus": "completed",
       "lastRunFoundCount": 5,
-      "lastCheckedAt": "2026-09-13 06:00:44",
+      "lastCheckedAt": "2026-09-13 20:00:41",
       "lastRunSummary": "Background scheduled scan · 47 verified roles read · 5 met the 45% minimum · 5 near misses kept · 37 filtered out by the role/market gates · 0 new (0 matching) · 1 source tried. Working source: lever. All attempted sources responded."
     },
     {
